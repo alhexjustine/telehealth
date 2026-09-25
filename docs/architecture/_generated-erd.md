@@ -74,6 +74,18 @@ erDiagram
     string name UK
     string description
   }
+  symptoms {
+    string id PK
+    string slug UK
+    string name
+    string category
+    boolean is_red_flag
+  }
+  symptom_specializations {
+    string symptom_id PK,FK
+    string specialization_id PK,FK
+    int weight
+  }
   doctor_specializations {
     string doctor_id PK,FK
     string specialization_id PK,FK
@@ -83,6 +95,8 @@ erDiagram
   users ||--o| doctor_profiles : "user"
   doctor_profiles ||--o{ availability_rules : "doctor"
   doctor_profiles ||--o{ availability_exceptions : "doctor"
+  symptoms ||--o{ symptom_specializations : "symptom"
+  specializations ||--o{ symptom_specializations : "specialization"
   doctor_profiles ||--o{ doctor_specializations : "doctor"
   specializations ||--o{ doctor_specializations : "specialization"
 ```

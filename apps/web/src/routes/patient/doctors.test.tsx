@@ -1,0 +1,94 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import { vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createMemoryRouter, RouterProvider } from 'react-router';
+import { FindDoctorPage } from './doctors';
+import { apiClient } from '@/lib/api-client';
+
+vi.mock('@/lib/api-client', () => ({
+  apiClient: { GET: vi.fn(), PUT: vi.fn(), POST: vi.fn(), DELETE: vi.fn() },
+}));
+
+const ok = <T,>(data: T) => ({ data, error: undefined, response: { ok: true, status: 200 } as Response });
+
+const SPECIALIZATIONS = [
+  { id: 'derm-id', slug: 'dermatology', name: 'Dermatology', description: 'Skin' },
+  { id: 'cardio-id', slug: 'cardiology', name: 'Cardiology', description: 'Heart' },
+];
+
+function doctorResult(overrides: Partial<{ id: string; displayName: string; specializations: unknown[] }> = {}) {
+  return {
+    id: 'doc-1',
+    displayName: 'Dr. Grace Hopper',
+    specializations: [{ id: 'derm-id', name: 'Dermatology' }],
+    bioExcerpt: 'A great doctor',
+    yearsOfExperience: 10,
+    consultationMinutes: 30,
+    nextAvailableSlot: '2026-10-05T09:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function renderPage(initialPath = '/patient/doctors') {
+  const queryClient = new QueryClient();
+  const router = createMemoryRouter([{ path: '/patient/doctors', element: <FindDoctorPage /> }], {
+    initialEntries: [initialPath],
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+  return router;
+}
+
+describe('FindDoctorPage', () => {
+  beforeEach(() => {
+    vi.mocked(apiClient.GET).mockReset();
+  });
+
+  it('Filter from the page', async () => {
+    let lastQuery: Record<string, unknown> | undefined;
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown, options?: { params?: { query?: Record<string, unknown> } }) => {
+      if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/doctors') {
+        lastQuery = options?.params?.query;
+        const specialization = options?.params?.query?.specialization;
+        const items = specialization === 'dermatology' ? [doctorResult()] : [doctorResult(), doctorResult({ id: 'doc-2', displayName: 'Dr. Cardio', specializations: [{ id: 'cardio-id', name: 'Cardiology' }] })];
+        return Promise.resolve(ok({ items, total: items.length, page: 1, pageSize: 12 }));
+      }
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    const router = renderPage();
+
+    await screen.findByText('Dr. Grace Hopper');
+    expect(screen.getByText('Dr. Cardio')).toBeInTheDocument();
+
+    const specializationSelect = screen.getByLabelText(/specialization/i);
+    await userEvent.selectOptions(specializationSelect, 'dermatology');
+
+    await waitFor(() => expect(router.state.location.search).toContain('specialization=dermatology'));
+    await waitFor(() => expect(lastQuery?.specialization).toBe('dermatology'));
+    await waitFor(() => expect(screen.queryByText('Dr. Cardio')).not.toBeInTheDocument());
+    expect(screen.getByText('Dr. Grace Hopper')).toBeInTheDocument();
+  });
+
+  it('No results', async () => {
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/doctors') return Promise.resolve(ok({ items: [], total: 0, page: 1, pageSize: 12 }));
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    renderPage();
+
+    expect(await screen.findByText(/no doctors match your search/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /guided symptom matching/i })).toHaveAttribute(
+      'href',
+      '/patient/find-care',
+    );
+  });
+});

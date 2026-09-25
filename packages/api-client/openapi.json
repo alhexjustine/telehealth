@@ -545,6 +545,208 @@
           "doctor-availability"
         ]
       }
+    },
+    "/doctors": {
+      "get": {
+        "operationId": "DiscoveryController_search",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Matches doctor name or specialization name, case-insensitive",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "specialization",
+            "required": false,
+            "in": "query",
+            "description": "Specialization slug, e.g. cardiology",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "availableFrom",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "availableTo",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "next",
+              "type": "string",
+              "enum": [
+                "next",
+                "name",
+                "experience"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 12,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorSearchResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Searches approved, active doctors with filters, sorting, and pagination",
+        "tags": [
+          "doctor-discovery"
+        ]
+      }
+    },
+    "/doctors/{doctorId}": {
+      "get": {
+        "operationId": "DiscoveryController_getProfile",
+        "parameters": [
+          {
+            "name": "doctorId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicDoctorProfileDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Returns a doctor's public profile. Approved, active doctors are visible to any signed-in user; a doctor may always view their own profile.",
+        "tags": [
+          "doctor-discovery"
+        ]
+      }
+    },
+    "/symptoms": {
+      "get": {
+        "operationId": "SymptomsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SymptomCategoryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Lists the symptom catalog, grouped by category and sorted by name",
+        "tags": [
+          "doctor-matching"
+        ]
+      }
+    },
+    "/matching": {
+      "post": {
+        "operationId": "MatchingController_match",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchingRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchingResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Guided symptom matching: scores specializations and ranks approved doctors from selected symptoms and/or free text, using the patient's own profile for the age rule. Nothing is persisted.",
+        "tags": [
+          "doctor-matching"
+        ]
+      }
     }
   },
   "info": {
@@ -1135,6 +1337,388 @@
         "required": [
           "start",
           "end"
+        ]
+      },
+      "DoctorSearchResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "specializations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpecializationSummaryDto"
+            }
+          },
+          "bioExcerpt": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 200
+          },
+          "yearsOfExperience": {
+            "type": "number",
+            "nullable": true
+          },
+          "consultationMinutes": {
+            "type": "number"
+          },
+          "nextAvailableSlot": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "specializations",
+          "bioExcerpt",
+          "yearsOfExperience",
+          "consultationMinutes",
+          "nextAvailableSlot"
+        ]
+      },
+      "DoctorSearchResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoctorSearchResultDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "PublicSpecializationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "description"
+        ]
+      },
+      "PublicDoctorProfileDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "specializations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicSpecializationDto"
+            }
+          },
+          "yearsOfExperience": {
+            "type": "number",
+            "nullable": true
+          },
+          "consultationMinutes": {
+            "type": "number"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "bio",
+          "specializations",
+          "yearsOfExperience",
+          "consultationMinutes",
+          "timezone"
+        ]
+      },
+      "SymptomSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "isRedFlag": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "category",
+          "isRedFlag"
+        ]
+      },
+      "SymptomCategoryDto": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "symptoms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SymptomSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "category",
+          "symptoms"
+        ]
+      },
+      "MatchingRequestDto": {
+        "type": "object",
+        "properties": {
+          "symptomIds": {
+            "maxItems": 50,
+            "description": "Symptom IDs from the catalog",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "descriptionText": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        }
+      },
+      "RedFlagDto": {
+        "type": "object",
+        "properties": {
+          "symptomId": {
+            "type": "string"
+          },
+          "symptomName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "symptomId",
+          "symptomName"
+        ]
+      },
+      "MatchedSymptomDto": {
+        "type": "object",
+        "properties": {
+          "symptomId": {
+            "type": "string"
+          },
+          "symptomName": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "selected",
+              "described"
+            ]
+          }
+        },
+        "required": [
+          "symptomId",
+          "symptomName",
+          "source"
+        ]
+      },
+      "MatchReasonDto": {
+        "type": "object",
+        "properties": {
+          "symptomId": {
+            "type": "string",
+            "nullable": true
+          },
+          "symptomName": {
+            "type": "string",
+            "nullable": true
+          },
+          "specializationId": {
+            "type": "string"
+          },
+          "specializationName": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "number"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "selected",
+              "described",
+              "age",
+              "default"
+            ]
+          }
+        },
+        "required": [
+          "symptomId",
+          "symptomName",
+          "specializationId",
+          "specializationName",
+          "weight",
+          "source"
+        ]
+      },
+      "SpecializationMatchDto": {
+        "type": "object",
+        "properties": {
+          "specializationId": {
+            "type": "string"
+          },
+          "specializationName": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchReasonDto"
+            }
+          }
+        },
+        "required": [
+          "specializationId",
+          "specializationName",
+          "score",
+          "reasons"
+        ]
+      },
+      "DoctorMatchDto": {
+        "type": "object",
+        "properties": {
+          "doctorId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "specializationId": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchReasonDto"
+            }
+          },
+          "nextAvailableSlot": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "doctorId",
+          "displayName",
+          "specializationId",
+          "score",
+          "reasons",
+          "nextAvailableSlot"
+        ]
+      },
+      "MatchingResponseDto": {
+        "type": "object",
+        "properties": {
+          "urgent": {
+            "type": "boolean"
+          },
+          "emergencyMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "redFlags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RedFlagDto"
+            }
+          },
+          "matchedSymptoms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchedSymptomDto"
+            }
+          },
+          "specializations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpecializationMatchDto"
+            }
+          },
+          "doctors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoctorMatchDto"
+            }
+          },
+          "ageUnknown": {
+            "type": "boolean",
+            "description": "True when the age rule could not run because the patient has no birthday on file"
+          }
+        },
+        "required": [
+          "urgent",
+          "emergencyMessage",
+          "redFlags",
+          "matchedSymptoms",
+          "specializations",
+          "doctors",
+          "ageUnknown"
         ]
       }
     }

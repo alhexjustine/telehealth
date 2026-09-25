@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { VerificationStatus } from '../generated/prisma/enums.js';
+import { isVisibleDoctor } from '../doctors/doctor-visibility.js';
 import { validateSchedule } from './schedule-validator.js';
 import { generateSlots } from './slot-generator.js';
 import type { SaveAvailabilityDto } from './dto/save-availability.dto.js';
@@ -111,10 +111,20 @@ export class AvailabilityService {
       throw new BadRequestException(`Range cannot be longer than ${MAX_SLOT_RANGE_DAYS} days`);
     }
 
-    const profile = await this.prisma.doctorProfile.findUnique({ where: { userId: doctorId } });
+    const profile = await this.prisma.doctorProfile.findUnique({
+      where: { userId: doctorId },
+      include: { user: { select: { status: true } } },
+    });
     // Same 404 for "not found" and "not a doctor visible to this caller", so
-    // existence of a pending/rejected doctor isn't revealed.
-    const visible = profile && (profile.verificationStatus === VerificationStatus.APPROVED || doctorId === caller.id);
+    // existence of a pending/rejected/suspended doctor isn't revealed.
+    const visible =
+      profile &&
+      isVisibleDoctor({
+        doctorId,
+        verificationStatus: profile.verificationStatus,
+        accountStatus: profile.user.status,
+        callerId: caller.id,
+      });
     if (!visible || !profile) {
       throw new NotFoundException('Doctor not found');
     }

@@ -13,6 +13,8 @@ Each table belongs to one of three capabilities documented per module:
   and [Admin](/modules/admin) module pages.
 - **Doctor availability** (`availability_rules`, `availability_exceptions`) — see the
   [Doctor](/modules/doctor) module page.
+- **Symptom catalog** (`symptoms`, `symptom_specializations`) — reference data for guided
+  matching, see the [Patient](/modules/patient#matching-algorithm) module page.
 
 <!--@include: ./_generated-erd.md-->
 
@@ -32,3 +34,6 @@ Each table belongs to one of three capabilities documented per module:
   `availability_exceptions` (time off) stores instants directly, already in UTC. Nothing about
   bookable slots is stored — they're computed on every read (see
   [Doctor](/modules/doctor#availability)).
+- `symptoms` and `symptom_specializations` are reference data (53 symptoms, 74 weighted links,
+  inserted by migration like `specializations`) — read-only, and never returned with `keywords`
+  or `weight` to a client (see [Patient](/modules/patient#matching-algorithm)).

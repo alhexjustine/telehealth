@@ -262,6 +262,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/doctors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Searches approved, active doctors with filters, sorting, and pagination */
+        get: operations["DiscoveryController_search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/doctors/{doctorId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns a doctor's public profile. Approved, active doctors are visible to any signed-in user; a doctor may always view their own profile. */
+        get: operations["DiscoveryController_getProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/symptoms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the symptom catalog, grouped by category and sorted by name */
+        get: operations["SymptomsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/matching": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Guided symptom matching: scores specializations and ranks approved doctors from selected symptoms and/or free text, using the patient's own profile for the age rule. Nothing is persisted. */
+        post: operations["MatchingController_match"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -422,6 +490,97 @@ export interface components {
             start: string;
             /** Format: date-time */
             end: string;
+        };
+        DoctorSearchResultDto: {
+            id: string;
+            displayName: string;
+            specializations: components["schemas"]["SpecializationSummaryDto"][];
+            bioExcerpt: string | null;
+            yearsOfExperience: number | null;
+            consultationMinutes: number;
+            /** Format: date-time */
+            nextAvailableSlot: string | null;
+        };
+        DoctorSearchResponseDto: {
+            items: components["schemas"]["DoctorSearchResultDto"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        PublicSpecializationDto: {
+            id: string;
+            slug: string;
+            name: string;
+            description: string;
+        };
+        PublicDoctorProfileDto: {
+            id: string;
+            displayName: string;
+            bio: string | null;
+            specializations: components["schemas"]["PublicSpecializationDto"][];
+            yearsOfExperience: number | null;
+            consultationMinutes: number;
+            timezone: string;
+        };
+        SymptomSummaryDto: {
+            id: string;
+            slug: string;
+            name: string;
+            category: string;
+            isRedFlag: boolean;
+        };
+        SymptomCategoryDto: {
+            category: string;
+            symptoms: components["schemas"]["SymptomSummaryDto"][];
+        };
+        MatchingRequestDto: {
+            /** @description Symptom IDs from the catalog */
+            symptomIds?: string[];
+            descriptionText?: string;
+        };
+        RedFlagDto: {
+            symptomId: string;
+            symptomName: string;
+        };
+        MatchedSymptomDto: {
+            symptomId: string;
+            symptomName: string;
+            /** @enum {string} */
+            source: "selected" | "described";
+        };
+        MatchReasonDto: {
+            symptomId: string | null;
+            symptomName: string | null;
+            specializationId: string;
+            specializationName: string;
+            weight: number;
+            /** @enum {string} */
+            source: "selected" | "described" | "age" | "default";
+        };
+        SpecializationMatchDto: {
+            specializationId: string;
+            specializationName: string;
+            score: number;
+            reasons: components["schemas"]["MatchReasonDto"][];
+        };
+        DoctorMatchDto: {
+            doctorId: string;
+            displayName: string;
+            specializationId: string;
+            score: number;
+            reasons: components["schemas"]["MatchReasonDto"][];
+            /** Format: date-time */
+            nextAvailableSlot: string | null;
+        };
+        MatchingResponseDto: {
+            urgent: boolean;
+            emergencyMessage: string | null;
+            redFlags: components["schemas"]["RedFlagDto"][];
+            matchedSymptoms: components["schemas"]["MatchedSymptomDto"][];
+            specializations: components["schemas"]["SpecializationMatchDto"][];
+            doctors: components["schemas"]["DoctorMatchDto"][];
+            /** @description True when the age rule could not run because the patient has no birthday on file */
+            ageUnknown: boolean;
         };
     };
     responses: never;
@@ -807,6 +966,98 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SlotResponseDto"][];
+                };
+            };
+        };
+    };
+    DiscoveryController_search: {
+        parameters: {
+            query?: {
+                /** @description Matches doctor name or specialization name, case-insensitive */
+                q?: string;
+                /** @description Specialization slug, e.g. cardiology */
+                specialization?: string;
+                availableFrom?: string;
+                availableTo?: string;
+                sort?: "next" | "name" | "experience";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoctorSearchResponseDto"];
+                };
+            };
+        };
+    };
+    DiscoveryController_getProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doctorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicDoctorProfileDto"];
+                };
+            };
+        };
+    };
+    SymptomsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SymptomCategoryDto"][];
+                };
+            };
+        };
+    };
+    MatchingController_match: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchingRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchingResponseDto"];
                 };
             };
         };

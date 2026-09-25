@@ -5,7 +5,7 @@ import { createTestApp } from './support/test-app.js';
 import { resetDatabase } from './support/reset-db.js';
 import { registerDoctor, registerPatient } from './support/auth-helpers.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
-import { VerificationStatus } from '../src/generated/prisma/enums.js';
+import { AccountStatus, VerificationStatus } from '../src/generated/prisma/enums.js';
 
 function nextWeekday(weekday1to7: number): Date {
   // ISO weekday: Monday = 1 ... Sunday = 7.
@@ -93,6 +93,26 @@ describe('Doctor slots', () => {
       .get(`/api/doctors/${patient.id}/slots`)
       .query({ from, to });
     expect(notADoctorRes.status).toBe(404);
+  });
+
+  it("Suspended approved doctor's slots return 404", async () => {
+    const doctor = await registerDoctor(app);
+    await approveDoctor(app, doctor.id);
+    await doctor.agent
+      .put('/api/doctors/me/availability')
+      .send({ timezone: 'UTC', rules: [{ weekday: 1, startMinute: 9 * 60, endMinute: 10 * 60 }] })
+      .expect(200);
+
+    const prisma = app.get(PrismaService);
+    await prisma.user.update({ where: { id: doctor.id }, data: { status: AccountStatus.SUSPENDED } });
+
+    const monday = nextWeekday(1);
+    const from = monday.toISOString();
+    const to = new Date(monday.getTime() + 24 * 60 * 60 * 1000).toISOString();
+
+    const patient = await registerPatient(app);
+    const res = await patient.agent.get(`/api/doctors/${doctor.id}/slots`).query({ from, to });
+    expect(res.status).toBe(404);
   });
 
   it('Doctor previews own slots while pending', async () => {

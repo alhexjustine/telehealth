@@ -2,8 +2,9 @@ import { PrismaClient } from '../../src/generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 /**
- * Truncates every table except `specializations` (fixed reference data seeded by
- * migrations, never written by tests). Called between e2e spec files so tests are
+ * Truncates every table except `specializations`, `symptoms`, and
+ * `symptom_specializations` (fixed reference data seeded by migrations, never
+ * written by tests). Called between e2e spec files so tests are
  * order-independent regardless of which file Jest runs first.
  */
 export async function resetDatabase(): Promise<void> {

@@ -1,0 +1,212 @@
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { NextSlotService, type DoctorSlotInput } from '../availability/next-slot.service.js';
+import type { Slot } from '../availability/slot-generator.js';
+import { visibleDoctorWhere, isVisibleDoctor } from '../doctors/doctor-visibility.js';
+import type { Prisma } from '../generated/prisma/client.js';
+import {
+  DEFAULT_PAGE_SIZE,
+  type DoctorSortOption,
+  type SearchDoctorsQueryDto,
+} from './dto/search-doctors-query.dto.js';
+import type { DoctorSearchResponseDto, DoctorSearchResultDto } from './dto/doctor-search-result.dto.js';
+import type { PublicDoctorProfileDto } from './dto/public-doctor-profile.dto.js';
+
+const BIO_EXCERPT_LENGTH = 200;
+const SEARCH_HORIZON_DAYS = 14;
+const MAX_AVAILABILITY_RANGE_MS = SEARCH_HORIZON_DAYS * 24 * 60 * 60 * 1000;
+
+const WITH_SPECIALIZATIONS = {
+  specializations: { include: { specialization: true } },
+} satisfies Prisma.DoctorProfileInclude;
+
+type DoctorWithSpecializations = Prisma.DoctorProfileGetPayload<{ include: typeof WITH_SPECIALIZATIONS }>;
+
+@Injectable()
+export class DiscoveryService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly nextSlotService: NextSlotService,
+  ) {}
+
+  async search(query: SearchDoctorsQueryDto): Promise<DoctorSearchResponseDto> {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? DEFAULT_PAGE_SIZE;
+    const sort: DoctorSortOption = query.sort ?? 'next';
+
+    const specializationId = await this.resolveSpecializationId(query.specialization);
+    const availabilityRange = parseAvailabilityRange(query.availableFrom, query.availableTo);
+
+    const where: Prisma.DoctorProfileWhereInput = {
+      AND: [
+        visibleDoctorWhere(),
+        specializationId ? { specializations: { some: { specializationId } } } : {},
+        query.q ? textQueryWhere(query.q) : {},
+      ],
+    };
+
+    const profiles = await this.prisma.doctorProfile.findMany({
+      where,
+      include: WITH_SPECIALIZATIONS,
+    });
+
+    const now = new Date();
+    const horizonTo = new Date(now.getTime() + SEARCH_HORIZON_DAYS * 24 * 60 * 60 * 1000);
+    const slotsByDoctor = await this.nextSlotService.slotsFor(
+      profiles.map(toSlotInput),
+      now,
+      horizonTo,
+      now,
+    );
+
+    let candidates = profiles.map((profile) => ({
+      profile,
+      slots: slotsByDoctor.get(profile.userId) ?? [],
+    }));
+
+    if (availabilityRange) {
+      const { from, to } = availabilityRange;
+      candidates = candidates.filter((candidate) =>
+        candidate.slots.some((slot) => slot.start >= from && slot.start < to),
+      );
+    }
+
+    candidates.sort(comparatorFor(sort));
+
+    const total = candidates.length;
+    const start = (page - 1) * pageSize;
+    const pageItems = candidates.slice(start, start + pageSize);
+
+    return {
+      items: pageItems.map((candidate) => toSearchResultDto(candidate.profile, candidate.slots)),
+      total,
+      page,
+      pageSize,
+    };
+  }
+
+  async getProfile(callerId: string, doctorId: string): Promise<PublicDoctorProfileDto> {
+    const profile = await this.prisma.doctorProfile.findUnique({
+      where: { userId: doctorId },
+      include: { ...WITH_SPECIALIZATIONS, user: { select: { status: true } } },
+    });
+
+    const visible =
+      profile &&
+      isVisibleDoctor({
+        doctorId,
+        verificationStatus: profile.verificationStatus,
+        accountStatus: profile.user.status,
+        callerId,
+      });
+    if (!visible || !profile) {
+      throw new NotFoundException('Doctor not found');
+    }
+
+    return {
+      id: profile.userId,
+      displayName: `${profile.firstName} ${profile.lastName}`,
+      bio: profile.bio,
+      specializations: profile.specializations.map((link) => ({
+        id: link.specialization.id,
+        slug: link.specialization.slug,
+        name: link.specialization.name,
+        description: link.specialization.description,
+      })),
+      yearsOfExperience: profile.yearsOfExperience,
+      consultationMinutes: profile.consultationMinutes,
+      timezone: profile.timezone,
+    };
+  }
+
+  private async resolveSpecializationId(slug?: string): Promise<string | undefined> {
+    if (!slug) return undefined;
+    const specialization = await this.prisma.specialization.findUnique({ where: { slug } });
+    if (!specialization) {
+      throw new BadRequestException('Unknown specialization');
+    }
+    return specialization.id;
+  }
+}
+
+function textQueryWhere(q: string): Prisma.DoctorProfileWhereInput {
+  return {
+    OR: [
+      { firstName: { contains: q, mode: 'insensitive' } },
+      { lastName: { contains: q, mode: 'insensitive' } },
+      { specializations: { some: { specialization: { name: { contains: q, mode: 'insensitive' } } } } },
+    ],
+  };
+}
+
+function parseAvailabilityRange(
+  fromRaw?: string,
+  toRaw?: string,
+): { from: Date; to: Date } | undefined {
+  if (!fromRaw && !toRaw) return undefined;
+  if (!fromRaw || !toRaw) {
+    throw new BadRequestException('availableFrom and availableTo must be provided together');
+  }
+  const from = new Date(fromRaw);
+  const to = new Date(toRaw);
+  if (to.getTime() <= from.getTime()) {
+    throw new BadRequestException('availableTo must be after availableFrom');
+  }
+  if (to.getTime() - from.getTime() > MAX_AVAILABILITY_RANGE_MS) {
+    throw new BadRequestException(`Availability range cannot be longer than ${SEARCH_HORIZON_DAYS} days`);
+  }
+  return { from, to };
+}
+
+function toSlotInput(profile: DoctorWithSpecializations): DoctorSlotInput {
+  return {
+    userId: profile.userId,
+    timezone: profile.timezone,
+    consultationMinutes: profile.consultationMinutes,
+  };
+}
+
+function toSearchResultDto(profile: DoctorWithSpecializations, slots: Slot[]): DoctorSearchResultDto {
+  return {
+    id: profile.userId,
+    displayName: `${profile.firstName} ${profile.lastName}`,
+    specializations: profile.specializations.map((link) => ({
+      id: link.specialization.id,
+      name: link.specialization.name,
+    })),
+    bioExcerpt: excerpt(profile.bio, BIO_EXCERPT_LENGTH),
+    yearsOfExperience: profile.yearsOfExperience,
+    consultationMinutes: profile.consultationMinutes,
+    nextAvailableSlot: slots[0] ? slots[0].start.toISOString() : null,
+  };
+}
+
+function excerpt(text: string | null, maxLength: number): string | null {
+  if (text === null) return null;
+  return text.length > maxLength ? text.slice(0, maxLength) : text;
+}
+
+function displayName(profile: { firstName: string; lastName: string }): string {
+  return `${profile.firstName} ${profile.lastName}`;
+}
+
+function comparatorFor(
+  sort: DoctorSortOption,
+): (a: { profile: DoctorWithSpecializations; slots: Slot[] }, b: { profile: DoctorWithSpecializations; slots: Slot[] }) => number {
+  switch (sort) {
+    case 'name':
+      return (a, b) => displayName(a.profile).localeCompare(displayName(b.profile));
+    case 'experience':
+      return (a, b) => {
+        const experienceDiff = (b.profile.yearsOfExperience ?? -1) - (a.profile.yearsOfExperience ?? -1);
+        return experienceDiff !== 0 ? experienceDiff : displayName(a.profile).localeCompare(displayName(b.profile));
+      };
+    case 'next':
+    default:
+      return (a, b) => {
+        const aNext = a.slots[0]?.start.getTime() ?? Number.POSITIVE_INFINITY;
+        const bNext = b.slots[0]?.start.getTime() ?? Number.POSITIVE_INFINITY;
+        return aNext !== bNext ? aNext - bNext : displayName(a.profile).localeCompare(displayName(b.profile));
+      };
+  }
+}

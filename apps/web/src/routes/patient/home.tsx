@@ -21,8 +21,16 @@ export function PatientHomePage() {
           </AlertDescription>
         </Alert>
       )}
+      <div className="flex flex-wrap gap-3">
+        <Link to="/patient/doctors" className="text-primary underline-offset-4 hover:underline">
+          Find a doctor
+        </Link>
+        <Link to="/patient/find-care" className="text-primary underline-offset-4 hover:underline">
+          Find care by symptoms
+        </Link>
+      </div>
       <p className="text-muted-foreground">
-        Doctor discovery, booking, and your consultations will appear here in a later update.
+        Booking and your consultations will appear here in a later update.
       </p>
     </div>
   );

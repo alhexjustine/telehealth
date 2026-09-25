@@ -1,8 +1,8 @@
 # C4 L3 — Component (Backend API)
 
-Components inside the Backend API container. Foundation, `add-authentication`, and
-`add-doctor-availability` components are done; the remaining feature modules are planned and will
-move to "done" as the change that implements them lands.
+Components inside the Backend API container. Foundation, `add-authentication`,
+`add-doctor-availability`, and `add-doctor-discovery` components are done; the remaining feature
+modules are planned and will move to "done" as the change that implements them lands.
 
 ```mermaid
 C4Component
@@ -20,7 +20,8 @@ C4Component
     Component(patients, "Patients", "PatientsController/Service", "Self-service patient profile and completeness; done")
     Component(doctors, "Doctors", "DoctorsController/Service", "Self-service doctor profile and specializations; done")
     Component(specializations, "Specializations", "SpecializationsController/Service", "Public, read-only catalog; done")
-    Component(matching, "Doctor Matching", "planned", "Deterministic specialty matching; later change")
+    Component(discovery, "Doctor Discovery", "DiscoveryController/Service, NextSlotService", "Search, public profile, next-available-slot; done")
+    Component(matching, "Doctor Matching", "SymptomsController/MatchingController/Service, matching-engine", "Symptom catalog and deterministic specialty matching; done")
     Component(availability, "Availability", "AvailabilityController/SlotsController/Service", "Weekly schedule, time off, slot calculation; done")
     Component(booking, "Booking", "planned", "Book, reschedule, cancel; later change")
     Component(consult, "Consultations", "planned", "Session workspace, notes; later change")
@@ -39,7 +40,13 @@ C4Component
   Rel(patients, auth, "protected by")
   Rel(doctors, auth, "protected by")
   Rel(doctors, specializations, "references")
+  Rel(discovery, prisma, "uses")
+  Rel(discovery, auth, "protected by")
+  Rel(discovery, availability, "reuses NextSlotService/generateSlots")
   Rel(matching, prisma, "uses")
+  Rel(matching, auth, "protected by")
+  Rel(matching, availability, "reuses NextSlotService for doctor ranking")
+  Rel(matching, specializations, "references")
   Rel(availability, prisma, "uses")
   Rel(availability, auth, "protected by")
   Rel(booking, prisma, "uses")

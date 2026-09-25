@@ -91,6 +91,14 @@ See `README.md` for the full command reference and local-development walkthrough
   not `Z` — unlike a plain `Date`. To get a UTC-`Z` ISO string for the API (timestamps, time-off
   instants) from a `TZDate`, wrap it: `new Date(tzDate.getTime()).toISOString()`. See
   `apps/web/src/lib/availability/time-off-conversion.ts`.
+- A hand-written migration that resolves a foreign key by a subquery across a `UNION ALL` of
+  `SELECT`s (e.g. `SELECT '<uuid-literal>', sp.id, weight FROM specializations sp WHERE sp.slug =
+  '...'`, repeated per row so the migration doesn't have to hardcode the target table's UUIDs)
+  needs the literal cast explicitly: `'<uuid-literal>'::UUID`. Postgres infers a bare string
+  literal's type as `text`, and a `UUID NOT NULL` target column then fails to insert with `column
+  "..." is of type uuid but expression is of type text` — cheap to miss because a single
+  `INSERT ... VALUES` with real UUID columns needs no such cast. See
+  `apps/api/prisma/migrations/20260925103000_add_symptom_catalog/migration.sql`.
 
 ## What this repo is building
 

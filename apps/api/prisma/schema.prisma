@@ -149,9 +149,39 @@ model Specialization {
   name        String  @unique
   description String
 
-  doctors DoctorSpecialization[]
+  doctors  DoctorSpecialization[]
+  symptoms SymptomSpecialization[]
 
   @@map("specializations")
+}
+
+/// Reference data for guided symptom matching (`add-doctor-discovery`), shipped
+/// by a data migration like the specialization catalog. Read-only: nothing in
+/// the app writes to this table.
+model Symptom {
+  id        String  @id @default(uuid()) @db.Uuid
+  slug      String  @unique
+  name      String
+  category  String
+  keywords  String[]
+  isRedFlag Boolean @default(false) @map("is_red_flag")
+
+  specializations SymptomSpecialization[]
+
+  @@map("symptoms")
+}
+
+model SymptomSpecialization {
+  symptomId        String @map("symptom_id") @db.Uuid
+  specializationId String @map("specialization_id") @db.Uuid
+  /// 1-3; how strongly this symptom points to the specialization.
+  weight           Int
+
+  symptom        Symptom        @relation(fields: [symptomId], references: [id], onDelete: Cascade)
+  specialization Specialization @relation(fields: [specializationId], references: [id], onDelete: Cascade)
+
+  @@id([symptomId, specializationId])
+  @@map("symptom_specializations")
 }
 
 model DoctorSpecialization {

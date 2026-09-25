@@ -9,6 +9,9 @@ import { RegisterPatientPage } from '@/routes/auth/register-patient';
 import { RegisterDoctorPage } from '@/routes/auth/register-doctor';
 import { PatientHomePage } from '@/routes/patient/home';
 import { PatientProfilePage } from '@/routes/patient/profile';
+import { FindDoctorPage } from '@/routes/patient/doctors';
+import { PatientDoctorProfilePage } from '@/routes/patient/doctor-profile';
+import { FindCarePage } from '@/routes/patient/find-care';
 import { DoctorHomePage } from '@/routes/doctor/home';
 import { DoctorProfilePage } from '@/routes/doctor/profile';
 import { DoctorSchedulePage } from '@/routes/doctor/schedule';
@@ -34,6 +37,8 @@ export const router = createBrowserRouter([
           <RoleAreaLayout
             navItems={[
               { to: '/patient', label: 'Home' },
+              { to: '/patient/doctors', label: 'Find a doctor' },
+              { to: '/patient/find-care', label: 'Find care' },
               { to: '/patient/profile', label: 'Profile' },
             ]}
           />
@@ -41,6 +46,9 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <PatientHomePage /> },
           { path: 'profile', element: <PatientProfilePage /> },
+          { path: 'doctors', element: <FindDoctorPage /> },
+          { path: 'doctors/:doctorId', element: <PatientDoctorProfilePage /> },
+          { path: 'find-care', element: <FindCarePage /> },
         ],
       },
     ],

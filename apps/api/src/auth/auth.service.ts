@@ -8,7 +8,9 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SpecializationsService } from '../specializations/specializations.service.js';
 import { isPatientProfileComplete } from '../patients/profile-completeness.js';
-import { Role } from '../generated/prisma/enums.js';
+import { AuditService } from '../audit/audit.service.js';
+import { AuditEntityType } from '../audit/audit-entity-type.js';
+import { AuditAction, Role } from '../generated/prisma/enums.js';
 import type { User } from '../generated/prisma/client.js';
 import { PasswordHasherService } from './password/password-hasher.service.js';
 import { isPasswordPolicyValid } from './password/password-policy.js';
@@ -35,6 +37,7 @@ export class AuthService {
     private readonly sessionService: SessionService,
     private readonly passwordHasher: PasswordHasherService,
     private readonly specializationsService: SpecializationsService,
+    private readonly auditService: AuditService,
   ) {}
 
   async registerPatient(dto: RegisterPatientDto, meta: SessionMeta): Promise<AuthResult> {
@@ -110,9 +113,24 @@ export class AuthService {
       throw new ForbiddenException('This account is not active');
     }
 
-    await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    // Admin sign-in is audited in the same transaction as the session that
+    // records it (see design.md's "Audit writer"); a patient/doctor sign-in
+    // takes the same transactional path but skips the audit write.
+    const { token } = await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+      const created = await this.sessionService.createSession(user.id, meta, tx);
+      if (user.role === Role.ADMIN) {
+        await this.auditService.record(tx, {
+          actorId: user.id,
+          action: AuditAction.ADMIN_SIGNED_IN,
+          entityType: AuditEntityType.USER,
+          entityId: user.id,
+        });
+      }
+      return created;
+    });
 
-    return this.startSession(user, meta);
+    return { token, response: { id: user.id, email: user.email, role: user.role } };
   }
 
   async logout(currentUser: AuthUser): Promise<void> {

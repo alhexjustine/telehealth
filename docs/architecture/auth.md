@@ -15,7 +15,11 @@ hash, so:
 - **Sign-out is immediate.** Revoking a session (or all of a user's sessions) takes effect on
   the very next request — there's no token that keeps working until it expires.
 - **Suspension is immediate.** If an account's status changes away from `ACTIVE`, the guard
-  rejects its next request and revokes its sessions as a side effect.
+  rejects its next request and revokes its sessions as a side effect. An administrator suspending
+  or deactivating an account through the [Admin](/modules/admin#user-management) console takes the
+  same path directly, calling `SessionService.revokeAllSessions` right after its transaction
+  commits — which also disconnects that account's open sockets (`RealtimeGateway.disconnectSessions`),
+  so a signed-in tab is kicked live, not just on its next HTTP request.
 - **Expiry is two-layered.** A session stops working after 2 hours of inactivity (`lastUsedAt`)
   or 12 hours after sign-in (`expiresAt`), whichever comes first. `lastUsedAt` is only rewritten
   when it's more than a minute stale, to keep the per-request cost down.
@@ -49,10 +53,19 @@ sequenceDiagram
     else correct password, ACTIVE
       API->>DB: INSERT session (tokenHash, expiresAt, ...)
       API->>DB: UPDATE user.lastLoginAt
+      opt role = ADMIN
+        API->>DB: INSERT audit_logs (action=ADMIN_SIGNED_IN, ...)
+      end
       API-->>Browser: 200 {id, email, role} + Set-Cookie: th_session
     end
   end
 ```
+
+The `lastLoginAt` update, the session insert, and (for an administrator) the audit entry all run
+inside one transaction (`AuthService.login`), so a signed-in administrator's session and its
+`ADMIN_SIGNED_IN` audit entry can never exist independently of each other — see the
+[Admin](/modules/admin#audit-log) module page and [Data Model](/architecture/data-model) for the
+audit log's own append-only guarantee.
 
 ## Request pipeline
 

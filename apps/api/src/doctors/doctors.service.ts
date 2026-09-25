@@ -2,6 +2,8 @@ import { BadRequestException, ConflictException, Injectable } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SpecializationsService } from '../specializations/specializations.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import { VerificationStatus } from '../generated/prisma/enums.js';
+import { requiresReReview } from './doctor-re-review.js';
 import type { UpdateDoctorProfileDto } from './dto/update-doctor-profile.dto.js';
 import type { DoctorProfileResponseDto } from './dto/doctor-profile-response.dto.js';
 
@@ -29,6 +31,11 @@ export class DoctorsService {
   }
 
   async updateOwnProfile(userId: string, dto: UpdateDoctorProfileDto): Promise<DoctorProfileResponseDto> {
+    const current = await this.prisma.doctorProfile.findUniqueOrThrow({
+      where: { userId },
+      include: WITH_SPECIALIZATIONS,
+    });
+
     if (dto.licenseNumber !== undefined) {
       const existing = await this.prisma.doctorProfile.findUnique({
         where: { licenseNumber: dto.licenseNumber },
@@ -60,6 +67,20 @@ export class DoctorsService {
         deleteMany: {},
         create: specializationIds.map((specializationId) => ({ specializationId })),
       };
+    }
+
+    if (
+      requiresReReview(
+        {
+          verificationStatus: current.verificationStatus,
+          licenseNumber: current.licenseNumber,
+          specializationIds: current.specializations.map((link) => link.specializationId),
+        },
+        { licenseNumber: dto.licenseNumber, specializationIds },
+      )
+    ) {
+      data.verificationStatus = VerificationStatus.PENDING;
+      data.reviewNote = null;
     }
 
     const updated = await this.prisma.doctorProfile.update({

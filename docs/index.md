@@ -34,5 +34,9 @@ the [Deployment page](/architecture/deployment) for how it runs locally.
 | Consultation workspace (join, state machine, presence) | Done | `add-consultations-and-records` |
 | Consultation notes & prescriptions, locked on completion | Done | `add-consultations-and-records` |
 | Patient records view + doctor patient-record view  | Done    | `add-consultations-and-records` |
-| Admin user/doctor/appointment oversight            | Planned | a later change       |
+| Admin user management (activate/suspend/deactivate) | Done    | `add-admin-console`  |
+| Admin doctor review (approve/reject, edit, re-review) | Done  | `add-admin-console`  |
+| Admin appointment oversight, invalid-booking flags | Done    | `add-admin-console`  |
+| Admin operational dashboard                        | Done    | `add-admin-console`  |
+| Append-only admin audit log                        | Done    | `add-admin-console`  |
 | Product website (landing, disclaimers)             | Planned | a later change       |

@@ -15,8 +15,10 @@ import { withNotifications } from '../notifications/with-notifications.js';
 import {
   bookNotificationDrafts,
   cancelNotificationDrafts,
+  platformCancelNotificationDrafts,
   rescheduleNotificationDrafts,
 } from '../notifications/appointment-notifications.js';
+import type { NotificationDraft } from '../notifications/notification.types.js';
 import { BookingRules } from './booking-rules.js';
 import { RESCHEDULE_CUTOFF_MINUTES } from './booking.constants.js';
 import type { CreateAppointmentDto } from './dto/create-appointment.dto.js';
@@ -39,12 +41,29 @@ const DOCTOR_OVERLAP_CONSTRAINT = 'appointments_doctor_no_overlap';
 const PATIENT_OVERLAP_CONSTRAINT = 'appointments_patient_no_overlap';
 
 const WITH_RELATIONS = {
-  doctor: { include: { specializations: { include: { specialization: true } } } },
-  patient: true,
+  doctor: {
+    include: {
+      specializations: { include: { specialization: true } },
+      user: { select: { status: true } },
+    },
+  },
+  patient: { include: { user: { select: { status: true } } } },
   symptoms: { include: { symptom: true } },
 } satisfies Prisma.AppointmentInclude;
 
-type AppointmentWithRelations = Prisma.AppointmentGetPayload<{ include: typeof WITH_RELATIONS }>;
+export type AppointmentWithRelations = Prisma.AppointmentGetPayload<{ include: typeof WITH_RELATIONS }>;
+
+export type CancellationKind =
+  /** The patient or doctor cancelling their own appointment (existing behavior: only the counterpart is notified). */
+  | 'participant'
+  /** An administrator cancelling directly, or a cascade from deactivating a participant's account (design.md's "Status changes reuse domain services"): every still-active participant is notified that the platform cancelled it. */
+  | 'platform';
+
+export interface CancelInTxParams {
+  cancelledById: string;
+  reason: string | null;
+  kind: CancellationKind;
+}
 
 @Injectable()
 export class AppointmentsService {
@@ -220,32 +239,66 @@ export class AppointmentsService {
     const { result: updated, notifications } = await withNotifications(
       this.prisma,
       this.notificationsService,
-      async (tx, notify) => {
-        const cancelled = await tx.appointment.update({
-          where: { id: appointmentId },
-          data: {
-            status: AppointmentStatus.CANCELLED,
-            cancelledAt: now,
-            cancelledById: caller.id,
-            cancellationReason: dto.reason?.trim() || null,
-          },
-          include: WITH_RELATIONS,
-        });
-
-        await notify(cancelNotificationDrafts({
-          appointmentId: cancelled.id,
-          doctor: participant(cancelled.doctorId, cancelled.doctor),
-          patient: participant(cancelled.patientId, cancelled.patient),
-          cancelledById: caller.id,
-          cancellationReason: cancelled.cancellationReason,
-        }));
-
-        return cancelled;
-      },
+      async (tx, notify) =>
+        this.cancelInTx(
+          tx,
+          appointment,
+          { cancelledById: caller.id, reason: dto.reason?.trim() || null, kind: 'participant' },
+          notify,
+        ),
     );
 
     await this.notificationsService.publish(notifications);
     return this.toResponseDto(updated);
+  }
+
+  /**
+   * The one place that cancels an appointment row: sets it `CANCELLED` and
+   * stages the matching notifications, inside a transaction the caller
+   * already owns. Shared by the patient/doctor self-cancel path above and
+   * by admin cancellation and account-deactivation cascades (`AdminUsersService`,
+   * `AdminAppointmentsService`) so the mutation and its notification rules
+   * can't drift between the three call sites — see design.md's "Status
+   * changes reuse domain services".
+   */
+  async cancelInTx(
+    tx: Prisma.TransactionClient,
+    appointment: { id: string },
+    params: CancelInTxParams,
+    notify: (drafts: NotificationDraft[]) => Promise<void>,
+  ): Promise<AppointmentWithRelations> {
+    const cancelled = await tx.appointment.update({
+      where: { id: appointment.id },
+      data: {
+        status: AppointmentStatus.CANCELLED,
+        cancelledAt: new Date(),
+        cancelledById: params.cancelledById,
+        cancellationReason: params.reason,
+      },
+      include: WITH_RELATIONS,
+    });
+
+    const doctor = participant(cancelled.doctorId, cancelled.doctor);
+    const patient = participant(cancelled.patientId, cancelled.patient);
+
+    const drafts: NotificationDraft[] =
+      params.kind === 'participant'
+        ? cancelNotificationDrafts({
+            appointmentId: cancelled.id,
+            doctor,
+            patient,
+            cancelledById: params.cancelledById,
+            cancellationReason: cancelled.cancellationReason,
+          })
+        : platformCancelNotificationDrafts({
+            appointmentId: cancelled.id,
+            doctor: { ...doctor, isActive: cancelled.doctor.user.status === 'ACTIVE' },
+            patient: { ...patient, isActive: cancelled.patient.user.status === 'ACTIVE' },
+            reason: cancelled.cancellationReason,
+          });
+
+    await notify(drafts);
+    return cancelled;
   }
 
   async list(

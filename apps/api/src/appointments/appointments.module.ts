@@ -8,5 +8,9 @@ import { BookingRules } from './booking-rules.js';
   imports: [NotificationsModule],
   controllers: [AppointmentsController],
   providers: [AppointmentsService, BookingRules],
+  // `AppointmentsService.cancelInTx` is reused by the admin modules
+  // (account deactivation, admin cancellation) — see design.md's "Status
+  // changes reuse domain services".
+  exports: [AppointmentsService],
 })
 export class AppointmentsModule {}

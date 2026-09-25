@@ -21,7 +21,12 @@ import { DoctorSchedulePage } from '@/routes/doctor/schedule';
 import { DoctorAppointmentsPage } from '@/routes/doctor/appointments';
 import { DoctorAppointmentDetailPage } from '@/routes/doctor/appointment-detail';
 import { DoctorPatientRecordPage } from '@/routes/doctor/patient-record';
-import { AdminHomePage } from '@/routes/admin/home';
+import { AdminDashboardPage } from '@/routes/admin/dashboard';
+import { AdminUsersPage } from '@/routes/admin/users';
+import { AdminDoctorsPage } from '@/routes/admin/doctors';
+import { AdminDoctorDetailPage } from '@/routes/admin/doctor-detail';
+import { AdminAppointmentsPage } from '@/routes/admin/appointments';
+import { AdminAuditPage } from '@/routes/admin/audit';
 import { NotificationsPage } from '@/routes/notifications-page';
 import { ConsultationWorkspacePage } from '@/routes/consultation/workspace';
 import { PatientRecordsPage } from '@/routes/patient/records';
@@ -107,9 +112,24 @@ export const router = createBrowserRouter([
     element: <RequireRoleLayout role="ADMIN" />,
     children: [
       {
-        element: <RoleAreaLayout navItems={[{ to: '/admin', label: 'Home' }]} />,
+        element: (
+          <RoleAreaLayout
+            navItems={[
+              { to: '/admin', label: 'Dashboard' },
+              { to: '/admin/users', label: 'Users' },
+              { to: '/admin/doctors', label: 'Doctor reviews' },
+              { to: '/admin/appointments', label: 'Appointments' },
+              { to: '/admin/audit', label: 'Audit log' },
+            ]}
+          />
+        ),
         children: [
-          { index: true, element: <AdminHomePage /> },
+          { index: true, element: <AdminDashboardPage /> },
+          { path: 'users', element: <AdminUsersPage /> },
+          { path: 'doctors', element: <AdminDoctorsPage /> },
+          { path: 'doctors/:doctorId', element: <AdminDoctorDetailPage /> },
+          { path: 'appointments', element: <AdminAppointmentsPage /> },
+          { path: 'audit', element: <AdminAuditPage /> },
           { path: 'notifications', element: <NotificationsPage /> },
         ],
       },

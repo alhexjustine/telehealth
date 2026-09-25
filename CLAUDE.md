@@ -154,6 +154,16 @@ See `README.md` for the full command reference and local-development walkthrough
   (can't be awaited by the framework), so a fire-and-forget DB query there is exactly the kind of
   dangling handle Jest's "did not exit one second after the test run" warning is about — sockets
   disconnect during `afterEach`, and `app.close()` can race an in-flight query from that cleanup.
+- Filtering by an optional one-to-one relation's presence/absence in Prisma (e.g. admin appointment
+  oversight's `consultationState=SCHEDULED`, meaning "no `consultation_sessions` row exists yet")
+  needs the `{ is: null }` / `{ is: { field: value } }` wrapper, not a bare `relation: null` or
+  `relation: { field: value }` — the bare forms are for a required relation. See
+  `apps/api/src/admin-appointments/admin-appointments.service.ts`'s `consultationSession` filter
+  and `test/admin-appointments.e2e-spec.ts`'s "Filter by consultation state".
+- `scripts/provision-admin.ts` (and other standalone scripts run directly with `node`, not through
+  Nest's `ConfigModule`) don't get `.env` loaded automatically — only `prisma.config.ts` does that,
+  via its own `import 'dotenv/config'`. Running `pnpm --filter api run admin:provision` needs
+  `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`DATABASE_URL` exported in the shell, not just present in `.env`.
 
 ## What this repo is building
 

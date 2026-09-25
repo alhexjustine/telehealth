@@ -101,6 +101,7 @@ erDiagram
     datetime cancelled_at
     string cancelled_by_id FK
     string cancellation_reason
+    string resolution_reason
     string rescheduled_from_id UK
     datetime created_at
     datetime updated_at
@@ -147,6 +148,20 @@ erDiagram
     datetime created_at
     datetime updated_at
   }
+  audit_logs {
+    string id PK
+    string actor_id FK
+    audit_action action
+    string entity_type
+    string entity_id
+    string reason
+    json before
+    json after
+    string request_id
+    string ip
+    string user_agent
+    datetime created_at
+  }
   users ||--o{ sessions : "user"
   users ||--o| patient_profiles : "user"
   users ||--o| doctor_profiles : "user"
@@ -164,4 +179,5 @@ erDiagram
   appointments ||--o| consultation_sessions : "appointment"
   appointments ||--o| consultation_notes : "appointment"
   appointments ||--o{ prescriptions : "appointment"
+  users ||--o{ audit_logs : "actor"
 ```

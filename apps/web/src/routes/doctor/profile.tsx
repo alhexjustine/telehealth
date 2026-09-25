@@ -5,27 +5,9 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { DoctorProfileFormFields } from '@/components/doctor-profile-form-fields';
 import { useDoctorProfile, useUpdateDoctorProfile } from '@/lib/doctors/use-doctor-profile';
 import {
-  CONSULTATION_MINUTES,
   doctorProfileSchema,
   type DoctorProfileFormInput,
   type DoctorProfileFormValues,
@@ -94,152 +76,15 @@ export function DoctorProfilePage() {
           <CardTitle>Professional details</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form
-              onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}
-              className="flex flex-col gap-4"
-            >
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="bio"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Biography</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} value={field.value ?? ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="yearsOfExperience"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Years of experience</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          value={(field.value as number | string | undefined) ?? ''}
-                          onChange={(event) => field.onChange(event.target.value)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="licenseNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>License number</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="consultationMinutes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Consultation length</FormLabel>
-                    <Select
-                      value={String(field.value)}
-                      onValueChange={(value) => field.onChange(Number(value))}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {CONSULTATION_MINUTES.map((minutes) => (
-                          <SelectItem key={minutes} value={String(minutes)}>
-                            {minutes} minutes
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="specializationIds"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Specializations</FormLabel>
-                    <FormControl>
-                      <div className="flex flex-col gap-2">
-                        {specializations.data?.map((specialization) => {
-                          const checked = field.value.includes(specialization.id);
-                          return (
-                            <label
-                              key={specialization.id}
-                              className="flex items-center gap-2 text-sm"
-                            >
-                              <Checkbox
-                                checked={checked}
-                                onCheckedChange={(next) => {
-                                  field.onChange(
-                                    next
-                                      ? [...field.value, specialization.id]
-                                      : field.value.filter((id) => id !== specialization.id),
-                                  );
-                                }}
-                              />
-                              {specialization.name}
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" disabled={update.isPending}>
-                {update.isPending ? 'Saving…' : 'Save changes'}
-              </Button>
-            </form>
-          </Form>
+          <form
+            onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}
+            className="flex flex-col gap-4"
+          >
+            <DoctorProfileFormFields form={form} specializations={specializations.data} />
+            <Button type="submit" disabled={update.isPending}>
+              {update.isPending ? 'Saving…' : 'Save changes'}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

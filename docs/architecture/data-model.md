@@ -23,6 +23,8 @@ Each table belongs to one of three capabilities documented per module:
 - **Consultations & records** (`consultation_sessions`, `consultation_notes`, `prescriptions`) —
   the workspace state machine, and the doctor's notes and prescriptions, locked once the session
   is `COMPLETED`; see [Clinical Access](/architecture/clinical-access).
+- **Audit log** (`audit_logs`) — one append-only entry per administrator action and admin
+  sign-in; see the [Admin](/modules/admin#audit-log) module page.
 
 <!--@include: ./_generated-erd.md-->
 
@@ -79,3 +81,25 @@ Each table belongs to one of three capabilities documented per module:
   transaction that first takes `SELECT ... FOR UPDATE` on the `consultation_sessions` row
   (`apps/api/src/consultations/session-lock.ts`), so a concurrent completion can never race past a
   note or prescription edit, or vice versa — see [Clinical Access](/architecture/clinical-access).
+- `appointments.status` gained `NOT_HELD` (a past `BOOKED` appointment an administrator resolved
+  instead of leaving flagged forever) alongside a new `resolution_reason` column, kept separate
+  from `cancellation_reason` since the appointment was never cancelled — see
+  [Admin](/modules/admin#appointment-oversight).
+- `audit_logs` is append-only: a `BEFORE UPDATE OR DELETE` trigger (`audit_logs_no_update_delete`,
+  added by hand in its migration's SQL — Prisma's schema language can't express a trigger) raises
+  an exception for any row-level change, and no API route can reach it either (only `GET` routes
+  exist under `/admin/audit`). `before`/`after` hold only the allow-listed fields an action
+  actually changed (`diffFields`, `apps/api/src/audit/diff-fields.ts`) — never password hashes,
+  session tokens, or clinical content. `actor_id` is `ON DELETE RESTRICT`: users are never
+  hard-deleted, so an audit entry's actor is always resolvable. `entity_id` has no foreign key
+  since its target table varies with `entity_type` (`User`, `DoctorProfile`, or `Appointment`).
+  `TRUNCATE` bypasses the trigger (it isn't a row event); only the e2e test suite's
+  database-reset helper does this, and the application itself never truncates. See
+  [Admin](/modules/admin#audit-log).
+
+  ```sql
+  CREATE FUNCTION audit_logs_immutable() RETURNS trigger AS $$
+  BEGIN RAISE EXCEPTION 'audit_logs is append-only'; END; $$ LANGUAGE plpgsql;
+  CREATE TRIGGER audit_logs_no_update_delete BEFORE UPDATE OR DELETE ON audit_logs
+    FOR EACH ROW EXECUTE FUNCTION audit_logs_immutable();
+  ```

@@ -237,6 +237,152 @@
         ]
       }
     },
+    "/admin/audit": {
+      "get": {
+        "operationId": "AuditController_list",
+        "parameters": [
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER_STATUS_CHANGED",
+                "DOCTOR_APPROVED",
+                "DOCTOR_REJECTED",
+                "DOCTOR_PROFILE_UPDATED",
+                "APPOINTMENT_CANCELLED",
+                "APPOINTMENT_MARKED_NOT_HELD",
+                "ADMIN_SIGNED_IN"
+              ]
+            }
+          },
+          {
+            "name": "actorId",
+            "required": false,
+            "in": "query",
+            "description": "The acting administrator",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityType",
+            "required": false,
+            "in": "query",
+            "description": "e.g. User, DoctorProfile, Appointment",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Lists audit entries, newest first, filtered by action/actor/affected record/date range",
+        "tags": [
+          "audit-log"
+        ]
+      }
+    },
+    "/admin/audit/{id}": {
+      "get": {
+        "operationId": "AuditController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogEntryDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "A single audit entry, with its before/after values",
+        "tags": [
+          "audit-log"
+        ]
+      }
+    },
     "/patients/me/profile": {
       "get": {
         "operationId": "PatientsController_getProfile",
@@ -1669,6 +1815,707 @@
           "records"
         ]
       }
+    },
+    "/admin/users": {
+      "get": {
+        "operationId": "AdminUsersController_list",
+        "parameters": [
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PATIENT",
+                "DOCTOR",
+                "ADMIN"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "SUSPENDED",
+                "DEACTIVATED"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Matches email or display name, case-insensitive",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Lists accounts, filtered by role/status/text query, newest first",
+        "tags": [
+          "admin-users"
+        ]
+      }
+    },
+    "/admin/users/{id}/status": {
+      "post": {
+        "operationId": "AdminUsersController_changeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeAccountStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "STATUS_UNCHANGED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Changes a patient or doctor account's status, with a required reason",
+        "tags": [
+          "admin-users"
+        ]
+      }
+    },
+    "/admin/doctors": {
+      "get": {
+        "operationId": "AdminDoctorsController_list",
+        "parameters": [
+          {
+            "name": "verification",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "PENDING",
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "APPROVED",
+                "REJECTED"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDoctorListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Lists doctor profiles by verification status, oldest waiting first",
+        "tags": [
+          "admin-doctor-review"
+        ]
+      }
+    },
+    "/admin/doctors/{id}": {
+      "get": {
+        "operationId": "AdminDoctorsController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDoctorProfileDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "A doctor's full profile for review, including email and license number",
+        "tags": [
+          "admin-doctor-review"
+        ]
+      },
+      "patch": {
+        "operationId": "AdminDoctorsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDoctorProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDoctorProfileDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Edits a doctor's profile; never changes verification status",
+        "tags": [
+          "admin-doctor-review"
+        ]
+      }
+    },
+    "/admin/doctors/{id}/approve": {
+      "post": {
+        "operationId": "AdminDoctorsController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveDoctorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDoctorProfileDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "STATUS_UNCHANGED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Approves a doctor, with an optional note",
+        "tags": [
+          "admin-doctor-review"
+        ]
+      }
+    },
+    "/admin/doctors/{id}/reject": {
+      "post": {
+        "operationId": "AdminDoctorsController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectDoctorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDoctorProfileDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "STATUS_UNCHANGED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Rejects a doctor, with a required note",
+        "tags": [
+          "admin-doctor-review"
+        ]
+      }
+    },
+    "/admin/appointments": {
+      "get": {
+        "operationId": "AdminAppointmentsController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BOOKED",
+                "CANCELLED",
+                "COMPLETED",
+                "NOT_HELD"
+              ]
+            }
+          },
+          {
+            "name": "consultationState",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SCHEDULED",
+                "JOINED",
+                "IN_PROGRESS",
+                "COMPLETED"
+              ]
+            }
+          },
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "doctorId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "patientId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invalidOnly",
+            "required": false,
+            "in": "query",
+            "description": "Only appointments flagged NOT_COMPLETED or DOCTOR_UNAVAILABLE",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAppointmentListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Lists every appointment with filters; never includes clinical content",
+        "tags": [
+          "admin-appointments"
+        ]
+      }
+    },
+    "/admin/appointments/{id}": {
+      "get": {
+        "operationId": "AdminAppointmentsController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAppointmentResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "One appointment's oversight details; never includes clinical content",
+        "tags": [
+          "admin-appointments"
+        ]
+      }
+    },
+    "/admin/appointments/{id}/cancel": {
+      "post": {
+        "operationId": "AdminAppointmentsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCancelAppointmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAppointmentResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "APPOINTMENT_NOT_CANCELLABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Cancels a BOOKED appointment that has not ended, with a required reason",
+        "tags": [
+          "admin-appointments"
+        ]
+      }
+    },
+    "/admin/appointments/{id}/mark-not-held": {
+      "post": {
+        "operationId": "AdminAppointmentsController_markNotHeld",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkNotHeldDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAppointmentResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "NOT_ELIGIBLE_FOR_NOT_HELD",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Marks a stale, uncompleted appointment NOT_HELD, with a required reason",
+        "tags": [
+          "admin-appointments"
+        ]
+      }
+    },
+    "/admin/dashboard": {
+      "get": {
+        "operationId": "AdminDashboardController_get",
+        "parameters": [
+          {
+            "name": "tz",
+            "required": false,
+            "in": "query",
+            "description": "IANA time zone used for \"today\" and the daily buckets",
+            "schema": {
+              "default": "UTC",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDashboardResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Operational counts computed from the database, plus a 29-day appointment trend",
+        "tags": [
+          "admin-dashboard"
+        ]
+      }
     }
   },
   "info": {
@@ -1880,6 +2727,109 @@
           "slug",
           "name",
           "description"
+        ]
+      },
+      "AuditLogEntryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "actorId": {
+            "type": "string"
+          },
+          "actorEmail": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "USER_STATUS_CHANGED",
+              "DOCTOR_APPROVED",
+              "DOCTOR_REJECTED",
+              "DOCTOR_PROFILE_UPDATED",
+              "APPOINTMENT_CANCELLED",
+              "APPOINTMENT_MARKED_NOT_HELD",
+              "ADMIN_SIGNED_IN"
+            ]
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "before": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "after": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string",
+            "nullable": true
+          },
+          "userAgent": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "actorId",
+          "actorEmail",
+          "action",
+          "entityType",
+          "entityId",
+          "reason",
+          "before",
+          "after",
+          "requestId",
+          "ip",
+          "userAgent",
+          "createdAt"
+        ]
+      },
+      "AuditLogListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditLogEntryDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
         ]
       },
       "PatientProfileResponseDto": {
@@ -2750,7 +3700,8 @@
             "enum": [
               "BOOKED",
               "CANCELLED",
-              "COMPLETED"
+              "COMPLETED",
+              "NOT_HELD"
             ]
           },
           "reason": {
@@ -2890,7 +3841,8 @@
             "enum": [
               "BOOKED",
               "CANCELLED",
-              "COMPLETED"
+              "COMPLETED",
+              "NOT_HELD"
             ]
           },
           "cancelledAt": {
@@ -2931,7 +3883,8 @@
             "enum": [
               "BOOKED",
               "CANCELLED",
-              "COMPLETED"
+              "COMPLETED",
+              "NOT_HELD"
             ]
           },
           "reason": {
@@ -3037,7 +3990,10 @@
               "APPOINTMENT_CANCELLED",
               "REMINDER_24H",
               "REMINDER_1H",
-              "CONSULTATION_SUMMARY_AVAILABLE"
+              "CONSULTATION_SUMMARY_AVAILABLE",
+              "PROFILE_APPROVED",
+              "PROFILE_REJECTED",
+              "PLATFORM_APPOINTMENT_CANCELLED"
             ]
           },
           "title": {
@@ -3526,7 +4482,8 @@
             "enum": [
               "BOOKED",
               "CANCELLED",
-              "COMPLETED"
+              "COMPLETED",
+              "NOT_HELD"
             ]
           },
           "reason": {
@@ -3592,6 +4549,587 @@
           "currentMedications",
           "appointmentsWithDoctor",
           "completedConsultations"
+        ]
+      },
+      "AdminUserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "PATIENT",
+              "DOCTOR",
+              "ADMIN"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "SUSPENDED",
+              "DEACTIVATED"
+            ]
+          },
+          "statusReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "upcomingAppointmentCount": {
+            "type": "number",
+            "description": "Number of upcoming BOOKED appointments"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "status",
+          "statusReason",
+          "displayName",
+          "createdAt",
+          "lastLoginAt",
+          "upcomingAppointmentCount"
+        ]
+      },
+      "AdminUserListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminUserResponseDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "ChangeAccountStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "SUSPENDED",
+              "DEACTIVATED"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "status",
+          "reason"
+        ]
+      },
+      "AdminDoctorListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "licenseNumber": {
+            "type": "string"
+          },
+          "verificationStatus": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED"
+            ]
+          },
+          "accountStatus": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "SUSPENDED",
+              "DEACTIVATED"
+            ]
+          },
+          "specializations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpecializationSummaryDto"
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "email",
+          "licenseNumber",
+          "verificationStatus",
+          "accountStatus",
+          "specializations",
+          "updatedAt"
+        ]
+      },
+      "AdminDoctorListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminDoctorListItemDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "AdminDoctorProfileDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "yearsOfExperience": {
+            "type": "number",
+            "nullable": true
+          },
+          "licenseNumber": {
+            "type": "string"
+          },
+          "consultationMinutes": {
+            "type": "number"
+          },
+          "verificationStatus": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED"
+            ]
+          },
+          "reviewNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountStatus": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "SUSPENDED",
+              "DEACTIVATED"
+            ]
+          },
+          "accountStatusReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "specializations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpecializationSummaryDto"
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "firstName",
+          "lastName",
+          "bio",
+          "yearsOfExperience",
+          "licenseNumber",
+          "consultationMinutes",
+          "verificationStatus",
+          "reviewNote",
+          "accountStatus",
+          "accountStatusReason",
+          "specializations",
+          "updatedAt"
+        ]
+      },
+      "ApproveDoctorDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        }
+      },
+      "RejectDoctorDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 1000
+          }
+        }
+      },
+      "AdminAppointmentParticipantDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "displayName"
+        ]
+      },
+      "AdminAppointmentResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "BOOKED",
+              "CANCELLED",
+              "COMPLETED",
+              "NOT_HELD"
+            ]
+          },
+          "doctor": {
+            "$ref": "#/components/schemas/AdminAppointmentParticipantDto"
+          },
+          "patient": {
+            "$ref": "#/components/schemas/AdminAppointmentParticipantDto"
+          },
+          "consultationState": {
+            "type": "string",
+            "enum": [
+              "SCHEDULED",
+              "JOINED",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "NOT_COMPLETED",
+                "DOCTOR_UNAVAILABLE"
+              ]
+            }
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cancelledByRole": {
+            "type": "string",
+            "enum": [
+              "PATIENT",
+              "DOCTOR",
+              "ADMIN"
+            ],
+            "nullable": true
+          },
+          "cancellationReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolutionReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "startsAt",
+          "endsAt",
+          "status",
+          "doctor",
+          "patient",
+          "consultationState",
+          "flags",
+          "cancelledAt",
+          "cancelledByRole",
+          "cancellationReason",
+          "resolutionReason"
+        ]
+      },
+      "AdminAppointmentListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminAppointmentResponseDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "AdminCancelAppointmentDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "MarkNotHeldDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "AccountStatusCountsDto": {
+        "type": "object",
+        "properties": {
+          "ACTIVE": {
+            "type": "number"
+          },
+          "SUSPENDED": {
+            "type": "number"
+          },
+          "DEACTIVATED": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "ACTIVE",
+          "SUSPENDED",
+          "DEACTIVATED"
+        ]
+      },
+      "DoctorVerificationCountsDto": {
+        "type": "object",
+        "properties": {
+          "PENDING": {
+            "type": "number"
+          },
+          "APPROVED": {
+            "type": "number"
+          },
+          "REJECTED": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "PENDING",
+          "APPROVED",
+          "REJECTED"
+        ]
+      },
+      "AppointmentStatusCountsDto": {
+        "type": "object",
+        "properties": {
+          "BOOKED": {
+            "type": "number"
+          },
+          "CANCELLED": {
+            "type": "number"
+          },
+          "COMPLETED": {
+            "type": "number"
+          },
+          "NOT_HELD": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "BOOKED",
+          "CANCELLED",
+          "COMPLETED",
+          "NOT_HELD"
+        ]
+      },
+      "DashboardTrendBucketDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "YYYY-MM-DD, local calendar date in the requested time zone"
+          },
+          "count": {
+            "type": "number"
+          },
+          "isToday": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "date",
+          "count",
+          "isToday"
+        ]
+      },
+      "AdminDashboardResponseDto": {
+        "type": "object",
+        "properties": {
+          "patients": {
+            "$ref": "#/components/schemas/AccountStatusCountsDto"
+          },
+          "doctors": {
+            "$ref": "#/components/schemas/AccountStatusCountsDto"
+          },
+          "doctorVerification": {
+            "$ref": "#/components/schemas/DoctorVerificationCountsDto"
+          },
+          "appointmentsToday": {
+            "$ref": "#/components/schemas/AppointmentStatusCountsDto"
+          },
+          "appointmentsUpcoming": {
+            "$ref": "#/components/schemas/AppointmentStatusCountsDto"
+          },
+          "appointmentsAllTime": {
+            "$ref": "#/components/schemas/AppointmentStatusCountsDto"
+          },
+          "consultationsInProgress": {
+            "type": "number"
+          },
+          "consultationsCompletedToday": {
+            "type": "number"
+          },
+          "consultationsCompletedLast7Days": {
+            "type": "number"
+          },
+          "pendingDoctorReviews": {
+            "type": "number"
+          },
+          "invalidBookings": {
+            "type": "number"
+          },
+          "trend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardTrendBucketDto"
+            }
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "patients",
+          "doctors",
+          "doctorVerification",
+          "appointmentsToday",
+          "appointmentsUpcoming",
+          "appointmentsAllTime",
+          "consultationsInProgress",
+          "consultationsCompletedToday",
+          "consultationsCompletedLast7Days",
+          "pendingDoctorReviews",
+          "invalidBookings",
+          "trend",
+          "timezone"
         ]
       }
     }

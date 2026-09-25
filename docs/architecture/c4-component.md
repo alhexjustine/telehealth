@@ -2,8 +2,7 @@
 
 Components inside the Backend API container. Foundation, `add-authentication`,
 `add-doctor-availability`, `add-doctor-discovery`, `add-appointment-booking`, `add-notifications`,
-and `add-consultations-and-records` components are done; the Admin Console is planned and will
-move to "done" once that change lands.
+`add-consultations-and-records`, and `add-admin-console` components are all done.
 
 ```mermaid
 C4Component
@@ -29,7 +28,8 @@ C4Component
     Component(records, "Records", "RecordsController/Service", "Notes, prescriptions, patient records; role-scoped by ClinicalAccessPolicy; done")
     Component(notifications, "Notifications", "NotificationsController/Service, ReminderService", "In-app, DB-backed notifications and reminders; done")
     Component(realtime, "Realtime Gateway", "socket.io (self-hosted)", "Session-authenticated live delivery, per-user/session rooms, consultation presence; done")
-    Component(admin, "Admin Console", "planned", "User/doctor/appointment oversight, audit log; later change")
+    Component(admin, "Admin Console", "AdminUsers/AdminDoctors/AdminAppointments/AdminDashboard controllers+services", "User status changes, doctor review, appointment oversight, invalid-booking flags, operational dashboard; done")
+    Component(audit, "Audit", "AuditService, AuditQueryService, AuditController", "Transactional append-only audit log (write inside the caller's transaction; read-only viewer); done")
   }
 
   ContainerDb(db, "PostgreSQL")
@@ -70,6 +70,13 @@ C4Component
   Rel(realtime, consult, "consultation:subscribe checked via ClinicalAccessPolicy")
   Rel(notifications, realtime, "publishes after commit")
   Rel(admin, prisma, "uses")
+  Rel(admin, auth, "protected by (@Roles(ADMIN)); status changes revoke sessions via SessionService")
+  Rel(admin, booking, "reuses AppointmentsService.cancelInTx for admin cancel and deactivation cascades")
+  Rel(admin, doctors, "reuses UpdateDoctorProfileDto validation; approve/reject notify via withNotifications")
+  Rel(admin, notifications, "notified by, via withNotifications")
+  Rel(admin, audit, "records one entry per action, in the same transaction")
+  Rel(audit, prisma, "uses (writer takes a Prisma.TransactionClient; viewer is read-only)")
+  Rel(auth, audit, "records ADMIN_SIGNED_IN in the sign-in transaction")
 ```
 
 See [Authentication & Authorization](/architecture/auth) for the Auth component's guard

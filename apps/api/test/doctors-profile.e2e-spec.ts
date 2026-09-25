@@ -4,6 +4,7 @@ import request from 'supertest';
 import { createTestApp } from './support/test-app.js';
 import { resetDatabase } from './support/reset-db.js';
 import { registerDoctor, registerPatient } from './support/auth-helpers.js';
+import { approveDoctor } from './support/appointment-helpers.js';
 
 describe('Doctor profile', () => {
   let app: INestApplication;
@@ -110,5 +111,32 @@ describe('Doctor profile', () => {
     const res = await other.agent.patch('/api/doctors/me/profile').send({ licenseNumber });
 
     expect(res.status).toBe(409);
+  });
+
+  it('Credential change triggers re-review', async () => {
+    const doctor = await registerDoctor(app, { specializationIds: [spec(0)] });
+    await approveDoctor(app, doctor.id);
+
+    const res = await doctor.agent
+      .patch('/api/doctors/me/profile')
+      .send({ licenseNumber: `LIC-REREVIEW-${Date.now()}` });
+
+    expect(res.status).toBe(200);
+    expect(res.body.verificationStatus).toBe('PENDING');
+
+    const search = await doctor.agent.get('/api/doctors').expect(200);
+    expect(search.body.items.map((d: { id: string }) => d.id)).not.toContain(doctor.id);
+  });
+
+  it('Other edits keep approval', async () => {
+    const doctor = await registerDoctor(app, { specializationIds: [spec(0)] });
+    await approveDoctor(app, doctor.id);
+
+    const res = await doctor.agent
+      .patch('/api/doctors/me/profile')
+      .send({ bio: 'A calmer bio', consultationMinutes: 45 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.verificationStatus).toBe('APPROVED');
   });
 });

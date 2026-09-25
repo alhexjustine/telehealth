@@ -1,20 +1,23 @@
 # Doctor
 
-> Accounts, sign-in/out, profile, availability/schedule management, booking oversight (own
-> appointments, cancellation, schedule protection against existing bookings), in-app
-> notifications, running consultations, and role-scoped patient records are done
-> (`add-authentication`, `add-doctor-availability`, `add-appointment-booking`,
-> `add-notifications`, `add-consultations-and-records`).
+> Accounts, sign-in/out, profile (including the admin re-review rule), availability/schedule
+> management, booking oversight (own appointments, cancellation, schedule protection against
+> existing bookings), in-app notifications, running consultations, and role-scoped patient records
+> are done (`add-authentication`, `add-doctor-availability`, `add-appointment-booking`,
+> `add-notifications`, `add-consultations-and-records`, `add-admin-console`).
 
 ## Module Overview
 
 A visitor registers as a doctor with an email, password, name, at least one specialization from
 the catalog, and a license number; the account is signed in immediately, and the profile starts
-in verification status `PENDING` (approval itself arrives in a later admin-console change). The
-doctor area shows a notice while the profile is `PENDING` or `REJECTED` (with the administrator's
-review note, once rejected) explaining that it isn't yet visible to patients. Doctors view and
-edit their own profile — name, specializations, biography, years of experience, license number,
-and consultation length — but cannot change their own verification status.
+in verification status `PENDING` until an administrator reviews it (see
+[Admin](/modules/admin#doctor-profile-review)). The doctor area shows a notice while the profile is
+`PENDING` or `REJECTED` (with the administrator's review note, once rejected) explaining that it
+isn't yet visible to patients. Doctors view and edit their own profile — name, specializations,
+biography, years of experience, license number, and consultation length — but cannot change their
+own verification status. Changing an `APPROVED` doctor's license number or specialization set
+sends the profile back to `PENDING` review (see
+[Admin](/modules/admin#re-review-on-credential-change)); any other edit leaves `APPROVED` alone.
 
 ### Availability
 

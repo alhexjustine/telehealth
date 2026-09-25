@@ -38,6 +38,10 @@ export const ErrorCode = {
   RECORD_LOCKED: 'RECORD_LOCKED',
   /** A consultation already has `MAX_PRESCRIPTIONS_PER_CONSULTATION` prescriptions. */
   PRESCRIPTION_LIMIT_REACHED: 'PRESCRIPTION_LIMIT_REACHED',
+  /** An admin status/verification change requested the status the target already has. */
+  STATUS_UNCHANGED: 'STATUS_UNCHANGED',
+  /** An admin tried to mark an appointment `NOT_HELD` that isn't flagged `NOT_COMPLETED`. */
+  NOT_ELIGIBLE_FOR_NOT_HELD: 'NOT_ELIGIBLE_FOR_NOT_HELD',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

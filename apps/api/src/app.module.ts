@@ -19,6 +19,11 @@ import { NotificationsModule } from './notifications/notifications.module.js';
 import { RealtimeModule } from './realtime/realtime.module.js';
 import { ConsultationsModule } from './consultations/consultations.module.js';
 import { RecordsModule } from './records/records.module.js';
+import { AuditModule } from './audit/audit.module.js';
+import { AdminUsersModule } from './admin-users/admin-users.module.js';
+import { AdminDoctorsModule } from './admin-doctors/admin-doctors.module.js';
+import { AdminAppointmentsModule } from './admin-appointments/admin-appointments.module.js';
+import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module.js';
 
 @Module({
   imports: [
@@ -38,6 +43,11 @@ import { RecordsModule } from './records/records.module.js';
     NotificationsModule,
     ConsultationsModule,
     RecordsModule,
+    AuditModule,
+    AdminUsersModule,
+    AdminDoctorsModule,
+    AdminAppointmentsModule,
+    AdminDashboardModule,
   ],
   providers: [
     {

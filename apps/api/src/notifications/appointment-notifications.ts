@@ -30,6 +30,18 @@ export interface CancelNotificationsParams {
   cancellationReason: string | null;
 }
 
+interface ActiveParticipant extends Participant {
+  /** Whether the account is currently `ACTIVE`; an inactive one is never notified. */
+  isActive: boolean;
+}
+
+export interface PlatformCancelNotificationsParams {
+  appointmentId: string;
+  doctor: ActiveParticipant;
+  patient: ActiveParticipant;
+  reason: string | null;
+}
+
 /**
  * Maps each appointment event to the notification rows it creates, kept in
  * one place so the rules can't diverge between book/reschedule/cancel (see
@@ -112,4 +124,43 @@ export function cancelNotificationDrafts(params: CancelNotificationsParams): Not
       appointmentId: params.appointmentId,
     },
   ];
+}
+
+/**
+ * For an appointment cancelled by an administrator, or as the cascading
+ * side effect of a participant's account being deactivated (see design.md's
+ * "Status changes reuse domain services"). Every participant whose account
+ * is still `ACTIVE` is notified — which, for a deactivation cascade,
+ * naturally excludes the just-deactivated account without needing to name
+ * it explicitly, since its status is already updated in the same
+ * transaction by the time this runs.
+ */
+export function platformCancelNotificationDrafts(params: PlatformCancelNotificationsParams): NotificationDraft[] {
+  const body = params.reason ? `Cancelled by the platform: ${params.reason}` : 'Cancelled by the platform';
+  const drafts: NotificationDraft[] = [];
+
+  if (params.doctor.isActive) {
+    drafts.push({
+      userId: params.doctor.id,
+      type: NotificationType.PLATFORM_APPOINTMENT_CANCELLED,
+      title: 'Appointment cancelled',
+      body,
+      data: { reason: params.reason },
+      link: `/doctor/appointments/${params.appointmentId}`,
+      appointmentId: params.appointmentId,
+    });
+  }
+  if (params.patient.isActive) {
+    drafts.push({
+      userId: params.patient.id,
+      type: NotificationType.PLATFORM_APPOINTMENT_CANCELLED,
+      title: 'Appointment cancelled',
+      body,
+      data: { reason: params.reason },
+      link: `/patient/appointments/${params.appointmentId}`,
+      appointmentId: params.appointmentId,
+    });
+  }
+
+  return drafts;
 }

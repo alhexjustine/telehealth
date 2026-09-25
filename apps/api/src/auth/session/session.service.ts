@@ -38,13 +38,22 @@ export class SessionService {
     return this.configService.get('SESSION_ABSOLUTE_HOURS', { infer: true });
   }
 
-  async createSession(userId: string, meta: SessionMeta): Promise<{ token: string; session: Session }> {
+  /**
+   * `client` defaults to `this.prisma` but accepts a `Prisma.TransactionClient`
+   * so a caller (the admin sign-in path) can create the session in the same
+   * transaction as its `ADMIN_SIGNED_IN` audit entry.
+   */
+  async createSession(
+    userId: string,
+    meta: SessionMeta,
+    client: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<{ token: string; session: Session }> {
     const token = generateSessionToken();
     const tokenHash = hashSessionToken(token);
     const now = new Date();
     const expiresAt = new Date(now.getTime() + this.absoluteHours * 3_600_000);
 
-    const session = await this.prisma.session.create({
+    const session = await client.session.create({
       data: {
         userId,
         tokenHash,

@@ -109,8 +109,13 @@ Booking, rescheduling, or having an appointment cancelled by the doctor notifies
 ("Booking confirmed", "Reschedule confirmed", "Appointment cancelled"), plus 24h/1h reminders
 before every `BOOKED` appointment and, once a consultation is completed, "Consultation summary
 available" — delivered live while signed in, and always visible in the notification bell and
-`/patient/notifications`. See [Notifications & Real-time](/architecture/realtime) for the event →
-transaction → commit → delivery model and the socket.io gateway.
+`/patient/notifications`. An appointment cancelled by an administrator, or by the doctor's own
+account being deactivated, notifies the patient the same way but states it was "cancelled by the
+platform" (see [Admin](/modules/admin#appointment-oversight)); a patient's own account being
+deactivated cancels their own upcoming appointments without notifying the patient about it (they
+already know — see [Admin](/modules/admin#user-management)). See
+[Notifications & Real-time](/architecture/realtime) for the event → transaction → commit →
+delivery model and the socket.io gateway.
 
 ## Joining and the consultation workspace
 

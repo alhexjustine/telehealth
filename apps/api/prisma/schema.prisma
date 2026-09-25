@@ -41,6 +41,7 @@ model User {
   doctorProfile        DoctorProfile?
   cancelledAppointments Appointment[]
   notifications        Notification[]
+  auditLogs            AuditLog[]
 
   @@map("users")
 }
@@ -206,6 +207,10 @@ enum AppointmentStatus {
   /// Set by `ConsultationsService.complete` when the doctor completes the
   /// consultation session (`add-consultations-and-records`).
   COMPLETED
+  /// Set by `AdminAppointmentsService.markNotHeld`: a past `BOOKED`
+  /// appointment that was never completed, resolved by an administrator
+  /// instead of staying flagged forever (`add-admin-console`).
+  NOT_HELD
 
   @@map("appointment_status")
 }
@@ -228,6 +233,10 @@ model Appointment {
   cancelledAt        DateTime?         @map("cancelled_at") @db.Timestamptz(3)
   cancelledById      String?           @map("cancelled_by_id") @db.Uuid
   cancellationReason String?           @map("cancellation_reason") @db.VarChar(500)
+  /// The administrator's reason for `NOT_HELD`, e.g. "Patient did not
+  /// attend" (`add-admin-console`). Kept separate from `cancellationReason`
+  /// since the appointment was never cancelled.
+  resolutionReason   String?           @map("resolution_reason") @db.VarChar(500)
   rescheduledFromId  String?           @unique @map("rescheduled_from_id") @db.Uuid
   createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -273,6 +282,17 @@ enum NotificationType {
   /// Sent to the patient when the doctor completes a consultation
   /// (`add-consultations-and-records`); links to the record detail page.
   CONSULTATION_SUMMARY_AVAILABLE
+  /// Sent to a doctor when an administrator approves their profile
+  /// (`add-admin-console`).
+  PROFILE_APPROVED
+  /// Sent to a doctor when an administrator rejects their profile, with the
+  /// review note (`add-admin-console`).
+  PROFILE_REJECTED
+  /// Sent to every still-active participant when an appointment is
+  /// cancelled by an administrator, or as a side effect of the other
+  /// participant's account being deactivated (`add-admin-console`); the
+  /// counterpart of the cancelling admin action, not the acting admin.
+  PLATFORM_APPOINTMENT_CANCELLED
 
   @@map("notification_type")
 }
@@ -370,4 +390,47 @@ model Prescription {
 
   @@index([appointmentId])
   @@map("prescriptions")
+}
+
+enum AuditAction {
+  USER_STATUS_CHANGED
+  DOCTOR_APPROVED
+  DOCTOR_REJECTED
+  DOCTOR_PROFILE_UPDATED
+  APPOINTMENT_CANCELLED
+  APPOINTMENT_MARKED_NOT_HELD
+  ADMIN_SIGNED_IN
+
+  @@map("audit_action")
+}
+
+/// One entry per administrator action (and admin sign-in), written by
+/// `AuditService.record` inside the same transaction as the action it
+/// describes. Append-only: this model's migration adds a trigger that
+/// rejects any UPDATE or DELETE on this table (see design.md's "Audit log
+/// model and immutability"); only `TRUNCATE`, used solely by the e2e
+/// reset-database test helper, bypasses it. `before`/`after` hold only the
+/// changed, allow-listed fields (`diffFields`) — never passwords, session
+/// tokens, or clinical content. `entityId` has no foreign key: its target
+/// table varies with `entityType`.
+model AuditLog {
+  id         String      @id @default(uuid()) @db.Uuid
+  actorId    String      @map("actor_id") @db.Uuid
+  action     AuditAction
+  entityType String      @map("entity_type") @db.VarChar(40)
+  entityId   String?     @map("entity_id") @db.Uuid
+  reason     String?
+  before     Json?
+  after      Json?
+  requestId  String      @map("request_id")
+  ip         String?
+  userAgent  String?     @map("user_agent")
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@map("audit_logs")
 }

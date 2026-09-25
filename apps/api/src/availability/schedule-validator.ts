@@ -1,3 +1,5 @@
+import { isSupportedTimeZone } from '../common/timezone.js';
+
 export interface ScheduleRuleInput {
   weekday: number;
   startMinute: number;
@@ -12,19 +14,6 @@ export interface ScheduleValidationError {
 
 const MINUTE_STEP = 15;
 
-let timeZoneCache: Set<string> | null = null;
-
-/**
- * `Intl.supportedValuesOf('timeZone')` omits `UTC` in some runtimes even
- * though `Intl.DateTimeFormat` accepts it, so it's added back explicitly.
- */
-function supportedTimeZones(): Set<string> {
-  if (!timeZoneCache) {
-    timeZoneCache = new Set([...Intl.supportedValuesOf('timeZone'), 'UTC']);
-  }
-  return timeZoneCache;
-}
-
 /**
  * Cross-field validation the DTO's per-property decorators can't express:
  * order, minimum length against the doctor's consultation length, 15-minute
@@ -38,7 +27,7 @@ export function validateSchedule(
 ): ScheduleValidationError[] {
   const errors: ScheduleValidationError[] = [];
 
-  if (!supportedTimeZones().has(input.timezone)) {
+  if (!isSupportedTimeZone(input.timezone)) {
     errors.push({ field: 'timezone', message: `Unknown time zone: ${input.timezone}` });
   }
 

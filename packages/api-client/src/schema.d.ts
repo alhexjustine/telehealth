@@ -157,6 +157,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists audit entries, newest first, filtered by action/actor/affected record/date range */
+        get: operations["AuditController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/audit/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A single audit entry, with its before/after values */
+        get: operations["AuditController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/patients/me/profile": {
         parameters: {
             query?: never;
@@ -638,6 +672,194 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists accounts, filtered by role/status/text query, newest first */
+        get: operations["AdminUsersController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Changes a patient or doctor account's status, with a required reason */
+        post: operations["AdminUsersController_changeStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/doctors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists doctor profiles by verification status, oldest waiting first */
+        get: operations["AdminDoctorsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/doctors/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A doctor's full profile for review, including email and license number */
+        get: operations["AdminDoctorsController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edits a doctor's profile; never changes verification status */
+        patch: operations["AdminDoctorsController_update"];
+        trace?: never;
+    };
+    "/admin/doctors/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approves a doctor, with an optional note */
+        post: operations["AdminDoctorsController_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/doctors/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rejects a doctor, with a required note */
+        post: operations["AdminDoctorsController_reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/appointments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists every appointment with filters; never includes clinical content */
+        get: operations["AdminAppointmentsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/appointments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One appointment's oversight details; never includes clinical content */
+        get: operations["AdminAppointmentsController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/appointments/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancels a BOOKED appointment that has not ended, with a required reason */
+        post: operations["AdminAppointmentsController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/appointments/{id}/mark-not-held": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marks a stale, uncompleted appointment NOT_HELD, with a required reason */
+        post: operations["AdminAppointmentsController_markNotHeld"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Operational counts computed from the database, plus a 29-day appointment trend */
+        get: operations["AdminDashboardController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -696,6 +918,33 @@ export interface components {
             slug: string;
             name: string;
             description: string;
+        };
+        AuditLogEntryDto: {
+            id: string;
+            actorId: string;
+            actorEmail: string;
+            /** @enum {string} */
+            action: "USER_STATUS_CHANGED" | "DOCTOR_APPROVED" | "DOCTOR_REJECTED" | "DOCTOR_PROFILE_UPDATED" | "APPOINTMENT_CANCELLED" | "APPOINTMENT_MARKED_NOT_HELD" | "ADMIN_SIGNED_IN";
+            entityType: string;
+            entityId: string | null;
+            reason: string | null;
+            before: {
+                [key: string]: unknown;
+            } | null;
+            after: {
+                [key: string]: unknown;
+            } | null;
+            requestId: string;
+            ip: string | null;
+            userAgent: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AuditLogListResponseDto: {
+            items: components["schemas"]["AuditLogEntryDto"][];
+            total: number;
+            page: number;
+            pageSize: number;
         };
         PatientProfileResponseDto: {
             firstName: string;
@@ -922,7 +1171,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             /** @enum {string} */
-            status: "BOOKED" | "CANCELLED" | "COMPLETED";
+            status: "BOOKED" | "CANCELLED" | "COMPLETED" | "NOT_HELD";
             reason: string;
             doctor: components["schemas"]["AppointmentDoctorSummaryDto"];
             patient: components["schemas"]["AppointmentPatientSummaryDto"];
@@ -964,7 +1213,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             /** @enum {string} */
-            status: "BOOKED" | "CANCELLED" | "COMPLETED";
+            status: "BOOKED" | "CANCELLED" | "COMPLETED" | "NOT_HELD";
             /** Format: date-time */
             cancelledAt: string | null;
             cancellationReason: string | null;
@@ -976,7 +1225,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             /** @enum {string} */
-            status: "BOOKED" | "CANCELLED" | "COMPLETED";
+            status: "BOOKED" | "CANCELLED" | "COMPLETED" | "NOT_HELD";
             reason: string;
             doctor: components["schemas"]["AppointmentDoctorSummaryDto"];
             patient: components["schemas"]["AppointmentPatientSummaryDto"];
@@ -1006,7 +1255,7 @@ export interface components {
         NotificationResponseDto: {
             id: string;
             /** @enum {string} */
-            type: "APPOINTMENT_BOOKED" | "BOOKING_CONFIRMED" | "APPOINTMENT_RESCHEDULED" | "RESCHEDULE_CONFIRMED" | "APPOINTMENT_CANCELLED" | "REMINDER_24H" | "REMINDER_1H" | "CONSULTATION_SUMMARY_AVAILABLE";
+            type: "APPOINTMENT_BOOKED" | "BOOKING_CONFIRMED" | "APPOINTMENT_RESCHEDULED" | "RESCHEDULE_CONFIRMED" | "APPOINTMENT_CANCELLED" | "REMINDER_24H" | "REMINDER_1H" | "CONSULTATION_SUMMARY_AVAILABLE" | "PROFILE_APPROVED" | "PROFILE_REJECTED" | "PLATFORM_APPOINTMENT_CANCELLED";
             title: string;
             body: string;
             /** @description Structured event data (startsAt, previousStartsAt, counterpartName, reason) for the viewer to format. */
@@ -1132,7 +1381,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             /** @enum {string} */
-            status: "BOOKED" | "CANCELLED" | "COMPLETED";
+            status: "BOOKED" | "CANCELLED" | "COMPLETED" | "NOT_HELD";
             reason: string;
         };
         DoctorPatientRecordResponseDto: {
@@ -1145,6 +1394,150 @@ export interface components {
             currentMedications: string | null;
             appointmentsWithDoctor: components["schemas"]["DoctorPatientAppointmentDto"][];
             completedConsultations: components["schemas"]["RecordListItemDto"][];
+        };
+        AdminUserResponseDto: {
+            id: string;
+            email: string;
+            /** @enum {string} */
+            role: "PATIENT" | "DOCTOR" | "ADMIN";
+            /** @enum {string} */
+            status: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+            statusReason: string | null;
+            displayName: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastLoginAt: string | null;
+            /** @description Number of upcoming BOOKED appointments */
+            upcomingAppointmentCount: number;
+        };
+        AdminUserListResponseDto: {
+            items: components["schemas"]["AdminUserResponseDto"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        ChangeAccountStatusDto: {
+            /** @enum {string} */
+            status: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+            reason: string;
+        };
+        AdminDoctorListItemDto: {
+            id: string;
+            displayName: string;
+            email: string;
+            licenseNumber: string;
+            /** @enum {string} */
+            verificationStatus: "PENDING" | "APPROVED" | "REJECTED";
+            /** @enum {string} */
+            accountStatus: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+            specializations: components["schemas"]["SpecializationSummaryDto"][];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AdminDoctorListResponseDto: {
+            items: components["schemas"]["AdminDoctorListItemDto"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        AdminDoctorProfileDto: {
+            id: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+            bio: string | null;
+            yearsOfExperience: number | null;
+            licenseNumber: string;
+            consultationMinutes: number;
+            /** @enum {string} */
+            verificationStatus: "PENDING" | "APPROVED" | "REJECTED";
+            reviewNote: string | null;
+            /** @enum {string} */
+            accountStatus: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+            accountStatusReason: string | null;
+            specializations: components["schemas"]["SpecializationSummaryDto"][];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ApproveDoctorDto: {
+            note?: string;
+        };
+        RejectDoctorDto: {
+            note?: string;
+        };
+        AdminAppointmentParticipantDto: {
+            id: string;
+            displayName: string;
+        };
+        AdminAppointmentResponseDto: {
+            id: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** @enum {string} */
+            status: "BOOKED" | "CANCELLED" | "COMPLETED" | "NOT_HELD";
+            doctor: components["schemas"]["AdminAppointmentParticipantDto"];
+            patient: components["schemas"]["AdminAppointmentParticipantDto"];
+            /** @enum {string} */
+            consultationState: "SCHEDULED" | "JOINED" | "IN_PROGRESS" | "COMPLETED";
+            flags: ("NOT_COMPLETED" | "DOCTOR_UNAVAILABLE")[];
+            /** Format: date-time */
+            cancelledAt: string | null;
+            /** @enum {string|null} */
+            cancelledByRole: "PATIENT" | "DOCTOR" | "ADMIN" | null;
+            cancellationReason: string | null;
+            resolutionReason: string | null;
+        };
+        AdminAppointmentListResponseDto: {
+            items: components["schemas"]["AdminAppointmentResponseDto"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        AdminCancelAppointmentDto: {
+            reason: string;
+        };
+        MarkNotHeldDto: {
+            reason: string;
+        };
+        AccountStatusCountsDto: {
+            ACTIVE: number;
+            SUSPENDED: number;
+            DEACTIVATED: number;
+        };
+        DoctorVerificationCountsDto: {
+            PENDING: number;
+            APPROVED: number;
+            REJECTED: number;
+        };
+        AppointmentStatusCountsDto: {
+            BOOKED: number;
+            CANCELLED: number;
+            COMPLETED: number;
+            NOT_HELD: number;
+        };
+        DashboardTrendBucketDto: {
+            /** @description YYYY-MM-DD, local calendar date in the requested time zone */
+            date: string;
+            count: number;
+            isToday: boolean;
+        };
+        AdminDashboardResponseDto: {
+            patients: components["schemas"]["AccountStatusCountsDto"];
+            doctors: components["schemas"]["AccountStatusCountsDto"];
+            doctorVerification: components["schemas"]["DoctorVerificationCountsDto"];
+            appointmentsToday: components["schemas"]["AppointmentStatusCountsDto"];
+            appointmentsUpcoming: components["schemas"]["AppointmentStatusCountsDto"];
+            appointmentsAllTime: components["schemas"]["AppointmentStatusCountsDto"];
+            consultationsInProgress: number;
+            consultationsCompletedToday: number;
+            consultationsCompletedLast7Days: number;
+            pendingDoctorReviews: number;
+            invalidBookings: number;
+            trend: components["schemas"]["DashboardTrendBucketDto"][];
+            timezone: string;
         };
     };
     responses: never;
@@ -1338,6 +1731,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SpecializationResponseDto"][];
+                };
+            };
+        };
+    };
+    AuditController_list: {
+        parameters: {
+            query?: {
+                action?: "USER_STATUS_CHANGED" | "DOCTOR_APPROVED" | "DOCTOR_REJECTED" | "DOCTOR_PROFILE_UPDATED" | "APPOINTMENT_CANCELLED" | "APPOINTMENT_MARKED_NOT_HELD" | "ADMIN_SIGNED_IN";
+                /** @description The acting administrator */
+                actorId?: string;
+                /** @description e.g. User, DoctorProfile, Appointment */
+                entityType?: string;
+                entityId?: string;
+                dateFrom?: string;
+                dateTo?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogListResponseDto"];
+                };
+            };
+        };
+    };
+    AuditController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogEntryDto"];
                 };
             };
         };
@@ -2163,6 +2607,344 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DoctorPatientRecordResponseDto"];
+                };
+            };
+        };
+    };
+    AdminUsersController_list: {
+        parameters: {
+            query?: {
+                role?: "PATIENT" | "DOCTOR" | "ADMIN";
+                status?: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+                /** @description Matches email or display name, case-insensitive */
+                q?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserListResponseDto"];
+                };
+            };
+        };
+    };
+    AdminUsersController_changeStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeAccountStatusDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserResponseDto"];
+                };
+            };
+            /** @description STATUS_UNCHANGED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDoctorsController_list: {
+        parameters: {
+            query?: {
+                verification?: "PENDING" | "APPROVED" | "REJECTED";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDoctorListResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDoctorsController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDoctorProfileDto"];
+                };
+            };
+        };
+    };
+    AdminDoctorsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDoctorProfileDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDoctorProfileDto"];
+                };
+            };
+        };
+    };
+    AdminDoctorsController_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveDoctorDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDoctorProfileDto"];
+                };
+            };
+            /** @description STATUS_UNCHANGED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDoctorsController_reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectDoctorDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDoctorProfileDto"];
+                };
+            };
+            /** @description STATUS_UNCHANGED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminAppointmentsController_list: {
+        parameters: {
+            query?: {
+                status?: "BOOKED" | "CANCELLED" | "COMPLETED" | "NOT_HELD";
+                consultationState?: "SCHEDULED" | "JOINED" | "IN_PROGRESS" | "COMPLETED";
+                dateFrom?: string;
+                dateTo?: string;
+                doctorId?: string;
+                patientId?: string;
+                /** @description Only appointments flagged NOT_COMPLETED or DOCTOR_UNAVAILABLE */
+                invalidOnly?: boolean;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAppointmentListResponseDto"];
+                };
+            };
+        };
+    };
+    AdminAppointmentsController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAppointmentResponseDto"];
+                };
+            };
+        };
+    };
+    AdminAppointmentsController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCancelAppointmentDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAppointmentResponseDto"];
+                };
+            };
+            /** @description APPOINTMENT_NOT_CANCELLABLE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminAppointmentsController_markNotHeld: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkNotHeldDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAppointmentResponseDto"];
+                };
+            };
+            /** @description NOT_ELIGIBLE_FOR_NOT_HELD */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminDashboardController_get: {
+        parameters: {
+            query?: {
+                /** @description IANA time zone used for "today" and the daily buckets */
+                tz?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDashboardResponseDto"];
                 };
             };
         };

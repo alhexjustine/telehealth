@@ -7,6 +7,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { requestIdMiddleware } from '../common/middleware/request-id.middleware.js';
 import { clientIpMiddleware } from '../common/middleware/client-ip.middleware.js';
+import { requestContextMiddleware } from '../common/middleware/request-context.js';
 import { createOriginCheckMiddleware } from '../common/middleware/origin-check.middleware.js';
 import { ErrorResponseDto } from '../common/dto/error-response.dto.js';
 import type { Env } from '../config/env.schema.js';
@@ -30,6 +31,7 @@ export function configureApp(app: INestApplication, options: { setupSwagger?: bo
   );
   app.use(requestIdMiddleware);
   app.use(clientIpMiddleware);
+  app.use(requestContextMiddleware);
   app.use(cookieParser());
   app.use(createOriginCheckMiddleware(configService.get('APP_ORIGINS', { infer: true })));
   // The realtime gateway (`RealtimeGateway`, path `/socket.io`) needs this

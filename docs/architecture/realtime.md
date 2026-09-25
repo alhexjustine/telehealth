@@ -70,8 +70,9 @@ minutes and disconnects itself if it's no longer valid, covering natural expiry 
 
 **Revocation.** `SessionService.revokeSession` / `revokeAllSessions` / `revokeAllSessionsExcept`
 all call `disconnectSessions(sessionIds)` after revoking in the database — covering logout,
-logout-all, and password change (which revokes every other session) today, and admin suspension
-once `add-admin-console` lands. `SessionService` depends on this through a
+logout-all, password change (which revokes every other session), and an administrator suspending
+or deactivating an account (`add-admin-console`, called right after its own transaction commits —
+see [Admin](/modules/admin#user-management)). `SessionService` depends on this through a
 `SESSION_REALTIME_NOTIFIER` token/interface rather than importing `RealtimeGateway` directly: the
 two modules depend on each other (`AuthModule` ⇄ `RealtimeModule`, both behind `forwardRef`), and a
 class used directly as a constructor parameter's type in that cycle throws

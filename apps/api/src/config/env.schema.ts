@@ -5,6 +5,27 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  // Comma-separated list of origins allowed to make state-changing requests.
+  APP_ORIGINS: z
+    .string()
+    .default('http://localhost:8080,http://localhost:5173')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter((origin) => origin.length > 0),
+    ),
+  // Off by default: the local stack is plain-HTTP localhost. Set true behind HTTPS.
+  // `z.coerce.boolean()` would treat the string "false" as truthy, so this parses explicitly.
+  COOKIE_SECURE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  SESSION_IDLE_MINUTES: z.coerce.number().int().positive().default(120),
+  SESSION_ABSOLUTE_HOURS: z.coerce.number().int().positive().default(12),
+  // Pre-provisioned admin account. When unset, provisioning is skipped.
+  ADMIN_EMAIL: z.string().email().optional(),
+  ADMIN_PASSWORD: z.string().min(10).max(128).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

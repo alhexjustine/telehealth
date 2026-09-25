@@ -12,9 +12,10 @@ process.env.DATABASE_URL ??= 'postgresql://openapi:openapi@localhost:5432/openap
 
 async function main(): Promise<void> {
   const { AppModule } = await import('../src/app.module.js');
-  const { buildOpenApiDocument } = await import('../src/swagger/swagger.js');
+  const { configureApp, buildOpenApiDocument } = await import('../src/bootstrap/configure-app.js');
 
   const app = await NestFactory.create(AppModule, { logger: false });
+  configureApp(app, { setupSwagger: false });
   await app.init();
 
   const document = buildOpenApiDocument(app);

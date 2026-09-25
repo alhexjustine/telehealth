@@ -3,6 +3,7 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { HealthCheckService, HealthIndicatorService } from '@nestjs/terminus';
 import type { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { Public } from '../auth/decorators/public.decorator.js';
 
 @ApiTags('health')
 @Controller('health')
@@ -14,6 +15,7 @@ export class HealthController {
   ) {}
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'Reports API and database health' })
   @ApiResponse({ status: 200, description: 'API and database are healthy' })
   @ApiResponse({ status: 503, description: 'The database is unreachable' })

@@ -22,9 +22,14 @@ This starts PostgreSQL, the NestJS API, and the web app (nginx serving the built
 proxying `/api` and `/socket.io` to the API). Once healthy:
 
 - Web app: <http://localhost:8080>
+- Sign in / register: <http://localhost:8080/login>, `/register/patient`, `/register/doctor`
 - System status page: <http://localhost:8080/status>
 - API health: <http://localhost:8080/api/health>
 - Swagger UI: <http://localhost:8080/api/docs>
+
+The API entrypoint provisions a default administrator on first startup (never overwritten on
+restart): **admin@telehealth.local** / **ChangeMe-Admin-2026**. These are local-only defaults —
+see [Configuration](#configuration) to change or disable them.
 
 Stop the stack with `docker compose down` (data persists in a named volume); add `-v` to also
 remove the volume and start from an empty database next time.
@@ -43,6 +48,28 @@ pnpm dev               # runs the API (http://localhost:3000) and web (http://lo
 
 `pnpm dev` proxies `/api` and `/socket.io` from the Vite dev server to the API, so the web app
 behaves the same as it does behind nginx. Stop the database container with `pnpm db:down`.
+
+`apps/api/.env.example` includes `ADMIN_EMAIL`/`ADMIN_PASSWORD`; `pnpm db:migrate` runs the admin
+provisioning script after migrating, so a native `pnpm dev` setup gets the same default
+administrator account as the Docker quick start. Leave them unset in `apps/api/.env` to skip
+provisioning entirely.
+
+## Configuration
+
+Every setting below has a working default — `docker compose up --build` needs no `.env` file.
+Override them via `.env` at the repo root (Docker) or `apps/api/.env` (native `pnpm dev`); see
+`.env.example` / `apps/api/.env.example` for the full list with defaults.
+
+| Setting                   | Default                                             | Notes                                                                             |
+| -------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `APP_ORIGINS`               | `http://localhost:8080,http://localhost:5173`         | Comma-separated allow-list for the Origin check on state-changing requests         |
+| `COOKIE_SECURE`             | `false`                                               | Set `true` when serving over HTTPS, so the session cookie requires TLS             |
+| `SESSION_IDLE_MINUTES`      | `120`                                                 | A session stops working after this long without activity                          |
+| `SESSION_ABSOLUTE_HOURS`    | `12`                                                  | ...or this long after sign-in, whichever comes first                              |
+| `ADMIN_EMAIL`/`ADMIN_PASSWORD` | `admin@telehealth.local` / `ChangeMe-Admin-2026` | The pre-provisioned administrator; **change these for anything beyond local dev.** Unset both to skip provisioning |
+
+See `docs/architecture/auth.md` (published on the docs site as "Authentication &
+Authorization") for the session model and protections these settings control.
 
 ### Running a single test
 
@@ -72,6 +99,7 @@ Run from the repository root unless noted otherwise.
 | `pnpm test:e2e`         | Run the API's e2e tests (builds the API, migrates `telehealth_test`) |
 | `pnpm format`           | Format the repo with Prettier                                        |
 | `pnpm openapi:generate` | Regenerate the OpenAPI document and the typed API client             |
+| `pnpm docs:generate-data-model` | Regenerate the full ER diagram from `schema.prisma`           |
 | `pnpm docs:dev`         | Run the documentation site locally with live reload                  |
 | `pnpm docs:build`       | Build the documentation site                                         |
 | `pnpm db:up`            | Start the local Postgres-only container (`docker-compose.dev.yml`)   |

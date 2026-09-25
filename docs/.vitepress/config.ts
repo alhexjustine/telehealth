@@ -24,6 +24,8 @@ export default withMermaid({
           { text: 'C4 L2 — Container', link: '/architecture/c4-container' },
           { text: 'C4 L3 — Component', link: '/architecture/c4-component' },
           { text: 'Deployment', link: '/architecture/deployment' },
+          { text: 'Authentication & Authorization', link: '/architecture/auth' },
+          { text: 'Data Model', link: '/architecture/data-model' },
         ],
       },
       {

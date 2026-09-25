@@ -17,8 +17,10 @@ context: |
   notifications, messaging, file storage, scheduling, conferencing, analytics, CMS, or medical
   records. Open-source libraries are fine; hosted third-party services are not.
 
-  Security model: application-managed email/password auth (argon2), short-lived access JWT +
-  rotating refresh token in httpOnly cookies, sessions stored hashed in PostgreSQL. Roles:
+  Security model: application-managed email/password auth (argon2id), opaque server-side
+  sessions (random token in an httpOnly SameSite=Lax cookie, SHA-256 hash stored in PostgreSQL,
+  checked on every request so logout/suspension take effect immediately), Origin check on
+  state-changing requests, deny-by-default auth guard with explicit public routes. Roles:
   PATIENT, DOCTOR, ADMIN (admin pre-provisioned, never publicly registrable). All authorization
   is enforced in NestJS guards/services, never only in the UI. Admins cannot read clinical notes.
   Every admin mutation writes an audit log entry in the same transaction.

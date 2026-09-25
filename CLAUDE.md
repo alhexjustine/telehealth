@@ -4,10 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-The `setup-foundation` change has scaffolded the workspace: `apps/api` (NestJS + Prisma),
+The `setup-foundation` change scaffolded the workspace: `apps/api` (NestJS + Prisma),
 `apps/web` (React + Vite SPA), `packages/api-client` (generated OpenAPI client), and `docs`
-(VitePress). No domain features (auth, matching, booking, consultations, admin) exist yet — see
-`openspec/changes/` for what's in flight.
+(VitePress). The `add-authentication` change (implementation in progress; not yet archived) adds
+application-managed accounts, sessions, role-based access control, the pre-provisioned admin, and
+patient/doctor profiles. Matching, booking, consultations, and the admin console still don't
+exist — see `openspec/changes/` for what's in flight.
 
 ### Commands
 
@@ -59,6 +61,32 @@ See `README.md` for the full command reference and local-development walkthrough
   "database down" health check work without Postgres.
 - OpenAPI paths are generated without the `/api` prefix; `createApiClient()` defaults its base URL
   to `/api`.
+- Auth is deny-by-default: `SessionAuthGuard` and `RolesGuard` are global `APP_GUARD`s, so every
+  new controller/route requires a signed-in user unless it carries `@Public()`, and every
+  `@Roles(...)`-restricted route rejects the wrong role. Forgetting `@Public()` on a route meant
+  to be open fails closed (401), not open — safe by default, but easy to notice in tests.
+- Don't add `@nestjs/throttler`: its CommonJS build `require()`s `@nestjs/common`, which is
+  ESM-only under NestJS 12. Real Node 24 handles that via `require(esm)`, but Jest's synthetic
+  CJS module loader doesn't, and it breaks every e2e test that touches the module graph (`Must
+  use import to load ES Module`). Use `src/common/rate-limit/rate-limit.guard.ts` (a small
+  in-memory, per-route, per-IP limiter with no such dependency) for anything throttling-shaped.
+- `@nestjs/swagger` only picks up a route's response schema from an explicit `@ApiOkResponse`/
+  `@ApiCreatedResponse({ type: SomeDto })` decorator — never from the handler's TS return type
+  alone. Skipping it doesn't break the build, but `openapi-typescript` then generates that
+  operation's success response with no `content` (`responses: { 200: { content?: never } }`),
+  and destructuring `{ data, error, response }` from an `openapi-fetch` call to it makes
+  `response`'s inferred type collapse to `never` the moment you narrow on `error` (there's
+  no documented error schema either, so `error`'s type is `never` too) — a real TS error, not a
+  runtime one. Check `response.ok`/`response.status` directly instead of narrowing on `data`/
+  `error` (see `apps/web/src/lib/api-error.ts`'s `unwrap`/`assertOk`), and always add the
+  `@Api...Response({ type })` decorator so the client gets a real type in the first place.
+- `pino-http`'s `serializers.req` callback does **not** receive the live Express `request`; it
+  receives `pino-std-serializers`' own pre-summarized object (`{ id, method, url, headers, ... }`)
+  with the real request under the non-enumerable `.raw` key. Anything computed from the live
+  request per-request (like the real client IP behind nginx) needs to be captured early by a
+  request-scoped Express middleware onto a custom property (see `clientIpMiddleware` and
+  `logging.module.ts`'s `serializers.req`), not read lazily inside the serializer itself —
+  `req.ip` read there is already stale and resolves to `undefined`.
 
 ## What this repo is building
 
@@ -150,6 +178,8 @@ Features are built through OpenSpec (`@fission-ai/openspec`, pinned as a workspa
 - Every `#### Scenario` in a spec should map to a test; name tests after their scenarios.
 - Tooling/docs-only changes set `skip_specs: true` in the change's `.openspec.yaml`.
 - Run `pnpm exec openspec validate` before committing spec or change edits.
+- One commit per change, made after it is verified and archived (code + tests + docs + archived
+  change folder together). Never push unless the user asks.
 
 ## Development-tooling note
 

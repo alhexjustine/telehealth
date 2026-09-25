@@ -15,10 +15,14 @@
     "test:e2e": "NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json --runInBand",
     "preopenapi:generate": "pnpm run build",
     "openapi:generate": "node dist/scripts/generate-openapi.js",
+    "pregenerate:data-model-diagram": "pnpm run build",
+    "generate:data-model-diagram": "node dist/scripts/generate-data-model-diagram.js",
     "postinstall": "test -f src/generated/prisma/client.ts || prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
-    "prisma:migrate:deploy": "prisma migrate deploy"
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "preadmin:provision": "pnpm run build",
+    "admin:provision": "node dist/scripts/provision-admin.js"
   },
   "dependencies": {
     "@nestjs/common": "12.1.0",
@@ -27,8 +31,12 @@
     "@nestjs/platform-express": "12.1.0",
     "@nestjs/swagger": "12.0.2",
     "@nestjs/terminus": "12.1.0",
+    "@node-rs/argon2": "2.2.1",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.15.1",
+    "cookie-parser": "1.4.7",
     "dotenv": "18.0.3",
     "helmet": "8.3.0",
     "nestjs-pino": "5.2.1",
@@ -42,6 +50,7 @@
   "devDependencies": {
     "@jest/globals": "30.5.2",
     "@nestjs/testing": "12.1.0",
+    "@types/cookie-parser": "1.4.10",
     "@types/express": "5.0.5",
     "@types/jest": "30.0.0",
     "@types/node": "24.10.1",

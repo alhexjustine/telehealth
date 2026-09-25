@@ -28,6 +28,10 @@ jobs:
     env:
       DATABASE_URL: postgresql://telehealth:telehealth@localhost:5432/telehealth_test?schema=public
       NODE_ENV: test
+      APP_ORIGINS: http://localhost:8080,http://localhost:5173
+      COOKIE_SECURE: 'false'
+      SESSION_IDLE_MINUTES: '120'
+      SESSION_ABSOLUTE_HOURS: '12'
     steps:
       - uses: actions/checkout@v4
 
@@ -54,6 +58,11 @@ jobs:
           pnpm openapi:generate
           git diff --exit-code -- packages/api-client/openapi.json packages/api-client/src/schema.d.ts
 
+      - name: Regenerate the data model ER diagram, then check for drift
+        run: |
+          pnpm docs:generate-data-model
+          git diff --exit-code -- docs/architecture/_generated-erd.md
+
       - name: Unit tests
         run: pnpm test
 
@@ -62,6 +71,9 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Docs build
+        run: pnpm docs:build
 
       - name: OpenSpec validate
         run: pnpm exec openspec validate --all --strict

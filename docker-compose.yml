@@ -23,6 +23,14 @@ services:
       PORT: ${API_PORT:-3000}
       NODE_ENV: ${NODE_ENV:-production}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      APP_ORIGINS: ${APP_ORIGINS:-http://localhost:${WEB_PORT:-8080}}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      SESSION_IDLE_MINUTES: ${SESSION_IDLE_MINUTES:-120}
+      SESSION_ABSOLUTE_HOURS: ${SESSION_ABSOLUTE_HOURS:-12}
+      # Local-only defaults for the pre-provisioned admin account. Override in
+      # `.env` for anything beyond local development; see README.md.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@telehealth.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMe-Admin-2026}
     depends_on:
       postgres:
         condition: service_healthy

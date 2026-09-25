@@ -21,10 +21,294 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/register/patient": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registers a patient account and signs them in */
+        post: operations["AuthController_registerPatient"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/register/doctor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registers a doctor account (verification pending) and signs them in */
+        post: operations["AuthController_registerDoctor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Signs a user in */
+        post: operations["AuthController_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Signs out of the current device */
+        post: operations["AuthController_logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Signs out of every device */
+        post: operations["AuthController_logoutAll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Changes the signed-in user's password */
+        post: operations["AuthController_changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the signed-in user */
+        get: operations["AuthController_me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/specializations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the medical specialization catalog, sorted by name */
+        get: operations["SpecializationsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patients/me/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the signed-in patient's own profile */
+        get: operations["PatientsController_getProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Updates the signed-in patient's own profile */
+        patch: operations["PatientsController_updateProfile"];
+        trace?: never;
+    };
+    "/doctors/me/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the signed-in doctor's own profile */
+        get: operations["DoctorsController_getProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Updates the signed-in doctor's own profile */
+        patch: operations["DoctorsController_updateProfile"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        RegisterPatientDto: {
+            email: string;
+            /** @description 10-128 characters, must not equal the email */
+            password: string;
+            firstName: string;
+            lastName: string;
+        };
+        AuthSessionResponseDto: {
+            id: string;
+            email: string;
+            /** @enum {string} */
+            role: "PATIENT" | "DOCTOR" | "ADMIN";
+        };
+        RegisterDoctorDto: {
+            email: string;
+            /** @description 10-128 characters, must not equal the email */
+            password: string;
+            firstName: string;
+            lastName: string;
+            /** @description At least one specialization ID from the catalog */
+            specializationIds: string[];
+            /** @description 4-32 letters, digits, or dashes */
+            licenseNumber: string;
+        };
+        LoginDto: {
+            email: string;
+            password: string;
+        };
+        ChangePasswordDto: {
+            currentPassword: string;
+            /** @description 10-128 characters, must not equal the email */
+            newPassword: string;
+        };
+        CurrentUserResponseDto: {
+            id: string;
+            email: string;
+            /** @enum {string} */
+            role: "PATIENT" | "DOCTOR" | "ADMIN";
+            /** @enum {string} */
+            status: "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+            displayName: string;
+            /** @description Present only for PATIENT */
+            profileComplete?: boolean;
+            /**
+             * @description Present only for DOCTOR
+             * @enum {string}
+             */
+            verificationStatus?: "PENDING" | "APPROVED" | "REJECTED";
+        };
+        SpecializationResponseDto: {
+            id: string;
+            slug: string;
+            name: string;
+            description: string;
+        };
+        PatientProfileResponseDto: {
+            firstName: string;
+            lastName: string;
+            birthDate: string | null;
+            weightKg: number | null;
+            heightCm: number | null;
+            phone: string | null;
+            emergencyContactName: string | null;
+            emergencyContactPhone: string | null;
+            medicalConditions: string | null;
+            allergies: string | null;
+            currentMedications: string | null;
+            profileComplete: boolean;
+        };
+        UpdatePatientProfileDto: {
+            firstName?: string;
+            lastName?: string;
+            /** @example 1990-01-31 */
+            birthDate?: string;
+            weightKg?: number;
+            heightCm?: number;
+            phone?: string;
+            emergencyContactName?: string;
+            emergencyContactPhone?: string;
+            medicalConditions?: string;
+            allergies?: string;
+            currentMedications?: string;
+        };
+        SpecializationSummaryDto: {
+            id: string;
+            name: string;
+        };
+        DoctorProfileResponseDto: {
+            firstName: string;
+            lastName: string;
+            bio: string | null;
+            yearsOfExperience: number | null;
+            licenseNumber: string;
+            consultationMinutes: number;
+            /** @enum {string} */
+            verificationStatus: "PENDING" | "APPROVED" | "REJECTED";
+            reviewNote: string | null;
+            specializations: components["schemas"]["SpecializationSummaryDto"][];
+        };
+        UpdateDoctorProfileDto: {
+            firstName?: string;
+            lastName?: string;
+            bio?: string;
+            yearsOfExperience?: number;
+            /** @description 4-32 letters, digits, or dashes */
+            licenseNumber?: string;
+            /** @enum {number} */
+            consultationMinutes?: 15 | 20 | 30 | 45 | 60;
+            /** @description Replaces the full set of specializations; at least one is required when provided */
+            specializationIds?: string[];
+        };
+    };
     responses: never;
     parameters: never;
     requestBodies: never;
@@ -55,6 +339,252 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    AuthController_registerPatient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterPatientDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthSessionResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_registerDoctor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterDoctorDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthSessionResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthSessionResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_logoutAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUserResponseDto"];
+                };
+            };
+        };
+    };
+    SpecializationsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpecializationResponseDto"][];
+                };
+            };
+        };
+    };
+    PatientsController_getProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientProfileResponseDto"];
+                };
+            };
+        };
+    };
+    PatientsController_updateProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePatientProfileDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientProfileResponseDto"];
+                };
+            };
+        };
+    };
+    DoctorsController_getProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoctorProfileResponseDto"];
+                };
+            };
+        };
+    };
+    DoctorsController_updateProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDoctorProfileDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoctorProfileResponseDto"];
+                };
             };
         };
     };

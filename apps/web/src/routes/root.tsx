@@ -6,10 +6,24 @@ export function RootPage() {
     <main className="mx-auto flex max-w-xl flex-col items-center gap-4 p-16 text-center">
       <h1 className="text-3xl font-semibold">Telehealth</h1>
       <p className="text-muted-foreground">
-        A fictional-prototype telehealth product. The patient, doctor, and admin experiences are
-        built out in later changes.
+        A fictional-prototype telehealth product. Sign in, or create a patient or doctor account to
+        get started.
       </p>
-      <Link to="/status" className={buttonVariants({ variant: 'default' })}>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <Link to="/login" className={buttonVariants({ variant: 'default' })}>
+          Sign in
+        </Link>
+        <Link to="/register/patient" className={buttonVariants({ variant: 'outline' })}>
+          Create account
+        </Link>
+        <Link to="/register/doctor" className={buttonVariants({ variant: 'outline' })}>
+          Register as a doctor
+        </Link>
+      </div>
+      <Link
+        to="/status"
+        className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+      >
         View system status
       </Link>
     </main>

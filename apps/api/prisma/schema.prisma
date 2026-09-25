@@ -8,3 +8,122 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+
+  @@map("role")
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+
+  @@map("account_status")
+}
+
+model User {
+  id            String        @id @default(uuid()) @db.Uuid
+  email         String        @unique
+  passwordHash  String        @map("password_hash")
+  role          Role
+  status        AccountStatus @default(ACTIVE)
+  statusReason  String?       @map("status_reason")
+  lastLoginAt   DateTime?     @map("last_login_at") @db.Timestamptz(3)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  sessions       Session[]
+  patientProfile PatientProfile?
+  doctorProfile  DoctorProfile?
+
+  @@map("users")
+}
+
+model Session {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  tokenHash   String    @unique @map("token_hash")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastUsedAt  DateTime  @default(now()) @map("last_used_at") @db.Timestamptz(3)
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(3)
+  userAgent   String?   @map("user_agent")
+  ip          String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("verification_status")
+}
+
+model PatientProfile {
+  userId                 String    @id @map("user_id") @db.Uuid
+  firstName              String    @map("first_name")
+  lastName               String    @map("last_name")
+  birthDate              DateTime? @map("birth_date") @db.Date
+  weightKg               Decimal?  @map("weight_kg") @db.Decimal(5, 2)
+  heightCm               Decimal?  @map("height_cm") @db.Decimal(5, 2)
+  phone                  String?
+  emergencyContactName   String?   @map("emergency_contact_name")
+  emergencyContactPhone  String?   @map("emergency_contact_phone")
+  medicalConditions      String?   @map("medical_conditions")
+  allergies              String?
+  currentMedications     String?   @map("current_medications")
+  updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("patient_profiles")
+}
+
+model DoctorProfile {
+  userId               String              @id @map("user_id") @db.Uuid
+  firstName            String              @map("first_name")
+  lastName             String              @map("last_name")
+  bio                  String?
+  yearsOfExperience    Int?                @map("years_of_experience")
+  licenseNumber        String              @unique @map("license_number")
+  consultationMinutes  Int                 @default(30) @map("consultation_minutes")
+  verificationStatus   VerificationStatus  @default(PENDING) @map("verification_status")
+  reviewNote           String?             @map("review_note")
+  updatedAt            DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user            User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specializations DoctorSpecialization[]
+
+  @@map("doctor_profiles")
+}
+
+model Specialization {
+  id          String  @id @default(uuid()) @db.Uuid
+  slug        String  @unique
+  name        String  @unique
+  description String
+
+  doctors DoctorSpecialization[]
+
+  @@map("specializations")
+}
+
+model DoctorSpecialization {
+  doctorId         String @map("doctor_id") @db.Uuid
+  specializationId String @map("specialization_id") @db.Uuid
+
+  doctor         DoctorProfile  @relation(fields: [doctorId], references: [userId], onDelete: Cascade)
+  specialization Specialization @relation(fields: [specializationId], references: [id], onDelete: Cascade)
+
+  @@id([doctorId, specializationId])
+  @@map("doctor_specializations")
+}

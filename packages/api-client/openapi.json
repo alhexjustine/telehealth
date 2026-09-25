@@ -18,6 +18,348 @@
           "health"
         ]
       }
+    },
+    "/auth/register/patient": {
+      "post": {
+        "operationId": "AuthController_registerPatient",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPatientDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Registers a patient account and signs them in",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/register/doctor": {
+      "post": {
+        "operationId": "AuthController_registerDoctor",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDoctorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Registers a doctor account (verification pending) and signs them in",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Signs a user in",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Signs out of the current device",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/logout-all": {
+      "post": {
+        "operationId": "AuthController_logoutAll",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Signs out of every device",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/password": {
+      "post": {
+        "operationId": "AuthController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Changes the signed-in user's password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Returns the signed-in user",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/specializations": {
+      "get": {
+        "operationId": "SpecializationsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SpecializationResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Lists the medical specialization catalog, sorted by name",
+        "tags": [
+          "specializations"
+        ]
+      }
+    },
+    "/patients/me/profile": {
+      "get": {
+        "operationId": "PatientsController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatientProfileResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Returns the signed-in patient's own profile",
+        "tags": [
+          "patients"
+        ]
+      },
+      "patch": {
+        "operationId": "PatientsController_updateProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePatientProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatientProfileResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Updates the signed-in patient's own profile",
+        "tags": [
+          "patients"
+        ]
+      }
+    },
+    "/doctors/me/profile": {
+      "get": {
+        "operationId": "DoctorsController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorProfileResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Returns the signed-in doctor's own profile",
+        "tags": [
+          "doctors"
+        ]
+      },
+      "patch": {
+        "operationId": "DoctorsController_updateProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDoctorProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorProfileResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Updates the signed-in doctor's own profile",
+        "tags": [
+          "doctors"
+        ]
+      }
     }
   },
   "info": {
@@ -33,6 +375,420 @@
     }
   ],
   "components": {
-    "schemas": {}
+    "securitySchemes": {
+      "cookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "th_session",
+        "description": "Opaque session token set by POST /auth/login or a registration endpoint."
+      }
+    },
+    "schemas": {
+      "RegisterPatientDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "description": "10-128 characters, must not equal the email"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "firstName",
+          "lastName"
+        ]
+      },
+      "AuthSessionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "PATIENT",
+              "DOCTOR",
+              "ADMIN"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role"
+        ]
+      },
+      "RegisterDoctorDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "description": "10-128 characters, must not equal the email"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "specializationIds": {
+            "description": "At least one specialization ID from the catalog",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "licenseNumber": {
+            "type": "string",
+            "description": "4-32 letters, digits, or dashes"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "firstName",
+          "lastName",
+          "specializationIds",
+          "licenseNumber"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string",
+            "description": "10-128 characters, must not equal the email"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "CurrentUserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "PATIENT",
+              "DOCTOR",
+              "ADMIN"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "SUSPENDED",
+              "DEACTIVATED"
+            ]
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "profileComplete": {
+            "type": "boolean",
+            "description": "Present only for PATIENT"
+          },
+          "verificationStatus": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED"
+            ],
+            "description": "Present only for DOCTOR"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "status",
+          "displayName"
+        ]
+      },
+      "SpecializationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "description"
+        ]
+      },
+      "PatientProfileResponseDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "birthDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "weightKg": {
+            "type": "number",
+            "nullable": true
+          },
+          "heightCm": {
+            "type": "number",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "emergencyContactName": {
+            "type": "string",
+            "nullable": true
+          },
+          "emergencyContactPhone": {
+            "type": "string",
+            "nullable": true
+          },
+          "medicalConditions": {
+            "type": "string",
+            "nullable": true
+          },
+          "allergies": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentMedications": {
+            "type": "string",
+            "nullable": true
+          },
+          "profileComplete": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "birthDate",
+          "weightKg",
+          "heightCm",
+          "phone",
+          "emergencyContactName",
+          "emergencyContactPhone",
+          "medicalConditions",
+          "allergies",
+          "currentMedications",
+          "profileComplete"
+        ]
+      },
+      "UpdatePatientProfileDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "birthDate": {
+            "type": "string",
+            "example": "1990-01-31"
+          },
+          "weightKg": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "heightCm": {
+            "type": "number",
+            "minimum": 30,
+            "maximum": 272
+          },
+          "phone": {
+            "type": "string"
+          },
+          "emergencyContactName": {
+            "type": "string"
+          },
+          "emergencyContactPhone": {
+            "type": "string"
+          },
+          "medicalConditions": {
+            "type": "string"
+          },
+          "allergies": {
+            "type": "string"
+          },
+          "currentMedications": {
+            "type": "string"
+          }
+        }
+      },
+      "SpecializationSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "DoctorProfileResponseDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "yearsOfExperience": {
+            "type": "number",
+            "nullable": true
+          },
+          "licenseNumber": {
+            "type": "string"
+          },
+          "consultationMinutes": {
+            "type": "number"
+          },
+          "verificationStatus": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED"
+            ]
+          },
+          "reviewNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "specializations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpecializationSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "bio",
+          "yearsOfExperience",
+          "licenseNumber",
+          "consultationMinutes",
+          "verificationStatus",
+          "reviewNote",
+          "specializations"
+        ]
+      },
+      "UpdateDoctorProfileDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "yearsOfExperience": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 70
+          },
+          "licenseNumber": {
+            "type": "string",
+            "description": "4-32 letters, digits, or dashes"
+          },
+          "consultationMinutes": {
+            "type": "number",
+            "enum": [
+              15,
+              20,
+              30,
+              45,
+              60
+            ]
+          },
+          "specializationIds": {
+            "description": "Replaces the full set of specializations; at least one is required when provided",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
   }
 }

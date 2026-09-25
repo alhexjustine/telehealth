@@ -14,11 +14,12 @@
     "test:e2e": "pnpm --filter api run test:e2e",
     "format": "prettier --write .",
     "openapi:generate": "pnpm --filter api run openapi:generate && pnpm --filter api-client run generate:types",
+    "docs:generate-data-model": "pnpm --filter api run generate:data-model-diagram",
     "docs:dev": "pnpm --filter docs run dev",
     "docs:build": "pnpm --filter docs run build",
     "db:up": "docker compose -f docker-compose.dev.yml up -d",
     "db:down": "docker compose -f docker-compose.dev.yml down",
-    "db:migrate": "pnpm --filter api run prisma:migrate:dev"
+    "db:migrate": "pnpm --filter api run prisma:migrate:dev && pnpm --filter api run admin:provision"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

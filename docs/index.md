@@ -17,7 +17,12 @@ the [Deployment page](/architecture/deployment) for how it runs locally.
 | -------------------------------------------------- | ------- | -------------------- |
 | Local Docker Compose stack, health, error handling | Done    | `setup-foundation`   |
 | Generated OpenAPI client                           | Done    | `setup-foundation`   |
-| Patient/Doctor/Admin authentication                | Planned | `add-authentication` |
+| Patient/doctor accounts, sessions, sign-in/out     | Done    | `add-authentication` |
+| Pre-provisioned administrator                      | Done    | `add-authentication` |
+| Role-based access control                          | Done    | `add-authentication` |
+| Patient profile & completeness                     | Done    | `add-authentication` |
+| Doctor profile & verification status               | Done    | `add-authentication` |
+| Specialization catalog                             | Done    | `add-authentication` |
 | Doctor discovery & specialty matching              | Planned | a later change       |
 | Booking, reschedule, cancel                        | Planned | a later change       |
 | Consultation workspace                             | Planned | a later change       |

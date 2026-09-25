@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -18,6 +19,7 @@ import { PrototypeNotice } from '@/components/prototype-notice';
 import { useLoginMutation } from '@/lib/auth/mutations';
 import { roleHomePath } from '@/lib/auth/role-home';
 import { sanitizeReturnTo } from '@/lib/return-to';
+import { consumeSessionEnded } from '@/lib/session-ended';
 import { useDocumentTitle } from '@/lib/use-document-title';
 
 const signInSchema = z.object({
@@ -32,6 +34,11 @@ export function SignInPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const login = useLoginMutation();
+  // Read once via a lazy initializer (not an effect + setState, which would
+  // cause an avoidable extra render): `consumeSessionEnded` clears the flag
+  // as it reads it, so a later refresh of this page (or a normal,
+  // non-session-ended visit) never repeats the message.
+  const [sessionEnded] = useState(() => consumeSessionEnded());
 
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
@@ -64,6 +71,11 @@ export function SignInPage() {
               onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}
               className="flex flex-col gap-4"
             >
+              {sessionEnded && !login.isError && (
+                <Alert>
+                  <AlertDescription>Your session has ended. Please sign in again.</AlertDescription>
+                </Alert>
+              )}
               {login.isError && (
                 <Alert variant="destructive">
                   <AlertDescription>{login.error.message}</AlertDescription>

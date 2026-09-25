@@ -32,6 +32,9 @@ services:
       # `.env` for anything beyond local development; see README.md.
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@telehealth.local}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMe-Admin-2026}
+      # Loads the fictional demo dataset on first startup so the app is explorable immediately.
+      # Set to false in `.env` to start from an empty database instead.
+      DEMO_DATA: ${DEMO_DATA:-true}
     depends_on:
       postgres:
         condition: service_healthy

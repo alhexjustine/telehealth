@@ -40,3 +40,7 @@ the [Deployment page](/architecture/deployment) for how it runs locally.
 | Admin operational dashboard                        | Done    | `add-admin-console`  |
 | Append-only admin audit log                        | Done    | `add-admin-console`  |
 | Product website (landing, disclaimers)             | Done    | `add-product-website` |
+| Seeded demo dataset, live-consultation & reset commands | Done | `harden-core-journey` |
+| UI resilience (loading/empty/error states, recovery page, session-ended flow) | Done | `harden-core-journey` |
+| Automated browser journey test & cross-cutting checks | Done  | `harden-core-journey` |
+| Scenario-to-test traceability check                | Done    | `harden-core-journey` |

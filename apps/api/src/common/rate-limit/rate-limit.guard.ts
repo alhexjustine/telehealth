@@ -1,6 +1,8 @@
 import { HttpException, HttpStatus, Injectable, type CanActivate, type ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
+import type { Env } from '../../config/env.schema.js';
 import { RATE_LIMIT_KEY, type RateLimitOptions } from './rate-limit.decorator.js';
 import { checkRateLimit, type RateLimitWindowState } from './rate-limit-window.js';
 
@@ -32,7 +34,10 @@ export class RateLimitGuard implements CanActivate {
   private readonly windows = new Map<string, TrackedWindow>();
   private requestsSinceSweep = 0;
 
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly configService: ConfigService<Env, true>,
+  ) {}
 
   private sweepExpired(now: number): void {
     for (const [key, tracked] of this.windows) {
@@ -48,6 +53,11 @@ export class RateLimitGuard implements CanActivate {
       context.getClass(),
     ]);
     if (!options) {
+      return true;
+    }
+    // e2e-only escape hatch: only bypasses limiting when THROTTLE_DISABLED is explicitly "true"
+    // (never the default, and never set outside docker-compose.e2e.yml — see env.schema.ts).
+    if (this.configService.get('THROTTLE_DISABLED', { infer: true })) {
       return true;
     }
 

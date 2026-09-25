@@ -31,6 +31,13 @@ The API entrypoint provisions a default administrator on first startup (never ov
 restart): **admin@telehealth.local** / **ChangeMe-Admin-2026**. These are local-only defaults —
 see [Configuration](#configuration) to change or disable them.
 
+It also loads a fictional demo dataset on first startup (`DEMO_DATA=true` by default) — populated
+doctors, patients, appointments, and notifications, so there's something to explore immediately.
+Sign in as the primary demo patient (`patient@demo.telehealth.local`) or doctor
+(`doctor@demo.telehealth.local`), both with password `Demo-Password-2026`. See the
+[Demo guide](docs/guide/demo.md) for the full account list, what's in the dataset, and how to
+stage a live consultation for a recording.
+
 Stop the stack with `docker compose down` (data persists in a named volume); add `-v` to also
 remove the volume and start from an empty database next time.
 
@@ -42,7 +49,8 @@ Run the app natively on the host with a database-only container:
 pnpm install
 pnpm db:up             # starts Postgres on localhost:5432 (docker-compose.dev.yml)
 cp apps/api/.env.example apps/api/.env
-pnpm db:migrate        # applies migrations to the `telehealth` database
+set -a; source apps/api/.env; set +a   # standalone scripts don't load .env themselves — see below
+pnpm db:migrate        # applies migrations, then provisions the admin from the exported vars
 pnpm dev               # runs the API (http://localhost:3000) and web (http://localhost:5173)
 ```
 
@@ -51,8 +59,11 @@ behaves the same as it does behind nginx. Stop the database container with `pnpm
 
 `apps/api/.env.example` includes `ADMIN_EMAIL`/`ADMIN_PASSWORD`; `pnpm db:migrate` runs the admin
 provisioning script after migrating, so a native `pnpm dev` setup gets the same default
-administrator account as the Docker quick start. Leave them unset in `apps/api/.env` to skip
-provisioning entirely.
+administrator account as the Docker quick start — but that script, like the demo-seed scripts
+below, reads `process.env` directly rather than loading `apps/api/.env` itself (only `prisma.config.ts`
+does that), so the variables must actually be exported in the shell first (the `source` line
+above), not just present in the file. Leave `ADMIN_EMAIL`/`ADMIN_PASSWORD` unset (don't export
+them) to skip provisioning entirely.
 
 ## Configuration
 
@@ -67,6 +78,7 @@ Override them via `.env` at the repo root (Docker) or `apps/api/.env` (native `p
 | `SESSION_IDLE_MINUTES`      | `120`                                                 | A session stops working after this long without activity                          |
 | `SESSION_ABSOLUTE_HOURS`    | `12`                                                  | ...or this long after sign-in, whichever comes first                              |
 | `ADMIN_EMAIL`/`ADMIN_PASSWORD` | `admin@telehealth.local` / `ChangeMe-Admin-2026` | The pre-provisioned administrator; **change these for anything beyond local dev.** Unset both to skip provisioning |
+| `DEMO_DATA`                 | `true` (Docker Compose only; `false` otherwise)       | Loads the fictional demo dataset after migrations and admin provisioning. See the [Demo guide](docs/guide/demo.md) |
 
 See `docs/architecture/auth.md` (published on the docs site as "Authentication &
 Authorization") for the session model and protections these settings control.
@@ -83,7 +95,30 @@ pnpm --filter api run test:e2e -t "Database unreachable"
 
 # One web test file
 pnpm --filter web exec vitest run src/routes/status.test.tsx
+
+# One browser (Playwright) test file, against a running e2e stack (see "Browser tests" below)
+pnpm --filter e2e exec playwright test tests/journey.spec.ts
 ```
+
+## Browser tests
+
+An automated Playwright suite runs the full core journey (registration through consultation and
+records) and cross-cutting checks (no third-party requests, no horizontal scroll at 360px, basic
+accessibility) against the real containerized stack — nginx, the CSP, and the actual container
+entrypoints, not `pnpm dev`. It needs its own stack, started with an override that publishes a
+throwaway Postgres and disables demo data and auth rate limiting:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.e2e.yml up --build -d
+# wait for it to report healthy: curl -sf http://localhost:8080/api/health
+pnpm exec playwright install --with-deps chromium   # once, or whenever Playwright is upgraded
+pnpm test:browser
+docker compose -f docker-compose.yml -f docker-compose.e2e.yml down -v
+```
+
+See [Testing & Quality](docs/architecture/testing.md) for the full test pyramid, the
+scenario-to-test naming convention, the traceability check (`pnpm traceability`), and the
+manual-verification register.
 
 ## Scripts
 
@@ -97,6 +132,12 @@ Run from the repository root unless noted otherwise.
 | `pnpm typecheck`        | Typecheck every package                                              |
 | `pnpm test`             | Run unit tests in every package                                      |
 | `pnpm test:e2e`         | Run the API's e2e tests (builds the API, migrates `telehealth_test`) |
+| `pnpm test:browser`     | Run the Playwright suite (needs the e2e stack running — see above)   |
+| `pnpm test:scripts`     | Run `scripts/*.test.mjs` with Node's built-in test runner            |
+| `pnpm traceability`     | Check every spec scenario has a matching test or register entry      |
+| `pnpm demo:seed`        | Seed the demo dataset (native dev; no-ops if already present)        |
+| `pnpm demo:live`        | Stage a live consultation 10 minutes out, for a recording            |
+| `pnpm demo:reset`       | Remove all demo accounts and their data; leaves everything else      |
 | `pnpm format`           | Format the repo with Prettier                                        |
 | `pnpm openapi:generate` | Regenerate the OpenAPI document and the typed API client             |
 | `pnpm docs:generate-data-model` | Regenerate the full ER diagram from `schema.prisma`           |
@@ -109,13 +150,16 @@ Run from the repository root unless noted otherwise.
 ## Repository layout
 
 ```
-apps/api             NestJS + Prisma REST API
+apps/api             NestJS + Prisma REST API (includes apps/api/scripts/seed-demo.ts)
 apps/web              React + Vite SPA (product website, Patient, Doctor, Admin)
 packages/api-client   Generated OpenAPI types + typed fetch client, shared by apps/web
+e2e                    Playwright browser test suite, against the containerized stack
 docs                   VitePress technical documentation site
+scripts                Repo-wide tooling (the scenario-to-test traceability check)
 openspec               Spec-driven change workflow (proposals, specs, design, tasks)
 docker-compose.yml     Full local stack (postgres, api, web)
 docker-compose.dev.yml Postgres-only, for running api/web natively on the host
+docker-compose.e2e.yml Override for the browser test suite (layer on top of docker-compose.yml)
 ```
 
 ## Spec-driven workflow (OpenSpec)

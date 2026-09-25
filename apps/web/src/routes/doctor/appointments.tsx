@@ -19,6 +19,7 @@ import {
 import { useAppointments, useCancelAppointment } from '@/lib/appointments/use-appointments';
 import { formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
 import { JoinConsultationButton } from '@/components/join-consultation-button';
+import { QueryState } from '@/components/query-state';
 
 type AppointmentDto =
   ApiPaths['/appointments']['get']['responses'][200]['content']['application/json']['items'][number];
@@ -54,57 +55,69 @@ export function DoctorAppointmentsPage() {
         </TabsList>
 
         <TabsContent value={tab} className="mt-4 flex flex-col gap-3">
-          {activeQuery.isPending && <p className="text-muted-foreground">Loading…</p>}
-          {activeQuery.data && activeQuery.data.items.length === 0 && (
-            <p className="text-muted-foreground">No {tab} appointments.</p>
-          )}
-          {activeQuery.data?.items.map((appointment) => {
-            const canCancel = appointment.status === 'BOOKED' && new Date(appointment.startsAt).getTime() > now;
-            return (
-              <Card key={appointment.id}>
-                <CardContent className="flex flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <Link to={`/doctor/appointments/${appointment.id}`} className="font-medium hover:underline">
-                      {formatSlotDateAndTime(appointment.startsAt, timezone)}
-                    </Link>
-                    <p className="text-sm text-muted-foreground">
-                      {appointment.patient.displayName}
-                      {appointment.patient.age !== null ? `, ${appointment.patient.age}` : ''}
-                    </p>
-                    <p className="text-sm text-muted-foreground">{appointment.reason}</p>
-                    {appointment.symptoms.length > 0 && (
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {appointment.symptoms.map((symptom) => (
-                          <Badge key={symptom.id} variant="secondary">
-                            {symptom.name}
-                          </Badge>
-                        ))}
+          <QueryState
+            query={activeQuery}
+            label={`${tab} appointments`}
+            isEmpty={(data) => data.items.length === 0}
+            empty={
+              <p className="text-muted-foreground">
+                {tab === 'upcoming'
+                  ? "You don't have any upcoming appointments."
+                  : "You don't have any past appointments."}
+              </p>
+            }
+          >
+            {(data) =>
+              data.items.map((appointment) => {
+                const canCancel =
+                  appointment.status === 'BOOKED' && new Date(appointment.startsAt).getTime() > now;
+                return (
+                  <Card key={appointment.id}>
+                    <CardContent className="flex flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <Link to={`/doctor/appointments/${appointment.id}`} className="font-medium hover:underline">
+                          {formatSlotDateAndTime(appointment.startsAt, timezone)}
+                        </Link>
+                        <p className="text-sm text-muted-foreground">
+                          {appointment.patient.displayName}
+                          {appointment.patient.age !== null ? `, ${appointment.patient.age}` : ''}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{appointment.reason}</p>
+                        {appointment.symptoms.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {appointment.symptoms.map((symptom) => (
+                              <Badge key={symptom.id} variant="secondary">
+                                {symptom.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-start gap-2 sm:items-end">
-                    <Badge variant={statusVariant(appointment.status)}>{appointment.status}</Badge>
-                    <JoinConsultationButton
-                      appointmentId={appointment.id}
-                      status={appointment.status}
-                      startsAt={appointment.startsAt}
-                      endsAt={appointment.endsAt}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={!canCancel}
-                      title={canCancel ? undefined : 'This appointment can no longer be cancelled'}
-                      onClick={() => setCancelTarget(appointment)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                      <div className="flex flex-col items-start gap-2 sm:items-end">
+                        <Badge variant={statusVariant(appointment.status)}>{appointment.status}</Badge>
+                        <JoinConsultationButton
+                          appointmentId={appointment.id}
+                          status={appointment.status}
+                          startsAt={appointment.startsAt}
+                          endsAt={appointment.endsAt}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={!canCancel}
+                          title={canCancel ? undefined : 'This appointment can no longer be cancelled'}
+                          onClick={() => setCancelTarget(appointment)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            }
+          </QueryState>
         </TabsContent>
       </Tabs>
 

@@ -14,6 +14,7 @@ import { useSymptomCatalog } from '@/lib/matching/use-symptoms';
 import { useBookAppointment } from '@/lib/appointments/use-appointments';
 import { getApiErrorCode } from '@/lib/api-error';
 import { formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
+import { QueryState } from '@/components/query-state';
 
 const REASON_MIN_LENGTH = 10;
 const REASON_MAX_LENGTH = 500;
@@ -100,24 +101,43 @@ export function BookAppointmentPage() {
     }
   }
 
-  if (profile.isPending || !start) {
-    return <p className="text-muted-foreground">Loading…</p>;
-  }
-  if (profile.isError || !profile.data) {
-    return <p className="text-muted-foreground">Doctor not found.</p>;
+  if (!start) {
+    // Reachable by navigating here directly (a bookmark, a shared link, a refresh that drops the
+    // query string) rather than only via the doctor profile's slot picker, which always sets
+    // `?start=`. There's nothing to load — showing "Loading…" forever would be a dead end
+    // indistinguishable from a stuck request; send the patient back to pick a time instead.
+    return (
+      <Alert>
+        <AlertTitle>No time selected</AlertTitle>
+        <AlertDescription>
+          <p>Choose an available time on the doctor&apos;s profile to book an appointment.</p>
+          {doctorId && (
+            <Link
+              to={`/patient/doctors/${doctorId}`}
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Back to doctor profile
+            </Link>
+          )}
+        </AlertDescription>
+      </Alert>
+    );
   }
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6">
       <h1 className="text-2xl font-semibold">Confirm your appointment</h1>
 
+      <QueryState query={profile} label="the doctor's details">
+        {(profileData) => (
+          <>
       <Card>
         <CardHeader>
-          <CardTitle>{profile.data.displayName}</CardTitle>
+          <CardTitle>{profileData.displayName}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-1">
           <p className="font-medium">{formatSlotDateAndTime(start, timezone)}</p>
-          <p className="text-sm text-muted-foreground">{profile.data.consultationMinutes} minutes</p>
+          <p className="text-sm text-muted-foreground">{profileData.consultationMinutes} minutes</p>
         </CardContent>
       </Card>
 
@@ -202,6 +222,9 @@ export function BookAppointmentPage() {
       <Button type="button" onClick={() => void submit()} disabled={!canSubmit}>
         {bookAppointment.isPending ? 'Booking…' : 'Confirm booking'}
       </Button>
+          </>
+        )}
+      </QueryState>
     </div>
   );
 }

@@ -50,7 +50,13 @@ describe('AdminAppointmentsPage', () => {
 
     vi.mocked(useAdminAppointments).mockImplementation((query: AdminAppointmentListQuery) => {
       const items = query.invalidOnly ? [flagged] : [flagged, clean];
-      return { isPending: false, data: { items, total: items.length, page: 1, pageSize: 20 } } as never;
+      return {
+        isPending: false,
+        data: { items, total: items.length, page: 1, pageSize: 20 },
+        status: 'success',
+        error: null,
+        refetch: vi.fn(),
+      } as never;
     });
 
     renderPage();

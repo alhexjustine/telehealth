@@ -51,10 +51,19 @@ describe('PatientAppointmentsPage', () => {
             page: 1,
             pageSize: 20,
           },
+          status: 'success',
+          error: null,
+          refetch: vi.fn(),
           isPending: false,
         };
       }
-      return { data: { items: [], total: 0, page: 1, pageSize: 20 }, isPending: false };
+      return {
+        data: { items: [], total: 0, page: 1, pageSize: 20 },
+        status: 'success',
+        error: null,
+        refetch: vi.fn(),
+        isPending: false,
+      };
     }) as never);
     vi.mocked(useCancelAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
     vi.mocked(useRescheduleAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
@@ -71,5 +80,24 @@ describe('PatientAppointmentsPage', () => {
 
     const cancelButton = screen.getByRole('button', { name: /cancel/i });
     expect(cancelButton).not.toBeDisabled();
+  });
+
+  it('Empty list', () => {
+    vi.mocked(useAppointments).mockReturnValue({
+      data: { items: [], total: 0, page: 1, pageSize: 20 },
+      status: 'success',
+      error: null,
+      refetch: vi.fn(),
+      isPending: false,
+    } as never);
+    vi.mocked(useCancelAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+    vi.mocked(useRescheduleAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+    vi.mocked(useDoctorSlots).mockReturnValue({ data: [], isPending: false } as never);
+
+    renderPage();
+
+    expect(screen.getByText(/don't have any upcoming appointments yet/i)).toBeInTheDocument();
+    const findCareLink = screen.getByRole('link', { name: /find care/i });
+    expect(findCareLink).toHaveAttribute('href', '/patient/find-care');
   });
 });

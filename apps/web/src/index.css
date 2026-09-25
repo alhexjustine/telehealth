@@ -54,8 +54,24 @@
   }
 }
 
+/*
+ * Not `@theme` here (unlike the block above): `@theme` is Tailwind v4's
+ * compile-time directive for *defining* the design tokens (and generating
+ * their matching utility classes) — it isn't a runtime custom-property
+ * declaration, so nesting a second `@theme` inside this `@media` query
+ * doesn't conditionally override the first one at runtime. Tailwind instead
+ * merges both `@theme` blocks at build time, and the later declaration wins
+ * unconditionally regardless of `prefers-color-scheme` — which made every
+ * page render with these "dark" values always, everywhere, even in a light
+ * environment (found by `e2e/tests/a11y.spec.ts`'s color-contrast check on
+ * the sign-in page). A plain `:root { --color-x: ... }` override, scoped by
+ * this `@media` block normally, is the correct way to redeclare a token's
+ * *value* conditionally; the utility classes themselves (generated once, by
+ * the `@theme` block above) already reference `var(--color-x)`, so they pick
+ * up whichever value is in scope at paint time.
+ */
 @media (prefers-color-scheme: dark) {
-  @theme {
+  :root {
     --color-background: #0b1220;
     --color-foreground: #f1f5f9;
     --color-muted: #1e293b;

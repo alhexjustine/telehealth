@@ -28,10 +28,13 @@ export function PatientHomePage() {
         <Link to="/patient/find-care" className="text-primary underline-offset-4 hover:underline">
           Find care by symptoms
         </Link>
+        <Link to="/patient/appointments" className="text-primary underline-offset-4 hover:underline">
+          Your appointments
+        </Link>
+        <Link to="/patient/records" className="text-primary underline-offset-4 hover:underline">
+          Your records
+        </Link>
       </div>
-      <p className="text-muted-foreground">
-        Booking and your consultations will appear here in a later update.
-      </p>
     </div>
   );
 }

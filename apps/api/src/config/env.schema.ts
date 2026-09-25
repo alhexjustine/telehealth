@@ -31,6 +31,20 @@ export const envSchema = z.object({
   // Pre-provisioned admin account. When unset, provisioning is skipped.
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().min(10).max(128).optional(),
+  // Loads the fictional demo dataset after migrations/admin provisioning. Off unless explicitly
+  // "true" so CI and native `pnpm dev` (which leave it unset) never seed by accident.
+  DEMO_DATA: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  // e2e-test-only escape hatch for RateLimitGuard, so a Playwright run with many parallel
+  // sign-ins doesn't trip auth throttling. Honored only when the string is exactly "true" (the
+  // same explicit-opt-in shape as the other booleans here) — must never be set in
+  // docker-compose.yml or .env.example, only in docker-compose.e2e.yml.
+  THROTTLE_DISABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
 });
 
 export type Env = z.infer<typeof envSchema>;

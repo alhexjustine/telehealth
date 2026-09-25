@@ -40,6 +40,9 @@ describe('AdminUsersPage', () => {
         page: 1,
         pageSize: 20,
       },
+      status: 'success',
+      error: null,
+      refetch: vi.fn(),
     } as never);
     vi.mocked(useChangeAccountStatus).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
 

@@ -67,6 +67,9 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
+      - name: Scenario-to-test traceability
+        run: pnpm traceability
+
       - name: E2E tests
         run: pnpm test:e2e
 
@@ -81,3 +84,54 @@ jobs:
 
       - name: OpenSpec validate
         run: pnpm exec openspec validate --all --strict
+
+  browser-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.6.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright's Chromium browser
+        run: pnpm --filter e2e exec playwright install --with-deps chromium
+
+      - name: Build and start the stack (docker-compose.e2e.yml override)
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml up --build -d
+
+      - name: Wait for the stack to report healthy
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/api/health > /dev/null; then
+              echo "Stack is healthy."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Stack did not report healthy in time." >&2
+          docker compose -f docker-compose.yml -f docker-compose.e2e.yml logs
+          exit 1
+
+      - name: Run the browser test suite
+        run: pnpm --filter e2e exec playwright test
+
+      - name: Upload the Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 14
+
+      - name: Tear down the stack
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml down -v

@@ -1,0 +1,25 @@
+# Override for the browser test suite: `docker compose -f docker-compose.yml -f
+# docker-compose.e2e.yml up --build -d`. Layers on top of the normal stack —
+# see design.md's "Browser test package" — so the tests exercise the real
+# container entrypoints, nginx, and its CSP, not `pnpm dev`.
+services:
+  postgres:
+    ports:
+      # Published (unlike the base compose file) so a DB helper (`e2e/fixtures/db.ts`) can connect
+      # directly from the host, e.g. to move an appointment's `starts_at`/`ends_at` into the join
+      # window without going through the API. A different host port than `docker-compose.dev.yml`'s
+      # 5432, so both can run at once without a conflict.
+      - '5433:5432'
+
+  api:
+    environment:
+      # A predictable dataset would make browser assertions timing-sensitive (a slot generated
+      # "starting soon" drifts as the run progresses) and racy across repeated runs; the journey
+      # test creates and cleans up everything it needs itself.
+      DEMO_DATA: 'false'
+      ADMIN_EMAIL: e2e-admin@telehealth.local
+      ADMIN_PASSWORD: E2E-Admin-Password-2026
+      # Test-only: several roles signing in back-to-back in one run would otherwise trip
+      # RateLimitGuard. Honored only when exactly "true" (env.schema.ts) — never set here in the
+      # base docker-compose.yml or .env.example, only in this override.
+      THROTTLE_DISABLED: 'true'

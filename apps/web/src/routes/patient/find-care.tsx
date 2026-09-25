@@ -12,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useSymptomCatalog } from '@/lib/matching/use-symptoms';
 import { useMatching } from '@/lib/matching/use-matching';
 import { formatSlotDateTime } from '@/lib/format-slot-time';
+import { QueryState } from '@/components/query-state';
 
 type MatchingResponse =
   ApiPaths['/matching']['post']['responses'][200]['content']['application/json'];
@@ -88,35 +89,42 @@ export function FindCarePage() {
             />
           </div>
 
-          {catalog.isPending && <p className="text-muted-foreground">Loading…</p>}
-
-          <div className="flex flex-col gap-3">
-            {filteredGroups.map((group) => (
-              <div key={group.category}>
-                <p className="mb-1 text-sm font-medium text-muted-foreground">{group.category}</p>
-                <div className="flex flex-wrap gap-2">
-                  {group.symptoms.map((symptom) => {
-                    const selected = selectedIds.includes(symptom.id);
-                    return (
-                      <button
-                        key={symptom.id}
-                        type="button"
-                        aria-pressed={selected}
-                        onClick={() => toggleSymptom(symptom.id)}
-                        className={`rounded-full border px-3 py-1 text-sm ${
-                          selected
-                            ? 'border-primary bg-primary text-primary-foreground'
-                            : 'border-input hover:bg-accent'
-                        }`}
-                      >
-                        {symptom.name}
-                      </button>
-                    );
-                  })}
-                </div>
+          <QueryState
+            query={catalog}
+            label="symptoms"
+            isEmpty={(data) => data.length === 0}
+            empty={<p className="text-muted-foreground">The symptom list is not available right now.</p>}
+          >
+            {() => (
+              <div className="flex flex-col gap-3">
+                {filteredGroups.map((group) => (
+                  <div key={group.category}>
+                    <p className="mb-1 text-sm font-medium text-muted-foreground">{group.category}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.symptoms.map((symptom) => {
+                        const selected = selectedIds.includes(symptom.id);
+                        return (
+                          <button
+                            key={symptom.id}
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() => toggleSymptom(symptom.id)}
+                            className={`rounded-full border px-3 py-1 text-sm ${
+                              selected
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : 'border-input hover:bg-accent'
+                            }`}
+                          >
+                            {symptom.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </QueryState>
 
           <div className="flex flex-col gap-1">
             <Label htmlFor="symptom-description">Describe how you feel (optional)</Label>

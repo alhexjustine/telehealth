@@ -34,9 +34,21 @@ describe('AdminDoctorsPage', () => {
     // appears under the APPROVED tab's query and no longer under PENDING's.
     vi.mocked(useAdminDoctors).mockImplementation((query: AdminDoctorListQuery) => {
       if (query.verification === 'APPROVED') {
-        return { isPending: false, data: { items: [doctorRow()], total: 1, page: 1, pageSize: 50 } } as never;
+        return {
+          isPending: false,
+          data: { items: [doctorRow()], total: 1, page: 1, pageSize: 50 },
+          status: 'success',
+          error: null,
+          refetch: vi.fn(),
+        } as never;
       }
-      return { isPending: false, data: { items: [], total: 0, page: 1, pageSize: 50 } } as never;
+      return {
+        isPending: false,
+        data: { items: [], total: 0, page: 1, pageSize: 50 },
+        status: 'success',
+        error: null,
+        refetch: vi.fn(),
+      } as never;
     });
 
     renderPage();

@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useMarkNotificationRead, useNotifications } from '@/lib/notifications/use-notifications';
+import { QueryState } from '@/components/query-state';
 
 type NotificationDto =
   ApiPaths['/notifications']['get']['responses'][200]['content']['application/json']['items'][number];
@@ -60,29 +61,36 @@ export function NotificationsPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        {notifications.isPending && <p className="text-muted-foreground">Loading…</p>}
-        {notifications.data && notifications.data.items.length === 0 && (
-          <p className="text-muted-foreground">
-            {unreadOnly ? 'No unread notifications.' : "You're all caught up."}
-          </p>
-        )}
-        {notifications.data?.items.map((notification) => (
-          <Card key={notification.id} className={notification.readAt ? undefined : 'border-primary/50'}>
-            <CardContent
-              className="flex cursor-pointer flex-col gap-1 pt-6"
-              onClick={() => void open(notification)}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-medium">{notification.title}</span>
-                {!notification.readAt && <Badge>Unread</Badge>}
-              </div>
-              <p className="text-sm text-muted-foreground">{notification.body}</p>
-              <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+        <QueryState
+          query={notifications}
+          label="notifications"
+          isEmpty={(data) => data.items.length === 0}
+          empty={
+            <p className="text-muted-foreground">
+              {unreadOnly ? 'No unread notifications.' : "You're all caught up."}
+            </p>
+          }
+        >
+          {(data) =>
+            data.items.map((notification) => (
+              <Card key={notification.id} className={notification.readAt ? undefined : 'border-primary/50'}>
+                <CardContent
+                  className="flex cursor-pointer flex-col gap-1 pt-6"
+                  onClick={() => void open(notification)}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{notification.title}</span>
+                    {!notification.readAt && <Badge>Unread</Badge>}
+                  </div>
+                  <p className="text-sm text-muted-foreground">{notification.body}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                  </p>
+                </CardContent>
+              </Card>
+            ))
+          }
+        </QueryState>
       </div>
 
       {totalPages > 1 && (

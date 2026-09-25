@@ -14,6 +14,7 @@ import {
   type AvailabilityPreset,
 } from '@/lib/discovery/availability-preset';
 import { formatSlotDateTime } from '@/lib/format-slot-time';
+import { QueryState } from '@/components/query-state';
 
 const SORT_OPTIONS = [
   { value: 'next', label: 'Soonest available' },
@@ -137,22 +138,24 @@ export function FindDoctorPage() {
         </CardContent>
       </Card>
 
-      {search.isPending && <p className="text-muted-foreground">Loading…</p>}
-
-      {search.data && search.data.items.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-            <p className="text-muted-foreground">No doctors match your search.</p>
-            <Link to="/patient/find-care" className="text-primary underline-offset-4 hover:underline">
-              Not sure what you need? Try guided symptom matching.
-            </Link>
-          </CardContent>
-        </Card>
-      )}
-
-      {search.data && search.data.items.length > 0 && (
+      <QueryState
+        query={search}
+        label="doctors"
+        isEmpty={(data) => data.items.length === 0}
+        empty={
+          <Card>
+            <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+              <p className="text-muted-foreground">No doctors match your search.</p>
+              <Link to="/patient/find-care" className="text-primary underline-offset-4 hover:underline">
+                Not sure what you need? Try guided symptom matching.
+              </Link>
+            </CardContent>
+          </Card>
+        }
+      >
+        {(data) => (
         <div className="flex flex-col gap-3">
-          {search.data.items.map((doctor) => (
+          {data.items.map((doctor) => (
             <Link key={doctor.id} to={`/patient/doctors/${doctor.id}`}>
               <Card className="transition-colors hover:bg-accent/50">
                 <CardContent className="flex items-center gap-4 pt-6">
@@ -213,7 +216,8 @@ export function FindDoctorPage() {
             </div>
           )}
         </div>
-      )}
+        )}
+      </QueryState>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatSlotDateTime } from '@/lib/format-slot-time';
 import { useAdminAuditLog, type AdminAuditListQuery } from '@/lib/admin/use-admin-audit';
+import { QueryState } from '@/components/query-state';
 
 type AuditEntry = NonNullable<ReturnType<typeof useAdminAuditLog>['data']>['items'][number];
 
@@ -93,36 +94,42 @@ export function AdminAuditPage() {
         </CardContent>
       </Card>
 
-      {audit.isPending && <p className="text-muted-foreground">Loading…</p>}
-      {audit.data && audit.data.items.length === 0 && <p className="text-muted-foreground">No matching entries.</p>}
-
-      <div className="flex flex-col gap-2">
-        {audit.data?.items.map((entry) => (
-          <button
-            key={entry.id}
-            type="button"
-            onClick={() => setSelected(entry)}
-            className="text-left"
-          >
-            <Card className="transition-colors hover:bg-accent/50">
-              <CardContent className="flex flex-col gap-1 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{entry.action}</Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {entry.entityType}
-                      {entry.entityId ? ` · ${entry.entityId.slice(0, 8)}…` : ''}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">by {entry.actorEmail}</p>
-                  {entry.reason && <p className="text-sm">{entry.reason}</p>}
-                </div>
-                <span className="text-sm text-muted-foreground">{formatSlotDateTime(entry.createdAt)}</span>
-              </CardContent>
-            </Card>
-          </button>
-        ))}
-      </div>
+      <QueryState
+        query={audit}
+        label="audit entries"
+        isEmpty={(data) => data.items.length === 0}
+        empty={<p className="text-muted-foreground">No matching entries.</p>}
+      >
+        {(data) => (
+          <div className="flex flex-col gap-2">
+            {data.items.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => setSelected(entry)}
+                className="text-left"
+              >
+                <Card className="transition-colors hover:bg-accent/50">
+                  <CardContent className="flex flex-col gap-1 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{entry.action}</Badge>
+                        <span className="text-sm text-muted-foreground">
+                          {entry.entityType}
+                          {entry.entityId ? ` · ${entry.entityId.slice(0, 8)}…` : ''}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">by {entry.actorEmail}</p>
+                      {entry.reason && <p className="text-sm">{entry.reason}</p>}
+                    </div>
+                    <span className="text-sm text-muted-foreground">{formatSlotDateTime(entry.createdAt)}</span>
+                  </CardContent>
+                </Card>
+              </button>
+            ))}
+          </div>
+        )}
+      </QueryState>
 
       <Dialog open={selected !== undefined} onOpenChange={(open) => !open && setSelected(undefined)}>
         <DialogContent>

@@ -38,7 +38,13 @@ describe('DoctorProfilePage', () => {
         { id: 'spec-2', name: 'Cardiology' },
       ],
     });
-    vi.mocked(useDoctorProfile).mockReturnValue({ data: baseProfile, isPending: false } as never);
+    vi.mocked(useDoctorProfile).mockReturnValue({
+      data: baseProfile,
+      status: 'success',
+      error: null,
+      refetch: vi.fn(),
+      isPending: false,
+    } as never);
     vi.mocked(useUpdateDoctorProfile).mockReturnValue({ mutateAsync, isPending: false } as never);
     vi.mocked(useSpecializations).mockReturnValue({
       data: specializations,

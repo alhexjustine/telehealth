@@ -57,7 +57,7 @@ function renderBookingPage(path: string) {
 
 describe('BookAppointmentPage', () => {
   it('Book from the slot picker', async () => {
-    vi.mocked(usePublicDoctorProfile).mockReturnValue({ data: DOCTOR_PROFILE, isPending: false, isError: false } as never);
+    vi.mocked(usePublicDoctorProfile).mockReturnValue({ data: DOCTOR_PROFILE, status: 'success', error: null, refetch: vi.fn(), isPending: false, isError: false } as never);
     vi.mocked(useSymptomCatalog).mockReturnValue({ data: SYMPTOM_CATALOG, isPending: false } as never);
     vi.mocked(useCurrentUser).mockReturnValue({ data: { profileComplete: true } } as never);
     vi.mocked(useDoctorSlots).mockReturnValue({ data: undefined, isPending: false } as never);
@@ -80,8 +80,25 @@ describe('BookAppointmentPage', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/patient/appointments'));
   });
 
+  it('No start param: shows a way back instead of a permanent loading state', async () => {
+    vi.mocked(usePublicDoctorProfile).mockReturnValue({ data: DOCTOR_PROFILE, status: 'success', error: null, refetch: vi.fn(), isPending: false, isError: false } as never);
+    vi.mocked(useSymptomCatalog).mockReturnValue({ data: SYMPTOM_CATALOG, isPending: false } as never);
+    vi.mocked(useCurrentUser).mockReturnValue({ data: { profileComplete: true } } as never);
+    vi.mocked(useDoctorSlots).mockReturnValue({ data: undefined, isPending: false } as never);
+    vi.mocked(useBookAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+
+    renderBookingPage('/patient/doctors/doc-1/book');
+
+    expect(await screen.findByText(/no time selected/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^loading…$/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /back to doctor profile/i })).toHaveAttribute(
+      'href',
+      '/patient/doctors/doc-1',
+    );
+  });
+
   it('Slot taken while confirming', async () => {
-    vi.mocked(usePublicDoctorProfile).mockReturnValue({ data: DOCTOR_PROFILE, isPending: false, isError: false } as never);
+    vi.mocked(usePublicDoctorProfile).mockReturnValue({ data: DOCTOR_PROFILE, status: 'success', error: null, refetch: vi.fn(), isPending: false, isError: false } as never);
     vi.mocked(useSymptomCatalog).mockReturnValue({ data: SYMPTOM_CATALOG, isPending: false } as never);
     vi.mocked(useCurrentUser).mockReturnValue({ data: { profileComplete: true } } as never);
     vi.mocked(useDoctorSlots).mockReturnValue({
@@ -103,7 +120,7 @@ describe('BookAppointmentPage', () => {
   });
 
   it('Incomplete profile in the web app', async () => {
-    vi.mocked(usePublicDoctorProfile).mockReturnValue({ data: DOCTOR_PROFILE, isPending: false, isError: false } as never);
+    vi.mocked(usePublicDoctorProfile).mockReturnValue({ data: DOCTOR_PROFILE, status: 'success', error: null, refetch: vi.fn(), isPending: false, isError: false } as never);
     vi.mocked(useSymptomCatalog).mockReturnValue({ data: SYMPTOM_CATALOG, isPending: false } as never);
     vi.mocked(useCurrentUser).mockReturnValue({ data: { profileComplete: false } } as never);
     vi.mocked(useDoctorSlots).mockReturnValue({ data: undefined, isPending: false } as never);

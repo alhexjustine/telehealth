@@ -32,6 +32,7 @@ import {
 } from '@/lib/consultations/use-consultation';
 import { useConsultationPresence } from '@/lib/consultations/use-consultation-socket';
 import { formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
+import { QueryState } from '@/components/query-state';
 
 type WorkspaceDto =
   ApiPaths['/consultations/{appointmentId}']['get']['responses'][200]['content']['application/json'];
@@ -74,47 +75,53 @@ function ConsultationWorkspaceContent() {
   if (!appointmentId) {
     return <p className="text-muted-foreground">Consultation not found.</p>;
   }
-  if (workspace.isPending) {
-    return <p className="p-6 text-muted-foreground">Loading…</p>;
-  }
-  if (workspace.isError || !data) {
-    return <p className="p-6 text-muted-foreground">This consultation workspace is not available.</p>;
-  }
 
   const isDoctor = user?.role === 'DOCTOR';
   const backTo = isDoctor ? `/doctor/appointments/${appointmentId}` : `/patient/appointments/${appointmentId}`;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex items-center gap-3 border-b border-border px-6 py-3">
-        <Link to={backTo} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" /> Back
-        </Link>
-        <span className="font-semibold">Consultation workspace</span>
-        <Badge variant="outline" className="ml-auto">
-          {data.session.state.replace('_', ' ')}
-        </Badge>
-      </header>
+    <QueryState
+      query={workspace}
+      label="the consultation workspace"
+      loading={<p className="p-6 text-muted-foreground">Loading…</p>}
+    >
+      {(workspaceData) => (
+        <div className="flex min-h-screen flex-col">
+          <header className="flex items-center gap-3 border-b border-border px-6 py-3">
+            <Link to={backTo} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="size-4" /> Back
+            </Link>
+            <span className="font-semibold">Consultation workspace</span>
+            <Badge variant="outline" className="ml-auto">
+              {workspaceData.session.state.replace('_', ' ')}
+            </Badge>
+          </header>
 
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6 lg:flex-row">
-        <div className="flex flex-1 flex-col gap-4">
-          <AppointmentContextCard data={data} timezone={timezone} />
-          <StateTimeline session={data.session} timezone={timezone} />
-          <PresenceCard presence={presence} />
-          {!joinable && data.session.state === 'SCHEDULED' && (
-            <CountdownCard startsAt={data.startsAt} />
-          )}
-        </div>
+          <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6 lg:flex-row">
+            <div className="flex flex-1 flex-col gap-4">
+              <AppointmentContextCard data={workspaceData} timezone={timezone} />
+              <StateTimeline session={workspaceData.session} timezone={timezone} />
+              <PresenceCard presence={presence} />
+              {!joinable && workspaceData.session.state === 'SCHEDULED' && (
+                <CountdownCard startsAt={workspaceData.startsAt} />
+              )}
+            </div>
 
-        <div className="flex flex-1 flex-col gap-4">
-          {isDoctor ? (
-            <DoctorPanel appointmentId={appointmentId} data={data} patientJoined={presence.patientPresent || data.session.patientJoinedAt !== null} />
-          ) : (
-            <PatientPanel data={data} timezone={timezone} />
-          )}
+            <div className="flex flex-1 flex-col gap-4">
+              {isDoctor ? (
+                <DoctorPanel
+                  appointmentId={appointmentId}
+                  data={workspaceData}
+                  patientJoined={presence.patientPresent || workspaceData.session.patientJoinedAt !== null}
+                />
+              ) : (
+                <PatientPanel data={workspaceData} timezone={timezone} />
+              )}
+            </div>
+          </main>
         </div>
-      </main>
-    </div>
+      )}
+    </QueryState>
   );
 }
 

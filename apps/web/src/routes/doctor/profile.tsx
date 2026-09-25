@@ -13,6 +13,7 @@ import {
   type DoctorProfileFormValues,
 } from '@/lib/doctors/doctor-profile-schema';
 import { useSpecializations } from '@/lib/use-specializations';
+import { QueryState } from '@/components/query-state';
 
 export function DoctorProfilePage() {
   const profile = useDoctorProfile();
@@ -61,32 +62,34 @@ export function DoctorProfilePage() {
     }
   }
 
-  if (profile.isPending) {
-    return <p className="text-muted-foreground">Loading…</p>;
-  }
-
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <h1 className="text-2xl font-semibold">Your profile</h1>
-        {profile.data && <Badge variant="outline">{profile.data.verificationStatus}</Badge>}
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Professional details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form
-            onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}
-            className="flex flex-col gap-4"
-          >
-            <DoctorProfileFormFields form={form} specializations={specializations.data} />
-            <Button type="submit" disabled={update.isPending}>
-              {update.isPending ? 'Saving…' : 'Save changes'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      <QueryState query={profile} label="your profile">
+        {(profileData) => (
+          <>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-semibold">Your profile</h1>
+              <Badge variant="outline">{profileData.verificationStatus}</Badge>
+            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Professional details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form
+                  onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}
+                  className="flex flex-col gap-4"
+                >
+                  <DoctorProfileFormFields form={form} specializations={specializations.data} />
+                  <Button type="submit" disabled={update.isPending}>
+                    {update.isPending ? 'Saving…' : 'Save changes'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </QueryState>
     </div>
   );
 }

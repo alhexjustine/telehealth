@@ -28,7 +28,13 @@ const baseProfile = {
 describe('PatientProfilePage', () => {
   it('Inline validation', async () => {
     const mutateAsync = vi.fn();
-    vi.mocked(usePatientProfile).mockReturnValue({ data: baseProfile, isPending: false } as never);
+    vi.mocked(usePatientProfile).mockReturnValue({
+      data: baseProfile,
+      status: 'success',
+      error: null,
+      refetch: vi.fn(),
+      isPending: false,
+    } as never);
     vi.mocked(useUpdatePatientProfile).mockReturnValue({ mutateAsync, isPending: false } as never);
 
     render(

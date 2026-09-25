@@ -29,6 +29,7 @@ import {
   type ScheduleFormValues,
 } from '@/lib/availability/schedule-schema';
 import { localDateTimeToUtcIso, utcIsoToLocalDateTime } from '@/lib/availability/time-off-conversion';
+import { QueryState } from '@/components/query-state';
 
 type TimeOffDto =
   ApiPaths['/doctors/me/availability']['get']['responses'][200]['content']['application/json']['timeOff'][number];
@@ -167,14 +168,13 @@ export function DoctorSchedulePage() {
     }
   }
 
-  if (availability.isPending || profile.isPending) {
-    return <p className="text-muted-foreground">Loading…</p>;
-  }
-
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <h1 className="text-2xl font-semibold">Schedule</h1>
 
+      <QueryState query={availability} label="your schedule">
+        {() => (
+          <>
       <Card>
         <CardHeader>
           <CardTitle>Time zone</CardTitle>
@@ -316,15 +316,19 @@ export function DoctorSchedulePage() {
           <CardTitle>Next 7 days</CardTitle>
         </CardHeader>
         <CardContent>
-          {slots.isPending ? (
-            <p className="text-muted-foreground">Loading…</p>
-          ) : slots.data && slots.data.length > 0 ? (
-            <SlotPreview slots={slots.data} timezone={timezone} />
-          ) : (
-            <p className="text-muted-foreground">No upcoming slots.</p>
-          )}
+          <QueryState
+            query={slots}
+            label="your upcoming slots"
+            isEmpty={(data) => data.length === 0}
+            empty={<p className="text-muted-foreground">No upcoming slots.</p>}
+          >
+            {(data) => <SlotPreview slots={data} timezone={timezone} />}
+          </QueryState>
         </CardContent>
       </Card>
+          </>
+        )}
+      </QueryState>
     </div>
   );
 }

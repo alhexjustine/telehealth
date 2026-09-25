@@ -22,6 +22,7 @@ import {
   useMarkNotHeld,
   type AdminAppointmentListQuery,
 } from '@/lib/admin/use-admin-appointments';
+import { QueryState } from '@/components/query-state';
 
 type AdminAppointmentItem = NonNullable<ReturnType<typeof useAdminAppointments>['data']>['items'][number];
 type DialogAction = 'cancel' | 'mark-not-held';
@@ -92,55 +93,63 @@ export function AdminAppointmentsPage() {
         </CardContent>
       </Card>
 
-      {appointments.isPending && <p className="text-muted-foreground">Loading…</p>}
-      {appointments.data && appointments.data.items.length === 0 && (
-        <p className="text-muted-foreground">No appointments match.</p>
-      )}
-
-      <div className="flex flex-col gap-3">
-        {appointments.data?.items.map((appointment) => {
-          const canCancel = appointment.status === 'BOOKED' && new Date(appointment.endsAt).getTime() > now;
-          const canMarkNotHeld = appointment.flags.includes('NOT_COMPLETED');
-          return (
-            <Card key={appointment.id}>
-              <CardContent className="flex flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-medium">{formatSlotDateTime(appointment.startsAt)}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {appointment.patient.displayName} with Dr. {appointment.doctor.displayName}
-                  </p>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    <Badge variant={statusVariant(appointment.status)}>{appointment.status}</Badge>
-                    <Badge variant="outline">{appointment.consultationState}</Badge>
-                    {appointment.flags.map((flag) => (
-                      <Badge key={flag} variant="destructive">
-                        {flag}
-                      </Badge>
-                    ))}
-                  </div>
-                  <AdminAuditLink entityType="Appointment" entityId={appointment.id} />
-                </div>
-                <div className="flex gap-2">
-                  {canCancel && (
-                    <Button size="sm" variant="outline" onClick={() => setDialog({ appointment, action: 'cancel' })}>
-                      Cancel
-                    </Button>
-                  )}
-                  {canMarkNotHeld && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setDialog({ appointment, action: 'mark-not-held' })}
-                    >
-                      Mark not held
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      <QueryState
+        query={appointments}
+        label="appointments"
+        isEmpty={(data) => data.items.length === 0}
+        empty={<p className="text-muted-foreground">No appointments match your filters.</p>}
+      >
+        {(data) => (
+          <div className="flex flex-col gap-3">
+            {data.items.map((appointment) => {
+              const canCancel = appointment.status === 'BOOKED' && new Date(appointment.endsAt).getTime() > now;
+              const canMarkNotHeld = appointment.flags.includes('NOT_COMPLETED');
+              return (
+                <Card key={appointment.id}>
+                  <CardContent className="flex flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-medium">{formatSlotDateTime(appointment.startsAt)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {appointment.patient.displayName} with Dr. {appointment.doctor.displayName}
+                      </p>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        <Badge variant={statusVariant(appointment.status)}>{appointment.status}</Badge>
+                        <Badge variant="outline">{appointment.consultationState}</Badge>
+                        {appointment.flags.map((flag) => (
+                          <Badge key={flag} variant="destructive">
+                            {flag}
+                          </Badge>
+                        ))}
+                      </div>
+                      <AdminAuditLink entityType="Appointment" entityId={appointment.id} />
+                    </div>
+                    <div className="flex gap-2">
+                      {canCancel && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setDialog({ appointment, action: 'cancel' })}
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                      {canMarkNotHeld && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setDialog({ appointment, action: 'mark-not-held' })}
+                        >
+                          Mark not held
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </QueryState>
 
       <AppointmentActionDialog target={dialog} onClose={() => setDialog(undefined)} />
     </div>

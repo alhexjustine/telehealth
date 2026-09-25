@@ -20,6 +20,8 @@ import { useAppointments, useCancelAppointment, useRescheduleAppointment } from 
 import { useDoctorSlots } from '@/lib/availability/use-availability';
 import { formatSlotDateAndTime, formatSlotTimeOnly, groupSlotsByLocalDate } from '@/lib/discovery/slot-grouping';
 import { JoinConsultationButton } from '@/components/join-consultation-button';
+import { QueryState } from '@/components/query-state';
+import { buttonVariants } from '@/components/ui/button';
 
 type AppointmentDto =
   ApiPaths['/appointments']['get']['responses'][200]['content']['application/json']['items'][number];
@@ -58,67 +60,84 @@ export function PatientAppointmentsPage() {
         </TabsList>
 
         <TabsContent value={tab} className="mt-4 flex flex-col gap-3">
-          {activeQuery.isPending && <p className="text-muted-foreground">Loading…</p>}
-          {activeQuery.data && activeQuery.data.items.length === 0 && (
-            <p className="text-muted-foreground">No {tab} appointments.</p>
-          )}
-          {activeQuery.data?.items.map((appointment) => {
-            const minutesUntilStart = (new Date(appointment.startsAt).getTime() - now) / 60_000;
-            const canReschedule = appointment.status === 'BOOKED' && minutesUntilStart >= RESCHEDULE_CUTOFF_MINUTES;
-            const canCancel = appointment.status === 'BOOKED' && minutesUntilStart > 0;
+          <QueryState
+            query={activeQuery}
+            label={`${tab} appointments`}
+            isEmpty={(data) => data.items.length === 0}
+            empty={
+              <div className="flex flex-col items-center gap-3 py-10 text-center">
+                <p className="text-muted-foreground">
+                  {tab === 'upcoming'
+                    ? "You don't have any upcoming appointments yet."
+                    : "You don't have any past appointments yet."}
+                </p>
+                <Link to="/patient/find-care" className={buttonVariants({ variant: 'outline' })}>
+                  Find care
+                </Link>
+              </div>
+            }
+          >
+            {(data) =>
+              data.items.map((appointment) => {
+                const minutesUntilStart = (new Date(appointment.startsAt).getTime() - now) / 60_000;
+                const canReschedule =
+                  appointment.status === 'BOOKED' && minutesUntilStart >= RESCHEDULE_CUTOFF_MINUTES;
+                const canCancel = appointment.status === 'BOOKED' && minutesUntilStart > 0;
 
-            return (
-              <Card key={appointment.id}>
-                <CardContent className="flex flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <Link
-                      to={`/patient/appointments/${appointment.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {formatSlotDateAndTime(appointment.startsAt, timezone)}
-                    </Link>
-                    <p className="text-sm text-muted-foreground">{appointment.doctor.displayName}</p>
-                    <p className="text-sm text-muted-foreground">{appointment.reason}</p>
-                  </div>
-                  <div className="flex flex-col items-start gap-2 sm:items-end">
-                    <Badge variant={statusVariant(appointment.status)}>{appointment.status}</Badge>
-                    <JoinConsultationButton
-                      appointmentId={appointment.id}
-                      status={appointment.status}
-                      startsAt={appointment.startsAt}
-                      endsAt={appointment.endsAt}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={!canReschedule}
-                        title={
-                          canReschedule
-                            ? undefined
-                            : 'Rescheduling closes 2 hours before the appointment starts'
-                        }
-                        onClick={() => setRescheduleTarget(appointment)}
-                      >
-                        Reschedule
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={!canCancel}
-                        title={canCancel ? undefined : 'This appointment can no longer be cancelled'}
-                        onClick={() => setCancelTarget(appointment)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                return (
+                  <Card key={appointment.id}>
+                    <CardContent className="flex flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <Link
+                          to={`/patient/appointments/${appointment.id}`}
+                          className="font-medium hover:underline"
+                        >
+                          {formatSlotDateAndTime(appointment.startsAt, timezone)}
+                        </Link>
+                        <p className="text-sm text-muted-foreground">{appointment.doctor.displayName}</p>
+                        <p className="text-sm text-muted-foreground">{appointment.reason}</p>
+                      </div>
+                      <div className="flex flex-col items-start gap-2 sm:items-end">
+                        <Badge variant={statusVariant(appointment.status)}>{appointment.status}</Badge>
+                        <JoinConsultationButton
+                          appointmentId={appointment.id}
+                          status={appointment.status}
+                          startsAt={appointment.startsAt}
+                          endsAt={appointment.endsAt}
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={!canReschedule}
+                            title={
+                              canReschedule
+                                ? undefined
+                                : 'Rescheduling closes 2 hours before the appointment starts'
+                            }
+                            onClick={() => setRescheduleTarget(appointment)}
+                          >
+                            Reschedule
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={!canCancel}
+                            title={canCancel ? undefined : 'This appointment can no longer be cancelled'}
+                            onClick={() => setCancelTarget(appointment)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            }
+          </QueryState>
         </TabsContent>
       </Tabs>
 

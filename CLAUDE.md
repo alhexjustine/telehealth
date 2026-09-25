@@ -4,18 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-The `setup-foundation` change scaffolded the workspace: `apps/api` (NestJS + Prisma),
-`apps/web` (React + Vite SPA), `packages/api-client` (generated OpenAPI client), and `docs`
-(VitePress). The `add-authentication` change (implementation in progress; not yet archived) adds
-application-managed accounts, sessions, role-based access control, the pre-provisioned admin, and
-patient/doctor profiles. Matching, booking, consultations, and the admin console still don't
-exist — see `openspec/changes/` for what's in flight.
+Every module described below is implemented and archived: `setup-foundation` (workspace scaffold),
+`add-authentication` (accounts, sessions, RBAC, profiles), `add-doctor-availability`,
+`add-doctor-discovery`, `add-appointment-booking`, `add-notifications`,
+`add-consultations-and-records`, `add-admin-console`, and `add-product-website`. The
+`harden-core-journey` change (implementation in progress; not yet archived) is the last one: a
+seeded demo dataset for exploring the built product, UI resilience (loading/empty/error states, an
+error boundary, a session-ended flow), an automated Playwright browser suite, and the
+scenario-to-test traceability check. See `openspec/changes/` for what's in flight and
+`openspec/specs/` for the current behavior of everything already archived.
 
 ### Commands
 
 ```bash
 pnpm install                    # install the workspace
-docker compose up --build       # full stack: postgres, api, web (nginx) — no .env required
+docker compose up --build       # full stack: postgres, api, web (nginx) — no .env required, loads demo data
 pnpm dev                        # api (:3000) + web (:5173) natively, against pnpm db:up's postgres
 pnpm db:up / db:down / db:migrate  # Postgres-only container for native dev (docker-compose.dev.yml)
 
@@ -33,6 +36,21 @@ pnpm --filter web exec vitest run src/routes/status.test.tsx
 
 pnpm openapi:generate            # regenerate packages/api-client from apps/api's OpenAPI doc
 pnpm docs:dev / docs:build       # VitePress technical documentation site
+
+# Demo data (see docs/guide/demo.md)
+pnpm demo:seed                   # native dev: seed the demo dataset (no-ops if already present)
+pnpm demo:live                   # native dev: stage a live consultation 10 minutes out
+pnpm demo:reset                  # native dev: remove all demo accounts and their data
+docker compose exec api node dist/scripts/seed-demo.js --live-consultation  # containerized stack
+
+# Browser tests (Playwright, against the containerized stack — see docs/architecture/testing.md)
+docker compose -f docker-compose.yml -f docker-compose.e2e.yml up --build -d
+pnpm exec playwright install --with-deps chromium   # once, or after a Playwright upgrade
+pnpm test:browser                                    # or: pnpm --filter e2e exec playwright test <file>
+docker compose -f docker-compose.yml -f docker-compose.e2e.yml down -v
+
+pnpm traceability                # scenario-to-test coverage check (openspec/manual-verification.md)
+pnpm test:scripts                # scripts/*.test.mjs, via Node's built-in test runner
 ```
 
 ### Repo layout
@@ -174,6 +192,26 @@ See `README.md` for the full command reference and local-development walkthrough
   react-router/socket.io dev-warning text, zod's JSON Schema `$schema` identifiers, Tailwind's own
   banner comment) — worth confirming each by grepping the built bundle before allow-listing it,
   the same way the spec already excepts XML namespace identifiers.
+- A standalone script meant to be both a CLI entry point (`node dist/scripts/foo.js`) and directly
+  importable by tests (so a test can call its exported functions against the test database without
+  shelling out to a subprocess) must guard its top-level `main().catch(...)` call behind a
+  same-module check (e.g. `process.argv[1] === fileURLToPath(import.meta.url)`, or an `endsWith`
+  check on the compiled filename) — otherwise importing the module for its exports runs the whole
+  CLI immediately as an import side effect, including any `process.exit()` calls, which kills the
+  test runner. See `apps/api/scripts/seed-demo.ts` and `test/demo-data.e2e-spec.ts`.
+- A `/** ... */` JSDoc comment that needs to mention a glob-style path containing `*/` in prose
+  (e.g. `openspec/specs/*/spec.md`) closes itself early at that literal `*/` — write the path
+  without the trailing glial `*/` (e.g. `openspec/specs/<capability>/spec.md`) instead. Cost a
+  `SyntaxError: Unexpected identifier` in `scripts/check-traceability.mjs` before being noticed.
+- New data-fetching views (a route's main list/detail query) should use `apps/web/src/components/
+  query-state.tsx`'s `QueryState` rather than hand-rolled `isPending`/`data &&` branches — it
+  supplies the loading/empty/error states and the background-refresh-failure notice the
+  `ui-resilience` spec requires in one place. `apps/web/src/routes/query-state-coverage.test.ts` is
+  a tripwire: it reads each listed route file's raw source (via Vite's `import.meta.glob(...,
+  { query: '?raw' })`) and fails if the file stops importing/using `QueryState` — add a new route
+  to that list when it gains a data-fetching main query, with a one-line reason in the file's
+  comment if it's deliberately left out (a shared cross-cutting query like `useCurrentUser()` a
+  layout already gates, or a secondary query that degrades gracefully on its own).
 
 ## What this repo is building
 

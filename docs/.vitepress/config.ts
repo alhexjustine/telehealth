@@ -8,6 +8,7 @@ export default withMermaid({
   themeConfig: {
     nav: [
       { text: 'Overview', link: '/' },
+      { text: 'Guide', link: '/guide/demo' },
       { text: 'Architecture', link: '/architecture/c4-context' },
       { text: 'Modules', link: '/modules/product-website' },
       { text: 'API', link: '/api/' },
@@ -16,6 +17,10 @@ export default withMermaid({
       {
         text: 'Technical Overview',
         items: [{ text: 'Context & Features', link: '/' }],
+      },
+      {
+        text: 'Guide',
+        items: [{ text: 'Demo', link: '/guide/demo' }],
       },
       {
         text: 'High-level Architecture',
@@ -29,6 +34,7 @@ export default withMermaid({
           { text: 'Clinical Access', link: '/architecture/clinical-access' },
           { text: 'API Conventions', link: '/architecture/api-conventions' },
           { text: 'Data Model', link: '/architecture/data-model' },
+          { text: 'Testing & Quality', link: '/architecture/testing' },
         ],
       },
       {

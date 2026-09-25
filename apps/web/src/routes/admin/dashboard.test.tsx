@@ -37,6 +37,9 @@ describe('AdminDashboardPage', () => {
         trend: [{ date: '2026-06-15', count: 1, isToday: true }],
         timezone: 'UTC',
       },
+      status: 'success',
+      error: null,
+      refetch: vi.fn(),
     } as never);
 
     renderDashboard();

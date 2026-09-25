@@ -22,7 +22,13 @@
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "preadmin:provision": "pnpm run build",
-    "admin:provision": "node dist/scripts/provision-admin.js"
+    "admin:provision": "node dist/scripts/provision-admin.js",
+    "predemo:seed": "pnpm run build",
+    "demo:seed": "node dist/scripts/seed-demo.js",
+    "predemo:live": "pnpm run build",
+    "demo:live": "node dist/scripts/seed-demo.js --live-consultation",
+    "predemo:reset": "pnpm run build",
+    "demo:reset": "node dist/scripts/seed-demo.js --reset"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { useAdminUsers, useChangeAccountStatus, type AdminUserListQuery } from '@/lib/admin/use-admin-users';
 import { AdminAuditLink } from '@/components/admin/audit-link';
+import { QueryState } from '@/components/query-state';
 
 type AdminUserItem = NonNullable<ReturnType<typeof useAdminUsers>['data']>['items'][number];
 type TargetStatus = 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
@@ -108,52 +109,70 @@ export function AdminUsersPage() {
         </CardContent>
       </Card>
 
-      {users.isPending && <p className="text-muted-foreground">Loading…</p>}
-      {users.data && users.data.items.length === 0 && <p className="text-muted-foreground">No accounts match.</p>}
-
-      <div className="flex flex-col gap-3">
-        {users.data?.items.map((user) => (
-          <Card key={user.id}>
-            <CardContent className="flex flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{user.displayName}</span>
-                  <Badge variant="outline">{user.role}</Badge>
-                  <Badge variant={statusVariant(user.status)}>{user.status}</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
-                {user.statusReason && <p className="text-sm text-muted-foreground">Reason: {user.statusReason}</p>}
-                <p className="text-sm text-muted-foreground">{user.upcomingAppointmentCount} upcoming appointment(s)</p>
-                <AdminAuditLink entityType="User" entityId={user.id} />
-              </div>
-              {user.role !== 'ADMIN' && (
-                <div className="flex flex-wrap gap-2">
-                  {user.status !== 'ACTIVE' && (
-                    <Button size="sm" variant="outline" onClick={() => setDialogTarget({ user, status: 'ACTIVE' })}>
-                      Reactivate
-                    </Button>
+      <QueryState
+        query={users}
+        label="accounts"
+        isEmpty={(data) => data.items.length === 0}
+        empty={<p className="text-muted-foreground">No accounts match your filters.</p>}
+      >
+        {(data) => (
+          <div className="flex flex-col gap-3">
+            {data.items.map((user) => (
+              <Card key={user.id}>
+                <CardContent className="flex flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{user.displayName}</span>
+                      <Badge variant="outline">{user.role}</Badge>
+                      <Badge variant={statusVariant(user.status)}>{user.status}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                    {user.statusReason && (
+                      <p className="text-sm text-muted-foreground">Reason: {user.statusReason}</p>
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      {user.upcomingAppointmentCount} upcoming appointment(s)
+                    </p>
+                    <AdminAuditLink entityType="User" entityId={user.id} />
+                  </div>
+                  {user.role !== 'ADMIN' && (
+                    <div className="flex flex-wrap gap-2">
+                      {user.status !== 'ACTIVE' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setDialogTarget({ user, status: 'ACTIVE' })}
+                        >
+                          Reactivate
+                        </Button>
+                      )}
+                      {user.status !== 'SUSPENDED' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setDialogTarget({ user, status: 'SUSPENDED' })}
+                        >
+                          Suspend
+                        </Button>
+                      )}
+                      {user.status !== 'DEACTIVATED' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-destructive text-destructive hover:bg-destructive/10"
+                          onClick={() => setDialogTarget({ user, status: 'DEACTIVATED' })}
+                        >
+                          Deactivate
+                        </Button>
+                      )}
+                    </div>
                   )}
-                  {user.status !== 'SUSPENDED' && (
-                    <Button size="sm" variant="outline" onClick={() => setDialogTarget({ user, status: 'SUSPENDED' })}>
-                      Suspend
-                    </Button>
-                  )}
-                  {user.status !== 'DEACTIVATED' && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-destructive text-destructive hover:bg-destructive/10"
-                      onClick={() => setDialogTarget({ user, status: 'DEACTIVATED' })}
-                    >
-                      Deactivate
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </QueryState>
 
       <AccountStatusDialog target={dialogTarget} onClose={() => setDialogTarget(undefined)} />
     </div>

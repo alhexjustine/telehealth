@@ -22,7 +22,12 @@ function renderHome() {
 
 function mockNoAppointments() {
   vi.mocked(useAvailability).mockReturnValue({ data: { timezone: 'UTC' } } as never);
-  vi.mocked(useAppointments).mockReturnValue({ data: { items: [], total: 0, page: 1, pageSize: 20 } } as never);
+  vi.mocked(useAppointments).mockReturnValue({
+    data: { items: [], total: 0, page: 1, pageSize: 20 },
+    status: 'success',
+    error: null,
+    refetch: vi.fn(),
+  } as never);
 }
 
 describe('DoctorHomePage', () => {
@@ -103,6 +108,9 @@ describe('DoctorHomePage', () => {
         page: 1,
         pageSize: 20,
       },
+      status: 'success',
+      error: null,
+      refetch: vi.fn(),
     } as never);
 
     renderHome();

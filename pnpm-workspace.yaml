@@ -2,6 +2,7 @@ packages:
   - "apps/*"
   - "packages/*"
   - "docs"
+  - "e2e"
 allowBuilds:
   '@parcel/watcher': true
   '@prisma/engines': true

@@ -41,6 +41,9 @@ describe('AdminAuditPage', () => {
         page: 1,
         pageSize: 20,
       },
+      status: 'success',
+      error: null,
+      refetch: vi.fn(),
     } as never);
 
     renderPage();

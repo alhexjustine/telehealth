@@ -20,6 +20,7 @@ import {
   type PatientProfileFormInput,
   type PatientProfileFormValues,
 } from '@/lib/patients/patient-profile-schema';
+import { QueryState } from '@/components/query-state';
 
 function toFormValues(profile: {
   firstName: string;
@@ -84,13 +85,11 @@ export function PatientProfilePage() {
     }
   }
 
-  if (profile.isPending) {
-    return <p className="text-muted-foreground">Loading…</p>;
-  }
-
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4">
       <h1 className="text-2xl font-semibold">Your profile</h1>
+      <QueryState query={profile} label="your profile">
+        {() => (
       <Card>
         <CardHeader>
           <CardTitle>Personal details</CardTitle>
@@ -273,6 +272,8 @@ export function PatientProfilePage() {
           </Form>
         </CardContent>
       </Card>
+        )}
+      </QueryState>
     </div>
   );
 }

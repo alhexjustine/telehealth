@@ -29,6 +29,7 @@ import {
   useRejectDoctor,
   useUpdateAdminDoctorProfile,
 } from '@/lib/admin/use-admin-doctors';
+import { QueryState } from '@/components/query-state';
 
 const REJECT_NOTE_MIN_LENGTH = 5;
 
@@ -115,32 +116,28 @@ export function AdminDoctorDetailPage() {
     }
   }
 
-  if (doctor.isPending) {
-    return <p className="text-muted-foreground">Loading…</p>;
-  }
-  if (!doctor.data) {
-    return <p className="text-muted-foreground">Doctor not found.</p>;
-  }
-
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4">
+      <QueryState query={doctor} label="this doctor">
+        {(data) => (
+          <>
       <div className="flex items-center gap-2">
         <h1 className="text-2xl font-semibold">
-          {doctor.data.firstName} {doctor.data.lastName}
+          {data.firstName} {data.lastName}
         </h1>
-        <Badge variant={verificationVariant(doctor.data.verificationStatus)}>{doctor.data.verificationStatus}</Badge>
-        <Badge variant="outline">{doctor.data.accountStatus}</Badge>
+        <Badge variant={verificationVariant(data.verificationStatus)}>{data.verificationStatus}</Badge>
+        <Badge variant="outline">{data.accountStatus}</Badge>
       </div>
-      <p className="text-sm text-muted-foreground">{doctor.data.email}</p>
-      {doctor.data.reviewNote && (
-        <p className="text-sm text-muted-foreground">Review note: {doctor.data.reviewNote}</p>
+      <p className="text-sm text-muted-foreground">{data.email}</p>
+      {data.reviewNote && (
+        <p className="text-sm text-muted-foreground">Review note: {data.reviewNote}</p>
       )}
       <AdminAuditLink entityType="DoctorProfile" entityId={doctorId} />
 
       <div className="flex gap-2">
         <Button
           type="button"
-          disabled={doctor.data.verificationStatus === 'APPROVED'}
+          disabled={data.verificationStatus === 'APPROVED'}
           onClick={() => setApproveOpen(true)}
         >
           Approve
@@ -149,7 +146,7 @@ export function AdminDoctorDetailPage() {
           type="button"
           variant="outline"
           className="border-destructive text-destructive hover:bg-destructive/10"
-          disabled={doctor.data.verificationStatus === 'REJECTED'}
+          disabled={data.verificationStatus === 'REJECTED'}
           onClick={() => setRejectOpen(true)}
         >
           Reject
@@ -218,6 +215,9 @@ export function AdminDoctorDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+          </>
+        )}
+      </QueryState>
     </div>
   );
 }

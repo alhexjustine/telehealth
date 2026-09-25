@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { SignInPage } from './sign-in';
 import { useLoginMutation } from '@/lib/auth/mutations';
+import { markSessionEnded } from '@/lib/session-ended';
 
 vi.mock('@/lib/auth/mutations', () => ({ useLoginMutation: vi.fn() }));
 
@@ -14,6 +15,7 @@ function renderSignIn(initialPath = '/login') {
     [
       { path: '/login', element: <SignInPage /> },
       { path: '/patient', element: <div>Patient home</div> },
+      { path: '/patient/appointments', element: <div>Patient appointments</div> },
       { path: '/doctor', element: <div>Doctor home</div> },
     ],
     { initialEntries: [initialPath] },
@@ -77,5 +79,31 @@ describe('SignInPage', () => {
 
     // Lands on the role home page, never on the off-site address.
     await waitFor(() => expect(router.state.location.pathname).toBe('/patient'));
+  });
+
+  it('Session expires while browsing', async () => {
+    // Simulates what the api-client's 401 handler (wired in App.tsx) does
+    // before redirecting: flag the ended session, then land here carrying
+    // `returnTo`.
+    markSessionEnded();
+    const mutateAsync = vi
+      .fn()
+      .mockResolvedValue({ id: '1', email: 'p@example.com', role: 'PATIENT' });
+    vi.mocked(useLoginMutation).mockReturnValue({
+      mutateAsync,
+      isPending: false,
+      isError: false,
+    } as never);
+
+    const router = renderSignIn('/login?returnTo=%2Fpatient%2Fappointments');
+
+    expect(screen.getByText(/your session has ended\. please sign in again\./i)).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText(/email/i), 'p@example.com');
+    await userEvent.type(screen.getByLabelText(/password/i), 'correct-horse-battery');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+
+    // Returns to the page the user was on, per the existing return-address rules.
+    await waitFor(() => expect(router.state.location.pathname).toBe('/patient/appointments'));
   });
 });

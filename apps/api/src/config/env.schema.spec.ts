@@ -29,6 +29,8 @@ describe('validateEnv', () => {
     expect(config.REMINDERS_ENABLED).toBe(true);
     expect(config.ADMIN_EMAIL).toBeUndefined();
     expect(config.ADMIN_PASSWORD).toBeUndefined();
+    expect(config.DEMO_DATA).toBe(false);
+    expect(config.THROTTLE_DISABLED).toBe(false);
   });
 
   it('coerces REMINDERS_ENABLED from a string', () => {
@@ -56,6 +58,25 @@ describe('validateEnv', () => {
     });
 
     expect(config.COOKIE_SECURE).toBe(true);
+  });
+
+  it('only treats an explicit "true" as enabling DEMO_DATA', () => {
+    const disabled = validateEnv({ DATABASE_URL: 'postgresql://localhost:5432/db' });
+    expect(disabled.DEMO_DATA).toBe(false);
+
+    const explicit = validateEnv({ DATABASE_URL: 'postgresql://localhost:5432/db', DEMO_DATA: 'true' });
+    expect(explicit.DEMO_DATA).toBe(true);
+  });
+
+  it('only treats an explicit "true" as enabling THROTTLE_DISABLED', () => {
+    const unset = validateEnv({ DATABASE_URL: 'postgresql://localhost:5432/db' });
+    expect(unset.THROTTLE_DISABLED).toBe(false);
+
+    const explicit = validateEnv({
+      DATABASE_URL: 'postgresql://localhost:5432/db',
+      THROTTLE_DISABLED: 'true',
+    });
+    expect(explicit.THROTTLE_DISABLED).toBe(true);
   });
 
   it('accepts optional admin credentials', () => {

@@ -9,10 +9,12 @@
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:assets": "node scripts/check-no-external-urls.mjs"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
+    "@fontsource-variable/inter": "5.3.0",
     "@hookform/resolvers": "5.9.1",
     "@tanstack/react-query": "5.103.2",
     "api-client": "workspace:*",
@@ -38,6 +40,8 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.1",
+    "axe-core": "4.12.1",
+    "jest-axe": "11.0.0",
     "jsdom": "30.1.1",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",

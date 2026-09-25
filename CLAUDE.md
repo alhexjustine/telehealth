@@ -164,6 +164,16 @@ See `README.md` for the full command reference and local-development walkthrough
   Nest's `ConfigModule`) don't get `.env` loaded automatically — only `prisma.config.ts` does that,
   via its own `import 'dotenv/config'`. Running `pnpm --filter api run admin:provision` needs
   `ADMIN_EMAIL`/`ADMIN_PASSWORD`/`DATABASE_URL` exported in the shell, not just present in `.env`.
+- nginx's `add_header` doesn't merge into a location from its parent `server` block once that
+  location defines even one `add_header` of its own — this is what lets `apps/web/nginx.conf`'s
+  `location /` set a `Content-Security-Policy` for SPA responses only, without an explicit
+  exception, since `location /api/` and `location /socket.io/` (siblings, not children) never
+  inherit it and keep relying on the API's own helmet-set CSP. A build-output "no external URLs"
+  regex check (`apps/web/scripts/check-no-external-urls.mjs`) run against minified vendor JS finds
+  plenty of `https://...`/`//...` substrings that are never fetched (React's error-decoder links,
+  react-router/socket.io dev-warning text, zod's JSON Schema `$schema` identifiers, Tailwind's own
+  banner comment) — worth confirming each by grepping the built bundle before allow-listing it,
+  the same way the spec already excepts XML namespace identifiers.
 
 ## What this repo is building
 

@@ -14,9 +14,11 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PrototypeNotice } from '@/components/prototype-notice';
 import { useRegisterPatientMutation } from '@/lib/auth/mutations';
 import { roleHomePath } from '@/lib/auth/role-home';
 import { passwordSchema } from '@/lib/validation/password';
+import { useDocumentTitle } from '@/lib/use-document-title';
 
 const schema = z
   .object({
@@ -33,6 +35,7 @@ const schema = z
 type FormValues = z.infer<typeof schema>;
 
 export function RegisterPatientPage() {
+  useDocumentTitle('Create a patient account');
   const navigate = useNavigate();
   const register = useRegisterPatientMutation();
 
@@ -52,6 +55,7 @@ export function RegisterPatientPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-6">
+      <PrototypeNotice />
       <Card>
         <CardHeader>
           <CardTitle>Create a patient account</CardTitle>
@@ -121,9 +125,22 @@ export function RegisterPatientPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={register.isPending}>
-                {register.isPending ? 'Creating account…' : 'Create account'}
-              </Button>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Button type="submit" disabled={register.isPending}>
+                  {register.isPending ? 'Creating account…' : 'Create account'}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  By continuing you agree to the{' '}
+                  <Link to="/terms" className="underline-offset-4 hover:underline">
+                    Terms
+                  </Link>{' '}
+                  and{' '}
+                  <Link to="/privacy" className="underline-offset-4 hover:underline">
+                    Privacy policy
+                  </Link>
+                  .
+                </p>
+              </div>
             </form>
           </Form>
           <p className="mt-4 text-center text-sm text-muted-foreground">

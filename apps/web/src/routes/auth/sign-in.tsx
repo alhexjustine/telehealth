@@ -14,9 +14,11 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PrototypeNotice } from '@/components/prototype-notice';
 import { useLoginMutation } from '@/lib/auth/mutations';
 import { roleHomePath } from '@/lib/auth/role-home';
 import { sanitizeReturnTo } from '@/lib/return-to';
+import { useDocumentTitle } from '@/lib/use-document-title';
 
 const signInSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
@@ -26,6 +28,7 @@ const signInSchema = z.object({
 type SignInValues = z.infer<typeof signInSchema>;
 
 export function SignInPage() {
+  useDocumentTitle('Sign in');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const login = useLoginMutation();
@@ -50,6 +53,7 @@ export function SignInPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-6">
+      <PrototypeNotice />
       <Card>
         <CardHeader>
           <CardTitle>Sign in</CardTitle>

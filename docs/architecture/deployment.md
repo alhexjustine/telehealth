@@ -36,6 +36,17 @@ flowchart LR
 returns `200`. `web` starts once `api` is healthy. Data persists in the named
 `telehealth_pg_data` volume across `docker compose down` (without `-v`).
 
+## Content-Security-Policy
+
+`web`'s `location /` (the SPA, serving `index.html`/`try_files`) sets a `Content-Security-Policy`
+header: `default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src
+'self' ws: wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`. It applies only to
+SPA responses — nginx does not merge a location's own `add_header` directives into a sibling
+location — so `location /api/` and `location /socket.io/` are unaffected and keep relying on the
+API's own `helmet`-set CSP (see [Product Website](/modules/product-website#self-contained-assets)
+for why: it's the runtime half of the self-contained-assets guarantee, alongside a build-time
+check for external URLs).
+
 ## Local development database
 
 `docker-compose.dev.yml` runs PostgreSQL alone, published on `5432`, with a second

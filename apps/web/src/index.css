@@ -1,53 +1,97 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/inter';
 
+/*
+ * Calm clinical palette: a deep teal primary on a near-white background.
+ * Every text/background pair below is checked against WCAG AA (4.5:1) by
+ * `src/lib/color-contrast.test.ts`, which reads these exact hex values —
+ * change a value there too if you change it here.
+ */
 @theme {
-  --color-background: oklch(1 0 0);
-  --color-foreground: oklch(0.145 0 0);
-  --color-muted: oklch(0.97 0 0);
-  --color-muted-foreground: oklch(0.556 0 0);
-  --color-border: oklch(0.922 0 0);
-  --color-primary: oklch(0.205 0 0);
-  --color-primary-foreground: oklch(0.985 0 0);
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+
+  --color-background: #ffffff;
+  --color-foreground: #10192b;
+  --color-muted: #f1f5f4;
+  --color-muted-foreground: #4b5a63;
+  --color-border: #dce3e1;
+  --color-primary: #0f6e63;
+  --color-primary-foreground: #ffffff;
   --color-success: oklch(0.6 0.14 155);
   --color-success-foreground: oklch(0.985 0 0);
-  --color-destructive: oklch(0.577 0.245 27.325);
-  --color-destructive-foreground: oklch(0.985 0 0);
-  --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.145 0 0);
-  --color-popover: oklch(1 0 0);
-  --color-popover-foreground: oklch(0.145 0 0);
-  --color-secondary: oklch(0.97 0 0);
-  --color-secondary-foreground: oklch(0.205 0 0);
-  --color-accent: oklch(0.97 0 0);
-  --color-accent-foreground: oklch(0.205 0 0);
-  --color-input: oklch(0.922 0 0);
-  --color-ring: oklch(0.708 0 0);
+  --color-destructive: #b3261e;
+  --color-destructive-foreground: #ffffff;
+  --color-card: #ffffff;
+  --color-card-foreground: #10192b;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #10192b;
+  --color-secondary: #eaf4f2;
+  --color-secondary-foreground: #0b4a42;
+  --color-accent: #eaf4f2;
+  --color-accent-foreground: #0b4a42;
+  --color-input: #dce3e1;
+  --color-ring: #0f6e63;
   --radius: 0.625rem;
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
 }
 
 @media (prefers-color-scheme: dark) {
   @theme {
-    --color-background: oklch(0.145 0 0);
-    --color-foreground: oklch(0.985 0 0);
-    --color-muted: oklch(0.269 0 0);
-    --color-muted-foreground: oklch(0.708 0 0);
-    --color-border: oklch(0.269 0 0);
-    --color-primary: oklch(0.985 0 0);
-    --color-primary-foreground: oklch(0.205 0 0);
-    --color-card: oklch(0.205 0 0);
-    --color-card-foreground: oklch(0.985 0 0);
-    --color-popover: oklch(0.269 0 0);
-    --color-popover-foreground: oklch(0.985 0 0);
-    --color-secondary: oklch(0.269 0 0);
-    --color-secondary-foreground: oklch(0.985 0 0);
-    --color-accent: oklch(0.269 0 0);
-    --color-accent-foreground: oklch(0.985 0 0);
-    --color-input: oklch(1 0 0 / 15%);
-    --color-ring: oklch(0.556 0 0);
+    --color-background: #0b1220;
+    --color-foreground: #f1f5f9;
+    --color-muted: #1e293b;
+    --color-muted-foreground: #94a3b8;
+    --color-border: #1f2937;
+    --color-primary: #2dd4bf;
+    --color-primary-foreground: #062a26;
+    --color-card: #111a2c;
+    --color-card-foreground: #f1f5f9;
+    --color-popover: #111a2c;
+    --color-popover-foreground: #f1f5f9;
+    --color-secondary: #134e4a;
+    --color-secondary-foreground: #99f1e5;
+    --color-accent: #134e4a;
+    --color-accent-foreground: #99f1e5;
+    --color-input: #1f2937;
+    --color-ring: #2dd4bf;
+    --color-destructive: #f87171;
+    --color-destructive-foreground: #1a0606;
   }
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
+
+/* Respect the user's motion preference everywhere, not just per-component. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -73,6 +73,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Check the web build has no external references
+        run: pnpm --filter web run check:assets
+
       - name: Docs build
         run: pnpm docs:build
 

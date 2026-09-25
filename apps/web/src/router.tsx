@@ -1,6 +1,10 @@
 import { createBrowserRouter } from 'react-router';
-import { RootPage } from '@/routes/root';
+import { LandingPage } from '@/routes/public/landing';
+import { TermsPage } from '@/routes/public/terms';
+import { PrivacyPage } from '@/routes/public/privacy';
+import { NotFoundPage } from '@/routes/public/not-found';
 import { StatusPage } from '@/routes/status';
+import { PublicLayout } from '@/routes/layouts/public-layout';
 import { PublicOnlyLayout } from '@/routes/layouts/public-only-layout';
 import { RequireRoleLayout } from '@/routes/layouts/require-role-layout';
 import { RoleAreaLayout } from '@/routes/layouts/role-area-layout';
@@ -33,14 +37,22 @@ import { PatientRecordsPage } from '@/routes/patient/records';
 import { PatientRecordDetailPage } from '@/routes/patient/record-detail';
 
 export const router = createBrowserRouter([
-  { path: '/', element: <RootPage /> },
   { path: '/status', element: <StatusPage /> },
   {
-    element: <PublicOnlyLayout />,
+    element: <PublicLayout />,
     children: [
-      { path: '/login', element: <SignInPage /> },
-      { path: '/register/patient', element: <RegisterPatientPage /> },
-      { path: '/register/doctor', element: <RegisterDoctorPage /> },
+      { path: '/', element: <LandingPage /> },
+      { path: '/terms', element: <TermsPage /> },
+      { path: '/privacy', element: <PrivacyPage /> },
+      {
+        element: <PublicOnlyLayout />,
+        children: [
+          { path: '/login', element: <SignInPage /> },
+          { path: '/register/patient', element: <RegisterPatientPage /> },
+          { path: '/register/doctor', element: <RegisterDoctorPage /> },
+        ],
+      },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
   {
@@ -71,6 +83,7 @@ export const router = createBrowserRouter([
           { path: 'records', element: <PatientRecordsPage /> },
           { path: 'records/:appointmentId', element: <PatientRecordDetailPage /> },
           { path: 'notifications', element: <NotificationsPage /> },
+          { path: '*', element: <NotFoundPage /> },
         ],
       },
     ],
@@ -98,6 +111,7 @@ export const router = createBrowserRouter([
           { path: 'appointments/:id', element: <DoctorAppointmentDetailPage /> },
           { path: 'patients/:patientId', element: <DoctorPatientRecordPage /> },
           { path: 'notifications', element: <NotificationsPage /> },
+          { path: '*', element: <NotFoundPage /> },
         ],
       },
     ],
@@ -131,6 +145,7 @@ export const router = createBrowserRouter([
           { path: 'appointments', element: <AdminAppointmentsPage /> },
           { path: 'audit', element: <AdminAuditPage /> },
           { path: 'notifications', element: <NotificationsPage /> },
+          { path: '*', element: <NotFoundPage /> },
         ],
       },
     ],

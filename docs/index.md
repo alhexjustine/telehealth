@@ -39,4 +39,4 @@ the [Deployment page](/architecture/deployment) for how it runs locally.
 | Admin appointment oversight, invalid-booking flags | Done    | `add-admin-console`  |
 | Admin operational dashboard                        | Done    | `add-admin-console`  |
 | Append-only admin audit log                        | Done    | `add-admin-console`  |
-| Product website (landing, disclaimers)             | Planned | a later change       |
+| Product website (landing, disclaimers)             | Done    | `add-product-website` |

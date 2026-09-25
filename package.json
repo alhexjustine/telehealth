@@ -1,0 +1,34 @@
+{
+  "name": "telehealth",
+  "private": true,
+  "packageManager": "pnpm@12.6.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"pnpm --filter api run dev\" \"pnpm --filter web run dev\"",
+    "build": "pnpm --filter api run build && pnpm --filter web run build",
+    "lint": "pnpm -r --if-present run lint",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test",
+    "test:e2e": "pnpm --filter api run test:e2e",
+    "format": "prettier --write .",
+    "openapi:generate": "pnpm --filter api run openapi:generate && pnpm --filter api-client run generate:types",
+    "docs:dev": "pnpm --filter docs run dev",
+    "docs:build": "pnpm --filter docs run build",
+    "db:up": "docker compose -f docker-compose.dev.yml up -d",
+    "db:down": "docker compose -f docker-compose.dev.yml down",
+    "db:migrate": "pnpm --filter api run prisma:migrate:dev"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@fission-ai/openspec": "1.13.2",
+    "concurrently": "^10.0.5",
+    "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.9",
+    "typescript-eslint": "^8.70.1"
+  }
+}

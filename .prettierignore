@@ -1,0 +1,15 @@
+pnpm-lock.yaml
+pnpm-workspace.yaml
+.claude
+openspec
+CLAUDE.md
+*.docx
+docs/.vitepress/cache
+docs/.vitepress/dist
+packages/api-client/openapi.json
+packages/api-client/src/schema.d.ts
+apps/api/src/generated
+**/dist
+**/coverage
+node_modules
+*.sql

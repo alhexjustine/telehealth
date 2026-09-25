@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+10x Onboarding - Build a Telehealth App.docx
+.pnpm-store/
+apps/web/dist/
+apps/api/dist/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+docs/public/openapi.json
+apps/api/src/generated/

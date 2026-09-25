@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  OPENSPEC_TELEMETRY: '0'
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: telehealth
+          POSTGRES_PASSWORD: telehealth
+          POSTGRES_DB: telehealth_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U telehealth -d telehealth_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://telehealth:telehealth@localhost:5432/telehealth_test?schema=public
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.6.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Regenerate OpenAPI document and client, then check for drift
+        run: |
+          pnpm openapi:generate
+          git diff --exit-code -- packages/api-client/openapi.json packages/api-client/src/schema.d.ts
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: E2E tests
+        run: pnpm test:e2e
+
+      - name: Build
+        run: pnpm build
+
+      - name: OpenSpec validate
+        run: pnpm exec openspec validate --all --strict

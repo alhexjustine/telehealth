@@ -1,0 +1,38 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "API and database are healthy"
+          },
+          "503": {
+            "description": "The database is unreachable"
+          }
+        },
+        "summary": "Reports API and database health",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Telehealth API",
+    "description": "REST API for the telehealth prototype",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "/api"
+    }
+  ],
+  "components": {
+    "schemas": {}
+  }
+}

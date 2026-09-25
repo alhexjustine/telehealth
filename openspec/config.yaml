@@ -1,0 +1,49 @@
+schema: spec-driven
+
+context: |
+  Product: prototype telehealth web app (fictional data) with four modules: Product Website
+  (public landing), Patient, Doctor, Admin. Core journey: register -> profile -> find doctor
+  (search or deterministic symptom matching) -> book/reschedule/cancel -> both join a first-party
+  consultation workspace -> doctor records notes/prescriptions -> patient views records.
+
+  Stack (mandatory): pnpm workspace; apps/api = NestJS + Prisma + PostgreSQL; apps/web = React +
+  Vite SPA (React Router, TanStack Query, react-hook-form + zod, Tailwind + shadcn/ui);
+  packages/api-client = OpenAPI types generated from NestJS Swagger + openapi-fetch; docs =
+  VitePress site published to GitHub Pages. REST/JSON over HTTP(S), plus self-hosted socket.io
+  for live updates. TypeScript strict everywhere. Local run via Docker Compose (postgres, api,
+  web served by nginx proxying /api and /socket.io).
+
+  Standalone runtime (hard rule): no SaaS, BaaS, or external runtime APIs for auth, matching,
+  notifications, messaging, file storage, scheduling, conferencing, analytics, CMS, or medical
+  records. Open-source libraries are fine; hosted third-party services are not.
+
+  Security model: application-managed email/password auth (argon2), short-lived access JWT +
+  rotating refresh token in httpOnly cookies, sessions stored hashed in PostgreSQL. Roles:
+  PATIENT, DOCTOR, ADMIN (admin pre-provisioned, never publicly registrable). All authorization
+  is enforced in NestJS guards/services, never only in the UI. Admins cannot read clinical notes.
+  Every admin mutation writes an audit log entry in the same transaction.
+
+  Data conventions: timestamps stored in UTC; appointment overlap prevented by a PostgreSQL
+  exclusion constraint (btree_gist) in addition to service-level checks.
+
+rules:
+  proposal:
+    - State explicitly that no external SaaS/BaaS/runtime API is introduced, or justify any new dependency as an open-source library.
+    - List which of the four product modules (Product Website, Patient, Doctor, Admin) are affected.
+  specs:
+    - Every requirement has at least one scenario using WHEN/THEN.
+    - Any requirement guarding data access includes a scenario for a role that is denied (expect 401/403 or not found).
+    - Use SHALL/MUST for normative statements.
+  design:
+    - Record decisions with the rejected alternative and why.
+    - Note which technical documentation pages (docs/) must be updated by this change.
+  tasks:
+    - Each spec scenario maps to a test task; name the test after the scenario.
+    - Include tasks to update the affected docs/ pages and regenerate the OpenAPI client when the API changes.
+    - Never include tasks that commit or push to git.
+
+operations:
+  apply:
+    guidance:
+      - Run lint, typecheck, and tests for touched packages before marking tasks complete.
+      - Do not commit or push; leave changes in the working tree for human review.

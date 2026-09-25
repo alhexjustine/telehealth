@@ -1,0 +1,18 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "docs"
+allowBuilds:
+  '@parcel/watcher': true
+  '@prisma/engines': true
+  '@scarf/scarf': true
+  '@tree-sitter-grammars/tree-sitter-yaml': true
+  core-js-pure: true
+  esbuild: true
+  prisma: true
+  tree-sitter: true
+  tree-sitter-json: true
+  unrs-resolver: true
+minimumReleaseAgeExclude:
+  - nestjs-pino@5.2.1
+  - vite@8.3.1

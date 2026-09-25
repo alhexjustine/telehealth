@@ -9,6 +9,7 @@ import type { Request, Response } from 'express';
 import { PinoLogger } from 'nestjs-pino';
 import { REQUEST_ID_HEADER } from '../middleware/request-id.middleware.js';
 import { Prisma } from '../../generated/prisma/client.js';
+import { EXCLUSION_CONSTRAINT_SQLSTATE, postgresErrorCode } from '../errors/postgres-error.js';
 
 interface ErrorBody {
   statusCode: number;
@@ -17,11 +18,14 @@ interface ErrorBody {
   requestId: string;
   /** Field-indexed validation details, when the exception payload carried them (see `resolve`). */
   errors?: unknown;
+  /** Stable machine-readable code for a business-rule violation (see `DomainError`). */
+  code?: string;
+  /** Extra structured detail for some codes, e.g. the appointments a schedule change would orphan. */
+  details?: unknown;
 }
 
 const UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 const RECORD_NOT_FOUND = 'P2025';
-const EXCLUSION_CONSTRAINT_SQLSTATE = '23P01';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -50,6 +54,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     error: string;
     message: string;
     errors?: unknown;
+    code?: string;
+    details?: unknown;
   } {
     if (exception instanceof HttpException) {
       const statusCode = exception.getStatus();
@@ -65,11 +71,24 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         typeof payload === 'object' && payload !== null && 'errors' in payload
           ? (payload as { errors?: unknown }).errors
           : undefined;
+      // `DomainError` attaches a stable `code` (and, for some codes, `details`)
+      // the same way; copied through only when present and well-formed so an
+      // arbitrary `HttpException({ code: 123 })` can't forge a fake code.
+      const rawCode =
+        typeof payload === 'object' && payload !== null && 'code' in payload
+          ? (payload as { code?: unknown }).code
+          : undefined;
+      const details =
+        typeof payload === 'object' && payload !== null && 'details' in payload
+          ? (payload as { details?: unknown }).details
+          : undefined;
       return {
         statusCode,
         error: statusText(statusCode),
         message: Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage,
         ...(errors !== undefined ? { errors } : {}),
+        ...(typeof rawCode === 'string' ? { code: rawCode } : {}),
+        ...(details !== undefined ? { details } : {}),
       };
     }
 
@@ -129,12 +148,18 @@ function isRecordNotFound(exception: unknown): boolean {
 
 /**
  * A PostgreSQL exclusion-constraint violation (used for appointment-overlap
- * prevention, added in a later change) surfaces either as a Prisma known
- * error carrying the raw SQLSTATE in `meta.code`, or with that SQLSTATE
- * attached directly to the thrown error — checked for both since no live
- * exclusion constraint exists yet to observe the exact shape against.
+ * prevention). The appointments service catches this itself and rethrows a
+ * `DomainError` with `SLOT_UNAVAILABLE`/`PATIENT_CONFLICT` so the response
+ * carries a stable code (see `postgres-error.ts`); this filter's generic 409
+ * is the fallback for any exclusion violation that reaches it uncaught.
+ * Checked three ways for robustness: the real shape confirmed live
+ * (`meta.driverAdapterError.cause.code`, via `postgresErrorCode`), and two
+ * defensive fallbacks (`meta.code`, and the SQLSTATE attached directly to
+ * the thrown error) in case a different Prisma/adapter version surfaces it
+ * differently.
  */
 function isExclusionConstraintViolation(exception: unknown): boolean {
+  if (postgresErrorCode(exception) === EXCLUSION_CONSTRAINT_SQLSTATE) return true;
   if (exception instanceof Prisma.PrismaClientKnownRequestError) {
     const meta = exception.meta;
     if (meta?.code === EXCLUSION_CONSTRAINT_SQLSTATE) return true;

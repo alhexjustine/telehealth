@@ -267,6 +267,67 @@ describe('generateSlots', () => {
     ]);
   });
 
+  it('Booked slot removed', () => {
+    const rules: AvailabilityRuleInput[] = [{ weekday: 1, startMinute: 9 * 60, endMinute: 12 * 60 }];
+    const { from, to } = utcRange('2026-09-28T00:00:00Z', '2026-09-29T00:00:00Z');
+
+    const withoutBooking = generateSlots({
+      timezone: 'UTC',
+      consultationMinutes: 30,
+      rules,
+      exceptions: [],
+      from,
+      to,
+      now: FAR_PAST_NOW,
+    });
+    expect(withoutBooking.map((s) => s.start.toISOString())).toContain('2026-09-28T10:00:00.000Z');
+
+    const withBooking = generateSlots({
+      timezone: 'UTC',
+      consultationMinutes: 30,
+      rules,
+      exceptions: [],
+      booked: [{ startsAt: new Date('2026-09-28T10:00:00Z'), endsAt: new Date('2026-09-28T10:30:00Z') }],
+      from,
+      to,
+      now: FAR_PAST_NOW,
+    });
+
+    expect(withBooking.map((s) => s.start.toISOString())).toEqual([
+      '2026-09-28T09:00:00.000Z',
+      '2026-09-28T09:30:00.000Z',
+      '2026-09-28T10:30:00.000Z',
+      '2026-09-28T11:00:00.000Z',
+      '2026-09-28T11:30:00.000Z',
+    ]);
+  });
+
+  it('Booking of a different length', () => {
+    // Doctor changed consultation length from 30 to 45 minutes while holding
+    // a 30-minute booking at 09:00 on a Monday 09:00-12:00 range: slots lay
+    // out from the range start at the new 45-minute length, and every slot
+    // overlapping 09:00-09:30 is removed.
+    const rules: AvailabilityRuleInput[] = [{ weekday: 1, startMinute: 9 * 60, endMinute: 12 * 60 }];
+    const { from, to } = utcRange('2026-09-28T00:00:00Z', '2026-09-29T00:00:00Z');
+
+    const slots = generateSlots({
+      timezone: 'UTC',
+      consultationMinutes: 45,
+      rules,
+      exceptions: [],
+      booked: [{ startsAt: new Date('2026-09-28T09:00:00Z'), endsAt: new Date('2026-09-28T09:30:00Z') }],
+      from,
+      to,
+      now: FAR_PAST_NOW,
+    });
+
+    expect(slots.map((s) => s.start.toISOString())).toEqual([
+      '2026-09-28T09:45:00.000Z',
+      '2026-09-28T10:30:00.000Z',
+      '2026-09-28T11:15:00.000Z',
+    ]);
+  });
+
   it('returns nothing when there are no rules', () => {
     const { from, to } = utcRange('2026-09-28T00:00:00Z', '2026-09-29T00:00:00Z');
     const slots = generateSlots({

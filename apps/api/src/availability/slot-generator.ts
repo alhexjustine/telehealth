@@ -17,6 +17,12 @@ export interface AvailabilityExceptionInput {
   endsAt: Date;
 }
 
+/** A doctor's existing `BOOKED` appointment interval; slots overlapping any of these are removed. */
+export interface BookedIntervalInput {
+  startsAt: Date;
+  endsAt: Date;
+}
+
 export interface Slot {
   start: Date;
   end: Date;
@@ -28,6 +34,8 @@ export interface GenerateSlotsParams {
   consultationMinutes: number;
   rules: AvailabilityRuleInput[];
   exceptions: AvailabilityExceptionInput[];
+  /** The doctor's existing `BOOKED` appointments; defaults to none. */
+  booked?: BookedIntervalInput[];
   /** Requested range, as UTC instants. Slots are returned only within `[from, to)`. */
   from: Date;
   to: Date;
@@ -49,6 +57,7 @@ export function generateSlots(params: GenerateSlotsParams): Slot[] {
     consultationMinutes,
     rules,
     exceptions,
+    booked = [],
     from,
     to,
     now,
@@ -90,7 +99,7 @@ export function generateSlots(params: GenerateSlotsParams): Slot[] {
     const dayRules = rulesByWeekday.get(weekday);
     if (dayRules) {
       for (const rule of dayRules) {
-        collectSlotsForRange(rule, year, month, day, timezone, consultationMs, exceptions, {
+        collectSlotsForRange(rule, year, month, day, timezone, consultationMs, exceptions, booked, {
           fromMs,
           toMs,
           leadCutoffMs,
@@ -112,6 +121,7 @@ function collectSlotsForRange(
   timezone: string,
   consultationMs: number,
   exceptions: AvailabilityExceptionInput[],
+  booked: BookedIntervalInput[],
   bounds: { fromMs: number; toMs: number; leadCutoffMs: number },
 ): Slot[] {
   const rangeStart = localMinuteToInstant(year, month, day, rule.startMinute, timezone).getTime();
@@ -129,7 +139,8 @@ function collectSlotsForRange(
       slotStartMs >= bounds.fromMs &&
       slotStartMs < bounds.toMs &&
       slotStartMs >= bounds.leadCutoffMs &&
-      !overlapsException(slotStartMs, slotEndMs, exceptions)
+      !overlapsInterval(slotStartMs, slotEndMs, exceptions) &&
+      !overlapsInterval(slotStartMs, slotEndMs, booked)
     ) {
       slots.push({ start: new Date(slotStartMs), end: new Date(slotEndMs) });
     }
@@ -138,25 +149,37 @@ function collectSlotsForRange(
   return slots;
 }
 
-function overlapsException(
+function overlapsInterval(
   slotStartMs: number,
   slotEndMs: number,
-  exceptions: AvailabilityExceptionInput[],
+  intervals: { startsAt: Date; endsAt: Date }[],
 ): boolean {
-  // Half-open intervals: a slot that only touches an exception's edge (ends
+  // Half-open intervals: a slot that only touches an interval's edge (ends
   // exactly when it starts, or starts exactly when it ends) does not overlap.
-  return exceptions.some(
-    (exception) =>
-      slotStartMs < exception.endsAt.getTime() && slotEndMs > exception.startsAt.getTime(),
+  // Used for both time-off exceptions and booked appointments, whose
+  // overlap semantics are identical.
+  return intervals.some(
+    (interval) => slotStartMs < interval.endsAt.getTime() && slotEndMs > interval.startsAt.getTime(),
   );
 }
 
-function localCalendarDate(date: Date, timezone: string): { year: number; month: number; day: number } {
+/** The local calendar date (in `timezone`) a UTC instant falls on. */
+export function localCalendarDate(date: Date, timezone: string): { year: number; month: number; day: number } {
   const tzDate = new TZDate(+date, timezone);
   return { year: tzDate.getFullYear(), month: tzDate.getMonth(), day: tzDate.getDate() };
 }
 
-function localMinuteToInstant(
+/**
+ * Resolves a local calendar date + minute-of-day (in `timezone`) to the UTC
+ * instant it names, with the same daylight-saving-time rules `generateSlots`
+ * uses for range boundaries: a skipped local time moves forward to the first
+ * valid time after it, and a repeated local time uses its first occurrence
+ * (both `TZDate`'s own behavior). Exported so `add-appointment-booking`'s
+ * schedule/time-off booking-containment checks resolve local ranges to
+ * instants the same way slot generation does, instead of duplicating the
+ * logic and risking drift.
+ */
+export function localMinuteToInstant(
   year: number,
   month: number,
   day: number,
@@ -169,7 +192,7 @@ function localMinuteToInstant(
 }
 
 /** ISO weekday (Monday = 1 ... Sunday = 7) of a UTC-anchored calendar date. */
-function isoWeekday(utcDate: Date): number {
+export function isoWeekday(utcDate: Date): number {
   const day = utcDate.getUTCDay();
   return day === 0 ? 7 : day;
 }

@@ -1,8 +1,12 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AppointmentStatus } from '../generated/prisma/enums.js';
 import { isVisibleDoctor } from '../doctors/doctor-visibility.js';
+import { DomainError } from '../common/errors/domain-error.js';
+import { ErrorCode } from '../common/errors/error-codes.js';
 import { validateSchedule } from './schedule-validator.js';
 import { generateSlots } from './slot-generator.js';
+import { isBookingContained } from './booking-containment.js';
 import type { SaveAvailabilityDto } from './dto/save-availability.dto.js';
 import type { CreateTimeOffDto } from './dto/create-time-off.dto.js';
 import type { AvailabilityResponseDto } from './dto/availability-response.dto.js';
@@ -11,6 +15,39 @@ import type { SlotResponseDto } from './dto/slot-response.dto.js';
 
 const MAX_SLOT_RANGE_DAYS = 31;
 const MAX_TIME_OFF_DAYS = 90;
+
+const WITH_PATIENT_NAME = {
+  patient: { select: { firstName: true, lastName: true } },
+} as const;
+
+type ConflictingAppointment = {
+  id: string;
+  startsAt: Date;
+  endsAt: Date;
+  patient: { firstName: string; lastName: string };
+};
+
+/**
+ * A schedule save or time-off add that would leave one or more `BOOKED`
+ * appointments uncovered is rejected with this, listing the affected
+ * appointments so the doctor's next step (cancel them first) is obvious —
+ * see design.md's "Availability changes".
+ */
+function scheduleConflictsError(conflicts: ConflictingAppointment[]): DomainError {
+  return new DomainError(
+    HttpStatus.CONFLICT,
+    ErrorCode.SCHEDULE_CONFLICTS_WITH_BOOKINGS,
+    'This change conflicts with one or more of your booked appointments.',
+    {
+      appointments: conflicts.map((appointment) => ({
+        id: appointment.id,
+        startsAt: appointment.startsAt.toISOString(),
+        endsAt: appointment.endsAt.toISOString(),
+        patientName: `${appointment.patient.firstName} ${appointment.patient.lastName}`,
+      })),
+    },
+  );
+}
 
 @Injectable()
 export class AvailabilityService {
@@ -49,6 +86,17 @@ export class AvailabilityService {
     }
 
     await this.prisma.$transaction(async (tx) => {
+      const upcoming = await tx.appointment.findMany({
+        where: { doctorId, status: AppointmentStatus.BOOKED, startsAt: { gt: new Date() } },
+        include: WITH_PATIENT_NAME,
+      });
+      const conflicts = upcoming.filter(
+        (appointment) => !isBookingContained(appointment, dto.rules, dto.timezone),
+      );
+      if (conflicts.length > 0) {
+        throw scheduleConflictsError(conflicts);
+      }
+
       await tx.doctorProfile.update({ where: { userId: doctorId }, data: { timezone: dto.timezone } });
       await tx.availabilityRule.deleteMany({ where: { doctorId } });
       if (dto.rules.length > 0) {
@@ -79,6 +127,14 @@ export class AvailabilityService {
     }
     if (endsAt.getTime() - startsAt.getTime() > MAX_TIME_OFF_DAYS * 24 * 60 * 60 * 1000) {
       throw new BadRequestException(`Time off cannot be longer than ${MAX_TIME_OFF_DAYS} days`);
+    }
+
+    const overlapping = await this.prisma.appointment.findMany({
+      where: { doctorId, status: AppointmentStatus.BOOKED, startsAt: { lt: endsAt }, endsAt: { gt: startsAt } },
+      include: WITH_PATIENT_NAME,
+    });
+    if (overlapping.length > 0) {
+      throw scheduleConflictsError(overlapping);
     }
 
     const created = await this.prisma.availabilityException.create({
@@ -129,10 +185,14 @@ export class AvailabilityService {
       throw new NotFoundException('Doctor not found');
     }
 
-    const [rules, exceptions] = await Promise.all([
+    const [rules, exceptions, booked] = await Promise.all([
       this.prisma.availabilityRule.findMany({ where: { doctorId } }),
       this.prisma.availabilityException.findMany({
         where: { doctorId, startsAt: { lt: to }, endsAt: { gt: from } },
+      }),
+      this.prisma.appointment.findMany({
+        where: { doctorId, status: AppointmentStatus.BOOKED, startsAt: { lt: to }, endsAt: { gt: from } },
+        select: { startsAt: true, endsAt: true },
       }),
     ]);
 
@@ -141,6 +201,7 @@ export class AvailabilityService {
       consultationMinutes: profile.consultationMinutes,
       rules,
       exceptions,
+      booked,
       from,
       to,
       now: new Date(),

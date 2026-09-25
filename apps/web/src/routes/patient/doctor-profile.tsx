@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { buttonVariants } from '@/components/ui/button';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { usePublicDoctorProfile } from '@/lib/discovery/use-doctor-search';
 import { useDoctorSlots } from '@/lib/availability/use-availability';
@@ -12,6 +13,8 @@ const SLOT_HORIZON_DAYS = 14;
 
 export function PatientDoctorProfilePage() {
   const { doctorId } = useParams<{ doctorId: string }>();
+  const [searchParams] = useSearchParams();
+  const symptomsParam = searchParams.get('symptoms') ?? '';
   const profile = usePublicDoctorProfile(doctorId);
 
   const range = useMemo(() => {
@@ -138,9 +141,12 @@ export function PatientDoctorProfilePage() {
                     {profile.data.consultationMinutes} minutes
                   </p>
                 </div>
-                <Button type="button" disabled title="Booking is coming soon">
+                <Link
+                  to={`/patient/doctors/${doctorId}/book?start=${encodeURIComponent(selectedSlot.start)}${symptomsParam ? `&symptoms=${encodeURIComponent(symptomsParam)}` : ''}`}
+                  className={buttonVariants({ variant: 'default' })}
+                >
                   Book
-                </Button>
+                </Link>
               </CardContent>
             </Card>
           )}

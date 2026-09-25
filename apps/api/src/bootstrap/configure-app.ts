@@ -7,6 +7,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { requestIdMiddleware } from '../common/middleware/request-id.middleware.js';
 import { clientIpMiddleware } from '../common/middleware/client-ip.middleware.js';
 import { createOriginCheckMiddleware } from '../common/middleware/origin-check.middleware.js';
+import { ErrorResponseDto } from '../common/dto/error-response.dto.js';
 import type { Env } from '../config/env.schema.js';
 
 /**
@@ -79,5 +80,12 @@ export function buildOpenApiDocument(app: INestApplication) {
       description: 'Opaque session token set by POST /auth/login or a registration endpoint.',
     })
     .build();
-  return SwaggerModule.createDocument(app, config, { ignoreGlobalPrefix: true });
+  // `extraModels` registers the shared error body's schema in `components` even
+  // though no single route returns `ErrorResponseDto` as its success type;
+  // routes that document a specific error status reference it explicitly via
+  // `@ApiResponse({ type: ErrorResponseDto })`.
+  return SwaggerModule.createDocument(app, config, {
+    ignoreGlobalPrefix: true,
+    extraModels: [ErrorResponseDto],
+  });
 }

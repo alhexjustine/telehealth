@@ -26,6 +26,11 @@ function renderSchedulePage() {
 }
 
 const ok = <T,>(data: T) => ({ data, error: undefined, response: { ok: true, status: 200 } as Response });
+const err = (error: unknown, status = 409) => ({
+  data: undefined,
+  error,
+  response: { ok: false, status } as Response,
+});
 
 describe('DoctorSchedulePage', () => {
   beforeEach(() => {
@@ -106,5 +111,49 @@ describe('DoctorSchedulePage', () => {
     // preview card, since the range-editor selects also contain "17:00".
     const previewCard = screen.getByTestId('slot-preview-card');
     await waitFor(() => expect(previewCard).toHaveTextContent('17:00'));
+  });
+
+  it('Schedule change would orphan a booking: shows the conflicting appointments', async () => {
+    const getImpl = (path: unknown) => {
+      if (path === '/doctors/me/availability') {
+        return ok({
+          timezone: 'UTC',
+          rules: [{ weekday: 1, startMinute: 9 * 60, endMinute: 17 * 60 }],
+          timeOff: [],
+        });
+      }
+      if (path === '/doctors/{doctorId}/slots') return ok([]);
+      throw new Error(`unexpected GET ${String(path)}`);
+    };
+    vi.mocked(apiClient.GET).mockImplementation(getImpl as never);
+    vi.mocked(apiClient.PUT).mockResolvedValue(
+      err({
+        statusCode: 409,
+        error: 'Conflict',
+        message: 'This change conflicts with one or more of your booked appointments.',
+        requestId: 'req-1',
+        code: 'SCHEDULE_CONFLICTS_WITH_BOOKINGS',
+        details: {
+          appointments: [
+            {
+              id: 'apt-1',
+              startsAt: '2026-10-05T09:00:00.000Z',
+              endsAt: '2026-10-05T09:30:00.000Z',
+              patientName: 'Ada Lovelace',
+            },
+          ],
+        },
+      }),
+    );
+
+    renderSchedulePage();
+
+    const saveButton = await screen.findByRole('button', { name: /save schedule/i });
+    await userEvent.click(saveButton);
+
+    const alert = await screen.findByTestId('schedule-conflicts');
+    expect(alert).toHaveTextContent('Ada Lovelace');
+    const link = screen.getByRole('link', { name: /ada lovelace/i });
+    expect(link).toHaveAttribute('href', '/doctor/appointments/apt-1');
   });
 });

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AppointmentStatus } from '../generated/prisma/enums.js';
 import { generateSlots, type Slot } from './slot-generator.js';
 
 const DEFAULT_HORIZON_DAYS = 14;
@@ -32,15 +33,25 @@ export class NextSlotService {
     if (doctors.length === 0) return result;
 
     const doctorIds = doctors.map((doctor) => doctor.userId);
-    const [rules, exceptions] = await Promise.all([
+    const [rules, exceptions, booked] = await Promise.all([
       this.prisma.availabilityRule.findMany({ where: { doctorId: { in: doctorIds } } }),
       this.prisma.availabilityException.findMany({
         where: { doctorId: { in: doctorIds }, startsAt: { lt: to }, endsAt: { gt: from } },
+      }),
+      this.prisma.appointment.findMany({
+        where: {
+          doctorId: { in: doctorIds },
+          status: AppointmentStatus.BOOKED,
+          startsAt: { lt: to },
+          endsAt: { gt: from },
+        },
+        select: { doctorId: true, startsAt: true, endsAt: true },
       }),
     ]);
 
     const rulesByDoctor = groupBy(rules, (rule) => rule.doctorId);
     const exceptionsByDoctor = groupBy(exceptions, (exception) => exception.doctorId);
+    const bookedByDoctor = groupBy(booked, (appointment) => appointment.doctorId);
 
     for (const doctor of doctors) {
       const slots = generateSlots({
@@ -48,6 +59,7 @@ export class NextSlotService {
         consultationMinutes: doctor.consultationMinutes,
         rules: rulesByDoctor.get(doctor.userId) ?? [],
         exceptions: exceptionsByDoctor.get(doctor.userId) ?? [],
+        booked: bookedByDoctor.get(doctor.userId) ?? [],
         from,
         to,
         now,

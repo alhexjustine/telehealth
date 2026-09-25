@@ -15,6 +15,9 @@ Each table belongs to one of three capabilities documented per module:
   [Doctor](/modules/doctor) module page.
 - **Symptom catalog** (`symptoms`, `symptom_specializations`) — reference data for guided
   matching, see the [Patient](/modules/patient#matching-algorithm) module page.
+- **Appointments** (`appointments`, `appointment_symptoms`) — booking, rescheduling, and
+  cancelling, see the [Patient](/modules/patient#booking-an-appointment) and
+  [Doctor](/modules/doctor#managing-bookings) module pages.
 
 <!--@include: ./_generated-erd.md-->
 
@@ -37,3 +40,18 @@ Each table belongs to one of three capabilities documented per module:
 - `symptoms` and `symptom_specializations` are reference data (53 symptoms, 74 weighted links,
   inserted by migration like `specializations`) — read-only, and never returned with `keywords`
   or `weight` to a client (see [Patient](/modules/patient#matching-algorithm)).
+- `appointments` carries two PostgreSQL exclusion constraints not expressible in Prisma's schema
+  language, added by hand in the `add_appointments` migration's SQL: no two `BOOKED` rows for the
+  same `doctor_id`, and no two `BOOKED` rows for the same `patient_id`, may have overlapping
+  `[starts_at, ends_at)` ranges. This is the database-level guarantee against double-booking under
+  concurrent requests — see [Patient](/modules/patient#booking-an-appointment). `rescheduled_from_id`
+  self-references the appointment a row replaced, forming the reschedule chain a detail view walks.
+
+  ```sql
+  ALTER TABLE appointments ADD CONSTRAINT appointments_doctor_no_overlap
+    EXCLUDE USING gist (doctor_id WITH =, tstzrange(starts_at, ends_at, '[)') WITH &&)
+    WHERE (status = 'BOOKED');
+  ALTER TABLE appointments ADD CONSTRAINT appointments_patient_no_overlap
+    EXCLUDE USING gist (patient_id WITH =, tstzrange(starts_at, ends_at, '[)') WITH &&)
+    WHERE (status = 'BOOKED');
+  ```

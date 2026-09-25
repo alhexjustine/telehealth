@@ -1,0 +1,352 @@
+import { BadRequestException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service.js';
+import type { Prisma } from '../generated/prisma/client.js';
+import { AppointmentStatus, Role } from '../generated/prisma/enums.js';
+import { ageAt } from '../matching/age.js';
+import { DomainError } from '../common/errors/domain-error.js';
+import { ErrorCode } from '../common/errors/error-codes.js';
+import {
+  EXCLUSION_CONSTRAINT_SQLSTATE,
+  postgresConstraintName,
+  postgresErrorCode,
+} from '../common/errors/postgres-error.js';
+import { BookingRules } from './booking-rules.js';
+import { RESCHEDULE_CUTOFF_MINUTES } from './booking.constants.js';
+import type { CreateAppointmentDto } from './dto/create-appointment.dto.js';
+import type { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto.js';
+import type { CancelAppointmentDto } from './dto/cancel-appointment.dto.js';
+import type { AppointmentScope } from './dto/appointment-list-query.dto.js';
+import type {
+  AppointmentDetailResponseDto,
+  AppointmentHistoryEntryDto,
+  AppointmentListResponseDto,
+  AppointmentResponseDto,
+} from './dto/appointment-response.dto.js';
+
+export interface AppointmentCaller {
+  id: string;
+  role: Role;
+}
+
+const DOCTOR_OVERLAP_CONSTRAINT = 'appointments_doctor_no_overlap';
+const PATIENT_OVERLAP_CONSTRAINT = 'appointments_patient_no_overlap';
+
+const WITH_RELATIONS = {
+  doctor: { include: { specializations: { include: { specialization: true } } } },
+  patient: true,
+  symptoms: { include: { symptom: true } },
+} satisfies Prisma.AppointmentInclude;
+
+type AppointmentWithRelations = Prisma.AppointmentGetPayload<{ include: typeof WITH_RELATIONS }>;
+
+@Injectable()
+export class AppointmentsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly bookingRules: BookingRules,
+  ) {}
+
+  async book(patientId: string, dto: CreateAppointmentDto): Promise<AppointmentResponseDto> {
+    const startsAt = new Date(dto.startsAt);
+    const now = new Date();
+    const symptomIds = await this.validateSymptomIds(dto.symptomIds);
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const { endsAt } = await this.bookingRules.assertBookable(tx, {
+        patientId,
+        doctorId: dto.doctorId,
+        startsAt,
+        now,
+      });
+
+      try {
+        return await tx.appointment.create({
+          data: {
+            patientId,
+            doctorId: dto.doctorId,
+            startsAt,
+            endsAt,
+            reason: dto.reason,
+            symptoms:
+              symptomIds.length > 0 ? { create: symptomIds.map((symptomId) => ({ symptomId })) } : undefined,
+          },
+          include: WITH_RELATIONS,
+        });
+      } catch (error) {
+        throw this.mapOverlapError(error);
+      }
+    });
+
+    return this.toResponseDto(created);
+  }
+
+  async reschedule(
+    patientId: string,
+    appointmentId: string,
+    dto: RescheduleAppointmentDto,
+  ): Promise<AppointmentResponseDto> {
+    const newStartsAt = new Date(dto.startsAt);
+    const now = new Date();
+
+    const rescheduled = await this.prisma.$transaction(async (tx) => {
+      const original = await tx.appointment.findUnique({ where: { id: appointmentId } });
+      if (!original || original.patientId !== patientId) {
+        throw new NotFoundException('Appointment not found');
+      }
+
+      const minutesUntilStart = (original.startsAt.getTime() - now.getTime()) / 60_000;
+      if (original.status !== AppointmentStatus.BOOKED || minutesUntilStart < RESCHEDULE_CUTOFF_MINUTES) {
+        throw new DomainError(
+          HttpStatus.CONFLICT,
+          ErrorCode.RESCHEDULE_WINDOW_CLOSED,
+          `Rescheduling closes ${RESCHEDULE_CUTOFF_MINUTES / 60} hours before the appointment starts.`,
+        );
+      }
+
+      const { endsAt } = await this.bookingRules.assertBookable(tx, {
+        patientId: original.patientId,
+        doctorId: original.doctorId,
+        startsAt: newStartsAt,
+        now,
+        excludeAppointmentId: original.id,
+      });
+
+      // Cancel the original before inserting the new row: the exclusion
+      // constraints only apply to BOOKED rows, so this is what lets the new
+      // row reuse a time range that touches or overlaps the old one (see
+      // design.md's "Exclusion constraints in raw SQL").
+      await tx.appointment.update({
+        where: { id: original.id },
+        data: {
+          status: AppointmentStatus.CANCELLED,
+          cancelledAt: now,
+          cancelledById: patientId,
+          cancellationReason: 'Rescheduled',
+        },
+      });
+
+      const carriedSymptoms = await tx.appointmentSymptom.findMany({ where: { appointmentId: original.id } });
+
+      try {
+        return await tx.appointment.create({
+          data: {
+            patientId: original.patientId,
+            doctorId: original.doctorId,
+            startsAt: newStartsAt,
+            endsAt,
+            reason: original.reason,
+            rescheduledFromId: original.id,
+            symptoms:
+              carriedSymptoms.length > 0
+                ? { create: carriedSymptoms.map((s) => ({ symptomId: s.symptomId })) }
+                : undefined,
+          },
+          include: WITH_RELATIONS,
+        });
+      } catch (error) {
+        throw this.mapOverlapError(error);
+      }
+    });
+
+    return this.toResponseDto(rescheduled);
+  }
+
+  async cancel(
+    caller: AppointmentCaller,
+    appointmentId: string,
+    dto: CancelAppointmentDto,
+  ): Promise<AppointmentResponseDto> {
+    const now = new Date();
+    const appointment = await this.prisma.appointment.findUnique({ where: { id: appointmentId } });
+    if (!appointment || !this.isParticipant(caller, appointment)) {
+      throw new NotFoundException('Appointment not found');
+    }
+
+    if (caller.role === Role.DOCTOR) {
+      const reason = dto.reason?.trim();
+      if (!reason || reason.length < 5) {
+        throw new BadRequestException('A cancellation reason of at least 5 characters is required');
+      }
+    }
+
+    if (appointment.status !== AppointmentStatus.BOOKED || appointment.startsAt.getTime() <= now.getTime()) {
+      throw new DomainError(
+        HttpStatus.CONFLICT,
+        ErrorCode.APPOINTMENT_NOT_CANCELLABLE,
+        'This appointment can no longer be cancelled.',
+      );
+    }
+
+    const updated = await this.prisma.appointment.update({
+      where: { id: appointmentId },
+      data: {
+        status: AppointmentStatus.CANCELLED,
+        cancelledAt: now,
+        cancelledById: caller.id,
+        cancellationReason: dto.reason?.trim() || null,
+      },
+      include: WITH_RELATIONS,
+    });
+    return this.toResponseDto(updated);
+  }
+
+  async list(
+    caller: AppointmentCaller,
+    scope: AppointmentScope,
+    page: number,
+    pageSize: number,
+  ): Promise<AppointmentListResponseDto> {
+    const now = new Date();
+    const roleWhere: Prisma.AppointmentWhereInput =
+      caller.role === Role.PATIENT ? { patientId: caller.id } : { doctorId: caller.id };
+    const scopeWhere: Prisma.AppointmentWhereInput =
+      scope === 'upcoming'
+        ? { status: AppointmentStatus.BOOKED, endsAt: { gt: now } }
+        : { OR: [{ status: { not: AppointmentStatus.BOOKED } }, { endsAt: { lte: now } }] };
+    const where: Prisma.AppointmentWhereInput = { AND: [roleWhere, scopeWhere] };
+    const orderBy: Prisma.AppointmentOrderByWithRelationInput = { startsAt: scope === 'upcoming' ? 'asc' : 'desc' };
+
+    const [items, total] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: WITH_RELATIONS,
+      }),
+      this.prisma.appointment.count({ where }),
+    ]);
+
+    return { items: items.map((item) => this.toResponseDto(item)), total, page, pageSize };
+  }
+
+  async detail(caller: AppointmentCaller, appointmentId: string): Promise<AppointmentDetailResponseDto> {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: WITH_RELATIONS,
+    });
+    if (!appointment || !this.isParticipant(caller, appointment)) {
+      throw new NotFoundException('Appointment not found');
+    }
+
+    const history = await this.buildHistory(appointment);
+    const reverse = await this.prisma.appointment.findFirst({ where: { rescheduledFromId: appointment.id } });
+
+    return {
+      ...this.toResponseDto(appointment),
+      rescheduledToId: reverse?.id ?? null,
+      history,
+    };
+  }
+
+  private isParticipant(caller: AppointmentCaller, appointment: { patientId: string; doctorId: string }): boolean {
+    if (caller.role === Role.PATIENT) return appointment.patientId === caller.id;
+    if (caller.role === Role.DOCTOR) return appointment.doctorId === caller.id;
+    return false;
+  }
+
+  private async validateSymptomIds(symptomIds: string[] | undefined): Promise<string[]> {
+    const ids = [...new Set(symptomIds ?? [])];
+    if (ids.length === 0) return ids;
+    const validCount = await this.prisma.symptom.count({ where: { id: { in: ids } } });
+    if (validCount !== ids.length) {
+      throw new BadRequestException('One or more symptom IDs are not in the catalog');
+    }
+    return ids;
+  }
+
+  /**
+   * A `23P01` exclusion-constraint violation from the insert (the database's
+   * final guard against a race between `BookingRules.assertBookable` and the
+   * insert — see "Concurrent bookings of the same slot") is translated to
+   * the same stable code a pre-insert check would have produced, keyed off
+   * which constraint fired. Any other error is rethrown unchanged for the
+   * global filter's generic handling.
+   */
+  private mapOverlapError(error: unknown): unknown {
+    if (postgresErrorCode(error) !== EXCLUSION_CONSTRAINT_SQLSTATE) return error;
+    const constraintName = postgresConstraintName(error);
+    if (constraintName === DOCTOR_OVERLAP_CONSTRAINT) {
+      return new DomainError(HttpStatus.CONFLICT, ErrorCode.SLOT_UNAVAILABLE, 'That slot is no longer available.');
+    }
+    if (constraintName === PATIENT_OVERLAP_CONSTRAINT) {
+      return new DomainError(
+        HttpStatus.CONFLICT,
+        ErrorCode.PATIENT_CONFLICT,
+        'This overlaps another of your own appointments.',
+      );
+    }
+    return error;
+  }
+
+  private async buildHistory(appointment: AppointmentWithRelations): Promise<AppointmentHistoryEntryDto[]> {
+    type ChainLink = { id: string; startsAt: Date; endsAt: Date; status: AppointmentStatus; cancelledAt: Date | null; cancellationReason: string | null; rescheduledFromId: string | null };
+    const chain: ChainLink[] = [appointment];
+
+    let cursor: ChainLink = appointment;
+    while (cursor.rescheduledFromId) {
+      const previous = await this.prisma.appointment.findUnique({ where: { id: cursor.rescheduledFromId } });
+      if (!previous) break;
+      chain.unshift(previous);
+      cursor = previous;
+    }
+
+    cursor = appointment;
+    // Walks forward until no successor is found.
+    while (true) {
+      const next = await this.prisma.appointment.findFirst({ where: { rescheduledFromId: cursor.id } });
+      if (!next) break;
+      chain.push(next);
+      cursor = next;
+    }
+
+    return chain.map((link) => ({
+      id: link.id,
+      startsAt: link.startsAt.toISOString(),
+      endsAt: link.endsAt.toISOString(),
+      status: link.status,
+      cancelledAt: link.cancelledAt ? link.cancelledAt.toISOString() : null,
+      cancellationReason: link.cancellationReason,
+    }));
+  }
+
+  private toResponseDto(appointment: AppointmentWithRelations): AppointmentResponseDto {
+    const now = new Date();
+    return {
+      id: appointment.id,
+      startsAt: appointment.startsAt.toISOString(),
+      endsAt: appointment.endsAt.toISOString(),
+      status: appointment.status,
+      reason: appointment.reason,
+      doctor: {
+        id: appointment.doctorId,
+        displayName: `${appointment.doctor.firstName} ${appointment.doctor.lastName}`,
+        specializations: appointment.doctor.specializations.map((link) => ({
+          id: link.specialization.id,
+          name: link.specialization.name,
+        })),
+      },
+      patient: {
+        id: appointment.patientId,
+        displayName: `${appointment.patient.firstName} ${appointment.patient.lastName}`,
+        age: appointment.patient.birthDate ? ageAt(appointment.patient.birthDate, now) : null,
+      },
+      symptoms: appointment.symptoms.map((link) => ({ id: link.symptom.id, name: link.symptom.name })),
+      cancelledAt: appointment.cancelledAt ? appointment.cancelledAt.toISOString() : null,
+      cancellationReason: appointment.cancellationReason,
+      cancelledByRole: cancelledByRole(appointment),
+      rescheduledFromId: appointment.rescheduledFromId,
+    };
+  }
+}
+
+function cancelledByRole(appointment: {
+  cancelledById: string | null;
+  patientId: string;
+  doctorId: string;
+}): 'PATIENT' | 'DOCTOR' | null {
+  if (!appointment.cancelledById) return null;
+  if (appointment.cancelledById === appointment.patientId) return 'PATIENT';
+  if (appointment.cancelledById === appointment.doctorId) return 'DOCTOR';
+  return null;
+}

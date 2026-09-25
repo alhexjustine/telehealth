@@ -91,6 +91,15 @@ See `README.md` for the full command reference and local-development walkthrough
   not `Z` — unlike a plain `Date`. To get a UTC-`Z` ISO string for the API (timestamps, time-off
   instants) from a `TZDate`, wrap it: `new Date(tzDate.getTime()).toISOString()`. See
   `apps/web/src/lib/availability/time-off-conversion.ts`.
+- Prisma 7 + `@prisma/adapter-pg`: the real PostgreSQL SQLSTATE behind a query error is **not**
+  `PrismaClientKnownRequestError.code` (that's Prisma's own `P20xx` code for which operation
+  failed — confirmed to be `P2010` for `$executeRaw`/`$queryRaw` but `P2039` for a normal
+  `.create()`/`.update()` hitting the same constraint, so branching on it is unreliable) and
+  **not** reliably `meta.code` either. It's three levels down, at
+  `exception.meta.driverAdapterError.cause.code` (and the constraint name is embedded in
+  `...cause.message`, e.g. `conflicting key value violates exclusion constraint "..."`). See
+  `apps/api/src/common/errors/postgres-error.ts`'s `postgresErrorCode`/`postgresConstraintName`,
+  used by the appointment-overlap exclusion-constraint handling in `add-appointment-booking`.
 - A hand-written migration that resolves a foreign key by a subquery across a `UNION ALL` of
   `SELECT`s (e.g. `SELECT '<uuid-literal>', sp.id, weight FROM specializations sp WHERE sp.slug =
   '...'`, repeated per row so the migration doesn't have to hardcode the target table's UUIDs)

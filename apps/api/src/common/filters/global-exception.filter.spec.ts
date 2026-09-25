@@ -2,6 +2,8 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { ArgumentsHost, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
 import type { PinoLogger } from 'nestjs-pino';
 import { Prisma } from '../../generated/prisma/client.js';
+import { DomainError } from '../errors/domain-error.js';
+import { ErrorCode } from '../errors/error-codes.js';
 import { GlobalExceptionFilter } from './global-exception.filter.js';
 
 function createHost(requestId = 'req-1') {
@@ -101,6 +103,58 @@ describe('GlobalExceptionFilter', () => {
     });
     expect(JSON.stringify(body)).not.toContain('secret stack trace');
     expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('Business-rule error code', () => {
+    const filter = new GlobalExceptionFilter(createLogger());
+    const { host, status, json } = createHost();
+    const error = new DomainError(
+      HttpStatus.CONFLICT,
+      ErrorCode.SLOT_UNAVAILABLE,
+      'That slot is no longer available',
+    );
+
+    filter.catch(error, host);
+
+    expect(status).toHaveBeenCalledWith(409);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 409,
+        message: 'That slot is no longer available',
+        code: 'SLOT_UNAVAILABLE',
+      }),
+    );
+  });
+
+  it('Business-rule error code: carries structured details when present', () => {
+    const filter = new GlobalExceptionFilter(createLogger());
+    const { host, json } = createHost();
+    const error = new DomainError(
+      HttpStatus.CONFLICT,
+      ErrorCode.SCHEDULE_CONFLICTS_WITH_BOOKINGS,
+      'Would orphan a booking',
+      { appointments: [{ id: 'apt-1' }] },
+    );
+
+    filter.catch(error, host);
+
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'SCHEDULE_CONFLICTS_WITH_BOOKINGS',
+        details: { appointments: [{ id: 'apt-1' }] },
+      }),
+    );
+  });
+
+  it("a plain HttpException without a code doesn't fabricate one", () => {
+    const filter = new GlobalExceptionFilter(createLogger());
+    const { host, json } = createHost();
+
+    filter.catch(new NotFoundException('nope'), host);
+
+    const body = json.mock.calls[0]?.[0];
+    expect(body).not.toHaveProperty('code');
+    expect(body).not.toHaveProperty('details');
   });
 
   it('still returns the standard body shape when the exception has no message', () => {

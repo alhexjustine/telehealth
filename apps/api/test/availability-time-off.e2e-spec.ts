@@ -2,7 +2,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it } from '@jest/gl
 import type { INestApplication } from '@nestjs/common';
 import { createTestApp } from './support/test-app.js';
 import { resetDatabase } from './support/reset-db.js';
-import { registerDoctor } from './support/auth-helpers.js';
+import { registerDoctor, registerPatient } from './support/auth-helpers.js';
+import { PrismaService } from '../src/prisma/prisma.service.js';
 
 function nextMonday(hour: number): Date {
   const date = new Date();
@@ -102,5 +103,39 @@ describe('Doctor time off', () => {
 
     const availabilityA = await doctorA.agent.get('/api/doctors/me/availability');
     expect(availabilityA.body.timeOff).toHaveLength(1);
+  });
+
+  it('Time off over a booking', async () => {
+    const doctor = await registerDoctor(app);
+    const patient = await registerPatient(app);
+
+    const startsAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    const endsAt = new Date(startsAt.getTime() + 30 * 60 * 1000);
+    const prisma = app.get(PrismaService);
+    const booked = await prisma.appointment.create({
+      data: {
+        patientId: patient.id,
+        doctorId: doctor.id,
+        startsAt,
+        endsAt,
+        reason: 'A booking that time off would cover',
+        status: 'BOOKED',
+      },
+    });
+
+    const res = await doctor.agent.post('/api/doctors/me/availability/exceptions').send({
+      startsAt: new Date(startsAt.getTime() - 60 * 60 * 1000).toISOString(),
+      endsAt: new Date(endsAt.getTime() + 60 * 60 * 1000).toISOString(),
+      reason: 'Conference',
+    });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('SCHEDULE_CONFLICTS_WITH_BOOKINGS');
+    expect(res.body.details.appointments).toEqual([
+      expect.objectContaining({ id: booked.id }),
+    ]);
+
+    const availability = await doctor.agent.get('/api/doctors/me/availability');
+    expect(availability.body.timeOff).toEqual([]);
   });
 });

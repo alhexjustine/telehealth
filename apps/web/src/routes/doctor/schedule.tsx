@@ -1,12 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
+import { Link } from 'react-router';
 import { toast } from 'sonner';
 import type { ApiPaths } from 'api-client';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getApiErrorCode, getApiErrorDetails } from '@/lib/api-error';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { useDoctorProfile } from '@/lib/doctors/use-doctor-profile';
 import {
@@ -35,6 +38,51 @@ type SlotDto =
 const DEFAULT_RANGE = { startMinute: 9 * 60, endMinute: 10 * 60 };
 const COPY_TARGET_WEEKDAYS = [2, 3, 4, 5]; // Tuesday - Friday
 const PREVIEW_DAYS = 7;
+
+interface ConflictingAppointment {
+  id: string;
+  startsAt: string;
+  endsAt: string;
+  patientName: string;
+}
+
+/** Reads the `SCHEDULE_CONFLICTS_WITH_BOOKINGS` error's `details.appointments`, when present. */
+function conflictingAppointmentsFrom(error: unknown): ConflictingAppointment[] {
+  if (getApiErrorCode(error) !== 'SCHEDULE_CONFLICTS_WITH_BOOKINGS') return [];
+  const details = getApiErrorDetails(error) as { appointments?: ConflictingAppointment[] } | undefined;
+  return details?.appointments ?? [];
+}
+
+function ScheduleConflictsAlert({ appointments }: { appointments: ConflictingAppointment[] }) {
+  if (appointments.length === 0) return null;
+  return (
+    <Alert variant="destructive" data-testid="schedule-conflicts">
+      <AlertTitle>This conflicts with existing bookings</AlertTitle>
+      <AlertDescription>
+        <p>Cancel these appointments first, or choose a change that still covers them:</p>
+        <ul className="mt-1 flex flex-col gap-1">
+          {appointments.map((appointment) => (
+            <li key={appointment.id}>
+              <Link
+                to={`/doctor/appointments/${appointment.id}`}
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                {appointment.patientName} —{' '}
+                {new Intl.DateTimeFormat(undefined, {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                }).format(new Date(appointment.startsAt))}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </AlertDescription>
+    </Alert>
+  );
+}
 
 const selectClassName =
   'h-9 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
@@ -79,12 +127,19 @@ export function DoctorSchedulePage() {
   }, []);
   const slots = useDoctorSlots(currentUser.data?.id, previewRange.from, previewRange.to);
 
+  const [scheduleConflicts, setScheduleConflicts] = useState<ConflictingAppointment[]>([]);
+
   async function onSubmit(values: ScheduleFormValues) {
     try {
       await saveAvailability.mutateAsync(values);
+      setScheduleConflicts([]);
       toast.success('Schedule saved');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not save your schedule');
+      const conflicts = conflictingAppointmentsFrom(error);
+      setScheduleConflicts(conflicts);
+      if (conflicts.length === 0) {
+        toast.error(error instanceof Error ? error.message : 'Could not save your schedule');
+      }
     }
   }
 
@@ -238,6 +293,7 @@ export function DoctorSchedulePage() {
               )}
             </div>
           ))}
+          <ScheduleConflictsAlert appointments={scheduleConflicts} />
           <Button
             type="button"
             onClick={() => void form.handleSubmit(onSubmit)()}
@@ -287,6 +343,7 @@ function TimeOffSection({
   const [startsAt, setStartsAt] = useState('');
   const [endsAt, setEndsAt] = useState('');
   const [reason, setReason] = useState('');
+  const [conflicts, setConflicts] = useState<ConflictingAppointment[]>([]);
 
   async function handleAdd() {
     if (!startsAt || !endsAt) return;
@@ -299,9 +356,14 @@ function TimeOffSection({
       setStartsAt('');
       setEndsAt('');
       setReason('');
+      setConflicts([]);
       toast.success('Time off added');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not add time off');
+      const found = conflictingAppointmentsFrom(error);
+      setConflicts(found);
+      if (found.length === 0) {
+        toast.error(error instanceof Error ? error.message : 'Could not add time off');
+      }
     }
   }
 
@@ -370,6 +432,7 @@ function TimeOffSection({
             Add time off
           </Button>
         </div>
+        <ScheduleConflictsAlert appointments={conflicts} />
       </CardContent>
     </Card>
   );

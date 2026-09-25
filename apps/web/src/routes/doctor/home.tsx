@@ -1,10 +1,32 @@
+import { Link } from 'react-router';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { useDoctorProfile } from '@/lib/doctors/use-doctor-profile';
+import { useAvailability } from '@/lib/availability/use-availability';
+import { useAppointments } from '@/lib/appointments/use-appointments';
+import { formatSlotTimeOnly } from '@/lib/discovery/slot-grouping';
+
+/** Whether `iso` falls on `reference`'s calendar date in `timezone`. */
+function isSameLocalDate(iso: string, timezone: string, reference: Date): boolean {
+  const format = (date: Date) =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(
+      date,
+    );
+  return format(new Date(iso)) === format(reference);
+}
 
 export function DoctorHomePage() {
   const { data: user } = useCurrentUser();
   const profile = useDoctorProfile();
+  const availability = useAvailability();
+  const upcoming = useAppointments('upcoming');
+
+  const timezone = availability.data?.timezone ?? 'UTC';
+  const today = (upcoming.data?.items ?? []).filter((appointment) =>
+    isSameLocalDate(appointment.startsAt, timezone, new Date()),
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -31,9 +53,31 @@ export function DoctorHomePage() {
           </AlertDescription>
         </Alert>
       )}
-      <p className="text-muted-foreground">
-        Your schedule, patient records, and consultations will appear here in a later update.
-      </p>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Today</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          {upcoming.isPending && <p className="text-muted-foreground">Loading…</p>}
+          {upcoming.data && today.length === 0 && (
+            <p className="text-muted-foreground">No appointments today.</p>
+          )}
+          {today.map((appointment) => (
+            <Link
+              key={appointment.id}
+              to={`/doctor/appointments/${appointment.id}`}
+              className="flex items-center justify-between gap-2 rounded-md border border-input p-3 hover:bg-accent/50"
+            >
+              <div>
+                <p className="font-medium">{appointment.patient.displayName}</p>
+                <p className="text-sm text-muted-foreground">{appointment.reason}</p>
+              </div>
+              <Badge variant="outline">{formatSlotTimeOnly(appointment.startsAt, timezone)}</Badge>
+            </Link>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }

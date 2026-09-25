@@ -1,9 +1,9 @@
 # Patient
 
-> Accounts, sign-in/out, profile, doctor discovery, and guided symptom matching are done
-> (`add-authentication`, `add-doctor-availability`, `add-doctor-discovery`). Booking/reschedule/
-> cancel, in-app notifications, the consultation workspace, and the medical records/prescriptions
-> view are planned for later changes.
+> Accounts, sign-in/out, profile, doctor discovery, guided symptom matching, and booking/
+> reschedule/cancel are done (`add-authentication`, `add-doctor-availability`,
+> `add-doctor-discovery`, `add-appointment-booking`). In-app notifications, the consultation
+> workspace, and the medical records/prescriptions view are planned for later changes.
 
 ## Module Overview
 
@@ -31,6 +31,78 @@ Both paths only ever surface doctors who are `APPROVED` and whose account is `AC
 visibility rule the slots endpoint already used, now shared by search, the profile view, and
 matching (`visibleDoctorWhere`/`isVisibleDoctor` in `apps/api/src/doctors/doctor-visibility.ts`).
 
+## Booking an appointment
+
+From a doctor's profile page, the patient picks a slot and opens a booking confirmation
+(`/patient/doctors/:doctorId/book?start=<iso>&symptoms=<ids>`), which shows the doctor, the date
+and time in the patient's own time zone, the consultation length, and a reason field — prefilled
+as "Symptoms: Headache, Cough. " when symptoms were carried over from **Find care**, and always
+editable. Submitting calls `POST /appointments`, which is accepted only when all of the following
+hold, checked in this order by `BookingRules.assertBookable`
+(`apps/api/src/appointments/booking-rules.ts`), the single module both booking and rescheduling
+share so the rules can't diverge:
+
+1. the patient's own profile is complete
+2. the doctor is visible (`APPROVED` and `ACTIVE`) — otherwise `404`, the same non-disclosure as
+   discovery
+3. the start is at most 60 days ahead (`BEYOND_BOOKING_HORIZON`)
+4. the patient has fewer than 5 upcoming `BOOKED` appointments (`BOOKING_LIMIT_REACHED`)
+5. the start exactly matches a slot `generateSlots` would currently return for that doctor
+   (`SLOT_UNAVAILABLE`) — reusing the same slot calculation the doctor availability page and the
+   slot picker call, so "available" never means two different things
+6. the time doesn't overlap the patient's own other `BOOKED` appointments (`PATIENT_CONFLICT`)
+
+See [API Conventions](/architecture/api-conventions) for the full error `code` catalogue. On
+`SLOT_UNAVAILABLE` the booking page says the time was just taken and refreshes the slot list; on
+an incomplete profile it links to the profile page instead of allowing submission.
+
+`/patient/appointments` lists the patient's own appointments in **Upcoming** (`BOOKED`, not yet
+ended, soonest first) and **Past** (everything else, most recent first) tabs, with a status badge
+and, per appointment, **Reschedule** (opens the same doctor's slot picker, 14 days out) and
+**Cancel** (optional reason) — each disabled with an explanation when the rules don't allow it
+(reschedule closes 2 hours before the start; cancel closes once the appointment starts or it's no
+longer `BOOKED`). `/patient/appointments/:id` shows one appointment's full detail, including its
+reschedule/cancellation history.
+
+Rescheduling (`POST /appointments/{id}/reschedule`) re-runs the same six checks against the new
+slot — excluding the appointment being rescheduled from the limit and overlap checks — then, in
+one transaction, cancels the original (reason "Rescheduled") and inserts a new `BOOKED` row that
+references it via `rescheduledFromId`, so the original slot becomes available again immediately.
+
+### No double-booking, even under a race
+
+The checks above are read-then-decide, not atomic, so two concurrent requests for the same slot
+could both pass them. The database is the final guard: two `EXCLUDE USING gist` constraints on
+`appointments` (added by hand in the `add_appointments` migration, since Prisma's schema language
+can't express one — see [Data Model](/architecture/data-model)) reject any second `INSERT` whose
+`[starts_at, ends_at)` range overlaps an existing `BOOKED` row for the same doctor or the same
+patient, at the database level, regardless of what the service layer already checked. The service
+catches that constraint violation (`23P01`) and rethrows it as the same `SLOT_UNAVAILABLE` /
+`PATIENT_CONFLICT` code a pre-insert check would have produced, so the loser of the race gets an
+ordinary `409`, not a `500`.
+
+```mermaid
+sequenceDiagram
+  participant PatientA as Patient A
+  participant PatientB as Patient B
+  participant API as NestJS API
+  participant DB as PostgreSQL
+
+  par Patient A books
+    PatientA->>API: POST /appointments {doctorId, startsAt}
+    API->>DB: BookingRules checks (profile, horizon, limit, slot, overlap)
+    API->>DB: BEGIN, INSERT appointment (status=BOOKED)
+  and Patient B books the same slot
+    PatientB->>API: POST /appointments {doctorId, same startsAt}
+    API->>DB: BookingRules checks (also all pass, same read snapshot)
+    API->>DB: BEGIN, INSERT appointment (status=BOOKED)
+  end
+  DB-->>API: A's INSERT commits
+  DB--xAPI: B's INSERT rejected — appointments_doctor_no_overlap (23P01)
+  API-->>PatientA: 201 Created
+  API-->>PatientB: 409 {code: "SLOT_UNAVAILABLE"}
+```
+
 ## L2 Container View
 
 Reuses the [C4 L2 Container](/architecture/c4-container) diagram's `web` and `api` containers —
@@ -43,7 +115,9 @@ flowchart LR
   P -->|"search, filter, sort doctors"| W
   P -->|"view profile + 14-day slots"| W
   P -->|"pick symptoms / describe"| W
-  W -->|"REST/JSON, session cookie"| A["API: Auth, Patients, Discovery, Matching"]
+  P -->|"book / reschedule / cancel"| W
+  P -->|"list / view own appointments"| W
+  W -->|"REST/JSON, session cookie"| A["API: Auth, Patients, Discovery, Matching, Appointments"]
   A -->|"SQL"| D[(PostgreSQL)]
 ```
 
@@ -87,9 +161,20 @@ erDiagram
     string slug UK
     string name UK
   }
+  appointments {
+    string id PK
+    string patient_id FK
+    string doctor_id FK
+    datetime starts_at
+    datetime ends_at
+    string reason
+    string status
+    string rescheduled_from_id FK
+  }
   users ||--o| patient_profiles : "user"
   symptoms ||--o{ symptom_specializations : "links to"
   specializations ||--o{ symptom_specializations : "linked from"
+  patient_profiles ||--o{ appointments : "patient"
 ```
 
 Profile completeness (name, birthday, weight, height, phone all set) is computed on read, not

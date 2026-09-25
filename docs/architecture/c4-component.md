@@ -1,8 +1,9 @@
 # C4 L3 — Component (Backend API)
 
 Components inside the Backend API container. Foundation, `add-authentication`,
-`add-doctor-availability`, and `add-doctor-discovery` components are done; the remaining feature
-modules are planned and will move to "done" as the change that implements them lands.
+`add-doctor-availability`, `add-doctor-discovery`, and `add-appointment-booking` components are
+done; the remaining feature modules are planned and will move to "done" as the change that
+implements them lands.
 
 ```mermaid
 C4Component
@@ -11,7 +12,7 @@ C4Component
   Container_Boundary(api, "Backend API (NestJS)") {
     Component(config, "Config", "@nestjs/config + zod", "Validates environment at boot; done")
     Component(logging, "Logging", "nestjs-pino", "Structured logs with request IDs, password/cookie redaction; done")
-    Component(errors, "Error Filter", "Nest exception filter", "Consistent JSON error responses; done")
+    Component(errors, "Error Filter", "Nest exception filter", "Consistent JSON error responses, with a stable machine-readable code for business-rule violations; done")
     Component(prisma, "Prisma Service", "Prisma + pg driver adapter", "Lazy-connecting database access; done")
     Component(health, "Health", "@nestjs/terminus", "GET /api/health; done")
     Component(swagger, "Swagger", "@nestjs/swagger", "OpenAPI document + UI; done")
@@ -23,7 +24,7 @@ C4Component
     Component(discovery, "Doctor Discovery", "DiscoveryController/Service, NextSlotService", "Search, public profile, next-available-slot; done")
     Component(matching, "Doctor Matching", "SymptomsController/MatchingController/Service, matching-engine", "Symptom catalog and deterministic specialty matching; done")
     Component(availability, "Availability", "AvailabilityController/SlotsController/Service", "Weekly schedule, time off, slot calculation; done")
-    Component(booking, "Booking", "planned", "Book, reschedule, cancel; later change")
+    Component(booking, "Booking", "AppointmentsController/Service, BookingRules", "Book, reschedule, cancel, list/detail; database exclusion constraints against double-booking; done")
     Component(consult, "Consultations", "planned", "Session workspace, notes; later change")
     Component(notifications, "Notifications", "planned", "In-app, DB-backed; later change")
     Component(admin, "Admin Console", "planned", "User/doctor/appointment oversight, audit log; later change")
@@ -50,7 +51,8 @@ C4Component
   Rel(availability, prisma, "uses")
   Rel(availability, auth, "protected by")
   Rel(booking, prisma, "uses")
-  Rel(booking, availability, "extends slot calculation")
+  Rel(booking, auth, "protected by")
+  Rel(booking, availability, "reuses generateSlots/booking-containment for exact-slot and schedule-protection checks")
   Rel(consult, prisma, "uses")
   Rel(notifications, prisma, "uses")
   Rel(admin, prisma, "uses")

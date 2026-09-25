@@ -90,6 +90,25 @@ erDiagram
     string doctor_id PK,FK
     string specialization_id PK,FK
   }
+  appointments {
+    string id PK
+    string patient_id FK
+    string doctor_id FK
+    datetime starts_at
+    datetime ends_at
+    string reason
+    appointment_status status
+    datetime cancelled_at
+    string cancelled_by_id FK
+    string cancellation_reason
+    string rescheduled_from_id UK
+    datetime created_at
+    datetime updated_at
+  }
+  appointment_symptoms {
+    string appointment_id PK,FK
+    string symptom_id PK,FK
+  }
   users ||--o{ sessions : "user"
   users ||--o| patient_profiles : "user"
   users ||--o| doctor_profiles : "user"
@@ -99,4 +118,9 @@ erDiagram
   specializations ||--o{ symptom_specializations : "specialization"
   doctor_profiles ||--o{ doctor_specializations : "doctor"
   specializations ||--o{ doctor_specializations : "specialization"
+  patient_profiles ||--o{ appointments : "patient"
+  doctor_profiles ||--o{ appointments : "doctor"
+  users ||--o{ appointments : "cancelledBy"
+  appointments ||--o{ appointment_symptoms : "appointment"
+  symptoms ||--o{ appointment_symptoms : "symptom"
 ```

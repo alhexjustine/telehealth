@@ -26,7 +26,8 @@ the [Deployment page](/architecture/deployment) for how it runs locally.
 | Doctor availability (schedule, time off, slots)     | Done    | `add-doctor-availability` |
 | Doctor discovery (search, profile, slots)          | Done    | `add-doctor-discovery` |
 | Guided symptom matching                            | Done    | `add-doctor-discovery` |
-| Booking, reschedule, cancel                        | Planned | a later change       |
+| Booking, reschedule, cancel                        | Done    | `add-appointment-booking` |
+| Database-enforced double-booking prevention        | Done    | `add-appointment-booking` |
 | Consultation workspace                             | Planned | a later change       |
 | Notes & prescriptions                              | Planned | a later change       |
 | Admin user/doctor/appointment oversight            | Planned | a later change       |

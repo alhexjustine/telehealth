@@ -14,6 +14,7 @@ import { DoctorsModule } from './doctors/doctors.module.js';
 import { AvailabilityModule } from './availability/availability.module.js';
 import { DiscoveryModule } from './discovery/discovery.module.js';
 import { MatchingModule } from './matching/matching.module.js';
+import { AppointmentsModule } from './appointments/appointments.module.js';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { MatchingModule } from './matching/matching.module.js';
     AvailabilityModule,
     DiscoveryModule,
     MatchingModule,
+    AppointmentsModule,
   ],
   providers: [
     {

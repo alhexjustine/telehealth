@@ -13,7 +13,9 @@ consists of an IANA time zone and a list of working ranges, each with a weekday 
 and a start and end time of day in 15-minute steps. For each range, the end MUST be later than the
 start on the same day, and the range MUST be at least as long as the doctor's consultation length.
 Ranges on the same weekday MUST NOT overlap. An empty list SHALL be allowed and means the doctor
-offers no slots.
+offers no slots. A schedule MUST NOT be saved when any of the doctor's upcoming `BOOKED`
+appointments would no longer lie entirely within one of the new ranges (evaluated in the new
+time zone). The rejection SHALL list the affected appointments.
 
 #### Scenario: Save a valid schedule
 - **WHEN** a doctor saves time zone `Asia/Manila` with Monday 09:00–12:00 and Monday 13:00–17:00
@@ -43,6 +45,10 @@ offers no slots.
 - **WHEN** an unauthenticated client calls the doctor self-service availability endpoints
 - **THEN** the response is `401`
 
+#### Scenario: Schedule change would orphan a booking
+- **WHEN** a doctor with a booked appointment next Monday at 10:00 saves a schedule that no longer covers Monday mornings
+- **THEN** the response is `409` with code `SCHEDULE_CONFLICTS_WITH_BOOKINGS` listing that appointment, and the previous schedule is unchanged
+
 ### Requirement: View own availability
 A signed-in doctor SHALL be able to view their time zone, weekly schedule ranges (ordered by
 weekday and start time), and their time off that ends in the future.
@@ -58,7 +64,9 @@ weekday and start time), and their time off that ends in the future.
 ### Requirement: Time off
 A signed-in doctor SHALL be able to add time off as a start and end instant, with an optional
 reason of at most 200 characters, and to delete their own time off. The end MUST be later than the
-start, the end MUST be in the future, and one entry MUST NOT be longer than 90 days.
+start, the end MUST be in the future, and one entry MUST NOT be longer than 90 days. Time off MUST
+NOT be added when it overlaps any of the doctor's `BOOKED` appointments; the rejection SHALL list
+the affected appointments.
 
 #### Scenario: Add time off
 - **WHEN** a doctor adds time off from next Monday 00:00 to next Wednesday 00:00 in their time zone with reason "Conference"
@@ -76,6 +84,10 @@ start, the end MUST be in the future, and one entry MUST NOT be longer than 90 d
 - **WHEN** a doctor tries to delete a time-off entry belonging to a different doctor
 - **THEN** the response is `404` and the entry is unchanged
 
+#### Scenario: Time off over a booking
+- **WHEN** a doctor adds time off covering a period in which they have a booked appointment
+- **THEN** the response is `409` with code `SCHEDULE_CONFLICTS_WITH_BOOKINGS` listing that appointment, and nothing is stored
+
 ### Requirement: Available slot calculation
 The system SHALL calculate a doctor's available slots for a requested time range as follows:
 - For each calendar date in the doctor's time zone, and each schedule range on that weekday, the
@@ -86,6 +98,7 @@ The system SHALL calculate a doctor's available slots for a requested time range
   from the range's start instant, and a slot is included only if it ends at or before the range's
   end instant.
 - Slots that overlap any time off are removed.
+- Slots that overlap any of the doctor's `BOOKED` appointments are removed.
 - Slots that start less than 60 minutes from now are removed.
 - Slots SHALL be returned in chronological order as UTC instants, with a start and an end.
 
@@ -122,6 +135,14 @@ The requested range MUST be at most 31 days long, and its end MUST be after its 
 #### Scenario: Schedule changes apply immediately
 - **WHEN** a doctor changes their consultation length or weekly schedule
 - **THEN** the next slot request reflects the change
+
+#### Scenario: Booked slot removed
+- **WHEN** the doctor above (30-minute length) has a booked appointment at 10:00 that Monday
+- **THEN** the 10:00 slot is not returned, and it is returned again once that appointment is cancelled
+
+#### Scenario: Booking of a different length
+- **WHEN** a doctor changes their consultation length from 30 to 45 minutes while holding a 30-minute booking at 09:00 on a Monday with a 09:00–12:00 range
+- **THEN** slots are laid out from the range start and every slot overlapping 09:00–09:30 is removed, so the 09:00 slot is not returned and slots from 09:45 onwards are
 
 ### Requirement: Slot visibility
 Signed-in users SHALL be able to request the slots of approved doctors. A doctor whose

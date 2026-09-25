@@ -1,10 +1,10 @@
 # Doctor
 
-> Accounts, sign-in/out, profile, and availability/schedule management are done
-> (`add-authentication`, `add-doctor-availability`). Role-scoped patient records, in-app
-> notifications, and consultation notes/prescriptions authoring are planned for later changes.
-> Booking (excluding already-booked slots, protecting existing bookings across schedule edits)
-> is planned for `add-appointment-booking`.
+> Accounts, sign-in/out, profile, availability/schedule management, and booking oversight (own
+> appointments, cancellation, schedule protection against existing bookings) are done
+> (`add-authentication`, `add-doctor-availability`, `add-appointment-booking`). Role-scoped
+> patient records, in-app notifications, and consultation notes/prescriptions authoring are
+> planned for later changes.
 
 ## Module Overview
 
@@ -30,6 +30,32 @@ The `/doctor/schedule` page has a time-zone selector (defaulting to the browser'
 the first save), a weekly range editor with inline validation, a time-off list, and a preview of
 the doctor's own slots for the next seven days.
 
+## Managing bookings
+
+`/doctor/appointments` lists the doctor's own appointments in **Upcoming**/**Past** tabs, each
+card showing the patient's name, age, reason, and any symptoms carried over from guided matching —
+never the patient's full medical history, which stays out of scope until
+`add-consultations-and-records`. The doctor home page's **Today** card lists the day's
+appointments (by the doctor's own local date) in start order.
+
+A doctor cancels their own upcoming `BOOKED` appointment with a required reason (5-500
+characters); `POST /appointments/{id}/cancel` returns `400` if it's missing or too short. See
+[Patient](/modules/patient#booking-an-appointment) for the shared booking rules, error codes, and
+the database-level double-booking guarantee — the doctor side of booking is that same
+`AppointmentsController`/`AppointmentsService`, scoped to the caller's own role.
+
+### Schedule protection
+
+Saving a weekly schedule or adding time off is rejected with `409` and code
+`SCHEDULE_CONFLICTS_WITH_BOOKINGS` when it would leave an upcoming `BOOKED` appointment no longer
+covered by any working range (schedule) or would overlap one (time off) — the rejection body lists
+the affected appointments (`id`, `startsAt`, `endsAt`, patient name), which the schedule and
+time-off forms render as a list linking to each appointment's detail. This is deliberate: a doctor
+can't silently orphan a patient's booking by editing their hours; they cancel it first. See the
+[Slot Algorithm](#slot-algorithm) below for how the containment check reuses the same local-time
+resolution as slot generation (`isBookingContained` in
+`apps/api/src/availability/booking-containment.ts`), including across a daylight-saving change.
+
 ## L2 Container View
 
 Reuses the [C4 L2 Container](/architecture/c4-container) diagram's `web` and `api` containers —
@@ -40,8 +66,9 @@ flowchart LR
   D((Doctor)) -->|"register / sign in / sign out"| W[Web: Doctor area]
   D -->|"view / edit profile"| W
   D -->|"set schedule, time off, preview slots"| W
+  D -->|"view own appointments, cancel with reason"| W
   P((Patient)) -->|"view an approved doctor's slots"| W
-  W -->|"REST/JSON, session cookie"| A["API: Auth, Doctors, Specializations, Availability"]
+  W -->|"REST/JSON, session cookie"| A["API: Auth, Doctors, Specializations, Availability, Appointments"]
   A -->|"SQL"| DB[(PostgreSQL)]
 ```
 
@@ -90,11 +117,20 @@ erDiagram
     string doctor_id PK,FK
     string specialization_id PK,FK
   }
+  appointments {
+    string id PK
+    string patient_id FK
+    string doctor_id FK
+    datetime starts_at
+    datetime ends_at
+    string status
+  }
   users ||--o| doctor_profiles : "user"
   doctor_profiles ||--o{ availability_rules : "doctor"
   doctor_profiles ||--o{ availability_exceptions : "doctor"
   doctor_profiles ||--o{ doctor_specializations : "doctor"
   specializations ||--o{ doctor_specializations : "specialization"
+  doctor_profiles ||--o{ appointments : "doctor"
 ```
 
 `availability_rules.weekday` is ISO (Monday = 1 … Sunday = 7); `start_minute`/`end_minute` are
@@ -119,7 +155,9 @@ against fixed dates. For a requested range (at most 31 days):
    daylight-saving change still lasts the intended number of real minutes. A slot is kept only if
    it ends at or before the range's end instant.
 4. Drop slots that overlap any time off (half-open intervals — touching an edge isn't overlap),
-   that start less than 60 minutes from now, or that fall outside the requested range.
+   that overlap any of the doctor's `BOOKED` appointments, that start less than 60 minutes from
+   now, or that fall outside the requested range. A slot freed by a cancellation is offered again
+   on the very next request, same as any other schedule change.
 
 For example, a doctor in `America/New_York` with a 60-minute consultation length and a Sunday
 01:00–04:00 range: on the Sunday clocks spring forward (02:00 skipped), that range produces

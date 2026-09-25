@@ -4,6 +4,14 @@ import request from 'supertest';
 import { createTestApp } from './support/test-app.js';
 import { resetDatabase } from './support/reset-db.js';
 import { registerDoctor, registerPatient, createAndSignInAdmin } from './support/auth-helpers.js';
+import { PrismaService } from '../src/prisma/prisma.service.js';
+
+function nextMonday(hour: number): Date {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + ((8 - date.getUTCDay()) % 7 || 7));
+  date.setUTCHours(hour, 0, 0, 0);
+  return date;
+}
 
 describe('Doctor weekly schedule', () => {
   let app: INestApplication;
@@ -177,5 +185,43 @@ describe('Doctor weekly schedule', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ timezone: 'UTC', rules: [], timeOff: [] });
+  });
+
+  it('Schedule change would orphan a booking', async () => {
+    const doctor = await registerDoctor(app);
+    const patient = await registerPatient(app);
+    await doctor.agent
+      .put('/api/doctors/me/availability')
+      .send({ timezone: 'UTC', rules: [{ weekday: 1, startMinute: 9 * 60, endMinute: 12 * 60 }] })
+      .expect(200);
+
+    const startsAt = nextMonday(10);
+    const endsAt = new Date(startsAt.getTime() + 30 * 60 * 1000);
+    const prisma = app.get(PrismaService);
+    const booked = await prisma.appointment.create({
+      data: {
+        patientId: patient.id,
+        doctorId: doctor.id,
+        startsAt,
+        endsAt,
+        reason: 'A booking that would be orphaned by a schedule change',
+        status: 'BOOKED',
+      },
+    });
+
+    // A schedule that no longer covers Monday mornings.
+    const res = await doctor.agent.put('/api/doctors/me/availability').send({
+      timezone: 'UTC',
+      rules: [{ weekday: 1, startMinute: 13 * 60, endMinute: 17 * 60 }],
+    });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('SCHEDULE_CONFLICTS_WITH_BOOKINGS');
+    expect(res.body.details.appointments).toEqual([
+      expect.objectContaining({ id: booked.id }),
+    ]);
+
+    const unchanged = await doctor.agent.get('/api/doctors/me/availability');
+    expect(unchanged.body.rules).toEqual([{ weekday: 1, startMinute: 9 * 60, endMinute: 12 * 60 }]);
   });
 });

@@ -330,6 +330,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/appointments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the signed-in patient's or doctor's own appointments */
+        get: operations["AppointmentsController_list"];
+        put?: never;
+        /** Books an appointment in one of a doctor’s currently available slots */
+        post: operations["AppointmentsController_book"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/appointments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One appointment's details, including its reschedule/cancellation history; participants only */
+        get: operations["AppointmentsController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/appointments/{id}/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reschedules a booked appointment to another available slot with the same doctor */
+        post: operations["AppointmentsController_reschedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/appointments/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancels a booked appointment; the doctor must give a reason, the patient may */
+        post: operations["AppointmentsController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -581,6 +650,119 @@ export interface components {
             doctors: components["schemas"]["DoctorMatchDto"][];
             /** @description True when the age rule could not run because the patient has no birthday on file */
             ageUnknown: boolean;
+        };
+        CreateAppointmentDto: {
+            doctorId: string;
+            /**
+             * Format: date-time
+             * @description The slot start, as returned by the slots endpoint
+             */
+            startsAt: string;
+            reason: string;
+            /** @description Symptom IDs carried over from guided matching */
+            symptomIds?: string[];
+        };
+        AppointmentDoctorSummaryDto: {
+            id: string;
+            displayName: string;
+            specializations: components["schemas"]["SpecializationSummaryDto"][];
+        };
+        AppointmentPatientSummaryDto: {
+            id: string;
+            displayName: string;
+            age: number | null;
+        };
+        AppointmentSymptomSummaryDto: {
+            id: string;
+            name: string;
+        };
+        AppointmentResponseDto: {
+            id: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** @enum {string} */
+            status: "BOOKED" | "CANCELLED" | "COMPLETED";
+            reason: string;
+            doctor: components["schemas"]["AppointmentDoctorSummaryDto"];
+            patient: components["schemas"]["AppointmentPatientSummaryDto"];
+            symptoms: components["schemas"]["AppointmentSymptomSummaryDto"][];
+            /** Format: date-time */
+            cancelledAt: string | null;
+            cancellationReason: string | null;
+            /** @enum {string|null} */
+            cancelledByRole: "PATIENT" | "DOCTOR" | null;
+            /** @description The appointment this one replaced, if any */
+            rescheduledFromId?: string | null;
+        };
+        ErrorResponseDto: {
+            statusCode: number;
+            error: string;
+            message: string;
+            requestId: string;
+            /** @description Stable machine-readable code for a business-rule violation, e.g. SLOT_UNAVAILABLE. */
+            code?: string;
+            /** @description Extra structured detail for some codes, e.g. the appointments a schedule change would orphan. */
+            details?: {
+                [key: string]: unknown;
+            };
+            /** @description Field-indexed validation errors, when the request failed validation. */
+            errors?: {
+                [key: string]: unknown;
+            }[];
+        };
+        AppointmentListResponseDto: {
+            items: components["schemas"]["AppointmentResponseDto"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        AppointmentHistoryEntryDto: {
+            id: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** @enum {string} */
+            status: "BOOKED" | "CANCELLED" | "COMPLETED";
+            /** Format: date-time */
+            cancelledAt: string | null;
+            cancellationReason: string | null;
+        };
+        AppointmentDetailResponseDto: {
+            id: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** @enum {string} */
+            status: "BOOKED" | "CANCELLED" | "COMPLETED";
+            reason: string;
+            doctor: components["schemas"]["AppointmentDoctorSummaryDto"];
+            patient: components["schemas"]["AppointmentPatientSummaryDto"];
+            symptoms: components["schemas"]["AppointmentSymptomSummaryDto"][];
+            /** Format: date-time */
+            cancelledAt: string | null;
+            cancellationReason: string | null;
+            /** @enum {string|null} */
+            cancelledByRole: "PATIENT" | "DOCTOR" | null;
+            /** @description The appointment this one replaced, if any */
+            rescheduledFromId?: string | null;
+            /** @description The appointment this one was rescheduled into, if any */
+            rescheduledToId?: string | null;
+            /** @description The full reschedule/cancellation chain, chronological */
+            history: components["schemas"]["AppointmentHistoryEntryDto"][];
+        };
+        RescheduleAppointmentDto: {
+            /**
+             * Format: date-time
+             * @description The new slot start, with the same doctor
+             */
+            startsAt: string;
+        };
+        CancelAppointmentDto: {
+            reason?: string;
         };
     };
     responses: never;
@@ -1058,6 +1240,150 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MatchingResponseDto"];
+                };
+            };
+        };
+    };
+    AppointmentsController_list: {
+        parameters: {
+            query: {
+                scope: "upcoming" | "past";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentListResponseDto"];
+                };
+            };
+        };
+    };
+    AppointmentsController_book: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAppointmentDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentResponseDto"];
+                };
+            };
+            /** @description A business rule was violated (see the code field) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AppointmentsController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentDetailResponseDto"];
+                };
+            };
+        };
+    };
+    AppointmentsController_reschedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RescheduleAppointmentDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentResponseDto"];
+                };
+            };
+            /** @description A business rule was violated (see the code field) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AppointmentsController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelAppointmentDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentResponseDto"];
+                };
+            };
+            /** @description A business rule was violated (see the code field) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
         };

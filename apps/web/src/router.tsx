@@ -12,9 +12,14 @@ import { PatientProfilePage } from '@/routes/patient/profile';
 import { FindDoctorPage } from '@/routes/patient/doctors';
 import { PatientDoctorProfilePage } from '@/routes/patient/doctor-profile';
 import { FindCarePage } from '@/routes/patient/find-care';
+import { BookAppointmentPage } from '@/routes/patient/book-appointment';
+import { PatientAppointmentsPage } from '@/routes/patient/appointments';
+import { PatientAppointmentDetailPage } from '@/routes/patient/appointment-detail';
 import { DoctorHomePage } from '@/routes/doctor/home';
 import { DoctorProfilePage } from '@/routes/doctor/profile';
 import { DoctorSchedulePage } from '@/routes/doctor/schedule';
+import { DoctorAppointmentsPage } from '@/routes/doctor/appointments';
+import { DoctorAppointmentDetailPage } from '@/routes/doctor/appointment-detail';
 import { AdminHomePage } from '@/routes/admin/home';
 
 export const router = createBrowserRouter([
@@ -39,6 +44,7 @@ export const router = createBrowserRouter([
               { to: '/patient', label: 'Home' },
               { to: '/patient/doctors', label: 'Find a doctor' },
               { to: '/patient/find-care', label: 'Find care' },
+              { to: '/patient/appointments', label: 'Appointments' },
               { to: '/patient/profile', label: 'Profile' },
             ]}
           />
@@ -48,7 +54,10 @@ export const router = createBrowserRouter([
           { path: 'profile', element: <PatientProfilePage /> },
           { path: 'doctors', element: <FindDoctorPage /> },
           { path: 'doctors/:doctorId', element: <PatientDoctorProfilePage /> },
+          { path: 'doctors/:doctorId/book', element: <BookAppointmentPage /> },
           { path: 'find-care', element: <FindCarePage /> },
+          { path: 'appointments', element: <PatientAppointmentsPage /> },
+          { path: 'appointments/:id', element: <PatientAppointmentDetailPage /> },
         ],
       },
     ],
@@ -62,6 +71,7 @@ export const router = createBrowserRouter([
           <RoleAreaLayout
             navItems={[
               { to: '/doctor', label: 'Home' },
+              { to: '/doctor/appointments', label: 'Appointments' },
               { to: '/doctor/profile', label: 'Profile' },
               { to: '/doctor/schedule', label: 'Schedule' },
             ]}
@@ -71,6 +81,8 @@ export const router = createBrowserRouter([
           { index: true, element: <DoctorHomePage /> },
           { path: 'profile', element: <DoctorProfilePage /> },
           { path: 'schedule', element: <DoctorSchedulePage /> },
+          { path: 'appointments', element: <DoctorAppointmentsPage /> },
+          { path: 'appointments/:id', element: <DoctorAppointmentDetailPage /> },
         ],
       },
     ],

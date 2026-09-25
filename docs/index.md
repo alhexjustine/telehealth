@@ -23,6 +23,7 @@ the [Deployment page](/architecture/deployment) for how it runs locally.
 | Patient profile & completeness                     | Done    | `add-authentication` |
 | Doctor profile & verification status               | Done    | `add-authentication` |
 | Specialization catalog                             | Done    | `add-authentication` |
+| Doctor availability (schedule, time off, slots)     | Done    | `add-doctor-availability` |
 | Doctor discovery & specialty matching              | Planned | a later change       |
 | Booking, reschedule, cancel                        | Planned | a later change       |
 | Consultation workspace                             | Planned | a later change       |

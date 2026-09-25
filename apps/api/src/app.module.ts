@@ -11,6 +11,7 @@ import { RolesGuard } from './auth/guards/roles.guard.js';
 import { SpecializationsModule } from './specializations/specializations.module.js';
 import { PatientsModule } from './patients/patients.module.js';
 import { DoctorsModule } from './doctors/doctors.module.js';
+import { AvailabilityModule } from './availability/availability.module.js';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { DoctorsModule } from './doctors/doctors.module.js';
     SpecializationsModule,
     PatientsModule,
     DoctorsModule,
+    AvailabilityModule,
   ],
   providers: [
     {

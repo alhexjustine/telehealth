@@ -1,8 +1,8 @@
 # C4 L3 — Component (Backend API)
 
-Components inside the Backend API container. Foundation and `add-authentication` components are
-done; the remaining feature modules are planned and will move to "done" as the change that
-implements them lands.
+Components inside the Backend API container. Foundation, `add-authentication`, and
+`add-doctor-availability` components are done; the remaining feature modules are planned and will
+move to "done" as the change that implements them lands.
 
 ```mermaid
 C4Component
@@ -21,7 +21,8 @@ C4Component
     Component(doctors, "Doctors", "DoctorsController/Service", "Self-service doctor profile and specializations; done")
     Component(specializations, "Specializations", "SpecializationsController/Service", "Public, read-only catalog; done")
     Component(matching, "Doctor Matching", "planned", "Deterministic specialty matching; later change")
-    Component(scheduling, "Scheduling", "planned", "Booking, reschedule, cancel; later change")
+    Component(availability, "Availability", "AvailabilityController/SlotsController/Service", "Weekly schedule, time off, slot calculation; done")
+    Component(booking, "Booking", "planned", "Book, reschedule, cancel; later change")
     Component(consult, "Consultations", "planned", "Session workspace, notes; later change")
     Component(notifications, "Notifications", "planned", "In-app, DB-backed; later change")
     Component(admin, "Admin Console", "planned", "User/doctor/appointment oversight, audit log; later change")
@@ -39,7 +40,10 @@ C4Component
   Rel(doctors, auth, "protected by")
   Rel(doctors, specializations, "references")
   Rel(matching, prisma, "uses")
-  Rel(scheduling, prisma, "uses")
+  Rel(availability, prisma, "uses")
+  Rel(availability, auth, "protected by")
+  Rel(booking, prisma, "uses")
+  Rel(booking, availability, "extends slot calculation")
   Rel(consult, prisma, "uses")
   Rel(notifications, prisma, "uses")
   Rel(admin, prisma, "uses")

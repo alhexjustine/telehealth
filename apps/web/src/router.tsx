@@ -11,6 +11,7 @@ import { PatientHomePage } from '@/routes/patient/home';
 import { PatientProfilePage } from '@/routes/patient/profile';
 import { DoctorHomePage } from '@/routes/doctor/home';
 import { DoctorProfilePage } from '@/routes/doctor/profile';
+import { DoctorSchedulePage } from '@/routes/doctor/schedule';
 import { AdminHomePage } from '@/routes/admin/home';
 
 export const router = createBrowserRouter([
@@ -54,12 +55,14 @@ export const router = createBrowserRouter([
             navItems={[
               { to: '/doctor', label: 'Home' },
               { to: '/doctor/profile', label: 'Profile' },
+              { to: '/doctor/schedule', label: 'Schedule' },
             ]}
           />
         ),
         children: [
           { index: true, element: <DoctorHomePage /> },
           { path: 'profile', element: <DoctorProfilePage /> },
+          { path: 'schedule', element: <DoctorSchedulePage /> },
         ],
       },
     ],

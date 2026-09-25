@@ -360,6 +360,191 @@
           "doctors"
         ]
       }
+    },
+    "/doctors/me/availability": {
+      "get": {
+        "operationId": "AvailabilityController_getAvailability",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Returns the signed-in doctor's time zone, weekly schedule, and upcoming time off",
+        "tags": [
+          "doctor-availability"
+        ]
+      },
+      "put": {
+        "operationId": "AvailabilityController_saveAvailability",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveAvailabilityDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Replaces the signed-in doctor's time zone and weekly schedule",
+        "tags": [
+          "doctor-availability"
+        ]
+      }
+    },
+    "/doctors/me/availability/exceptions": {
+      "post": {
+        "operationId": "AvailabilityController_addTimeOff",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTimeOffDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeOffResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Adds a time-off entry",
+        "tags": [
+          "doctor-availability"
+        ]
+      }
+    },
+    "/doctors/me/availability/exceptions/{id}": {
+      "delete": {
+        "operationId": "AvailabilityController_deleteTimeOff",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Deletes one of the signed-in doctor's own time-off entries",
+        "tags": [
+          "doctor-availability"
+        ]
+      }
+    },
+    "/doctors/{doctorId}/slots": {
+      "get": {
+        "operationId": "SlotsController_getSlots",
+        "parameters": [
+          {
+            "name": "doctorId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SlotResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Returns a doctor's available slots for a date range. Approved doctors are visible to any signed-in user; a doctor who is not yet approved can only see their own slots.",
+        "tags": [
+          "doctor-availability"
+        ]
+      }
     }
   },
   "info": {
@@ -788,6 +973,169 @@
             }
           }
         }
+      },
+      "AvailabilityRuleResponseDto": {
+        "type": "object",
+        "properties": {
+          "weekday": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 7
+          },
+          "startMinute": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1440
+          },
+          "endMinute": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1440
+          }
+        },
+        "required": [
+          "weekday",
+          "startMinute",
+          "endMinute"
+        ]
+      },
+      "TimeOffResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "startsAt",
+          "endsAt",
+          "reason"
+        ]
+      },
+      "AvailabilityResponseDto": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string",
+            "description": "IANA time zone"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityRuleResponseDto"
+            }
+          },
+          "timeOff": {
+            "description": "Time off that ends in the future",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeOffResponseDto"
+            }
+          }
+        },
+        "required": [
+          "timezone",
+          "rules",
+          "timeOff"
+        ]
+      },
+      "AvailabilityRuleDto": {
+        "type": "object",
+        "properties": {
+          "weekday": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 7,
+            "description": "ISO weekday: Monday = 1, Sunday = 7"
+          },
+          "startMinute": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1440,
+            "description": "Minutes since local midnight"
+          },
+          "endMinute": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1440,
+            "description": "Minutes since local midnight"
+          }
+        },
+        "required": [
+          "weekday",
+          "startMinute",
+          "endMinute"
+        ]
+      },
+      "SaveAvailabilityDto": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string",
+            "description": "IANA time zone, e.g. Asia/Manila"
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityRuleDto"
+            }
+          }
+        },
+        "required": [
+          "timezone",
+          "rules"
+        ]
+      },
+      "CreateTimeOffDto": {
+        "type": "object",
+        "properties": {
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "startsAt",
+          "endsAt"
+        ]
+      },
+      "SlotResponseDto": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ]
       }
     }
   }

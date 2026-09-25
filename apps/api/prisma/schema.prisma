@@ -98,12 +98,49 @@ model DoctorProfile {
   consultationMinutes  Int                 @default(30) @map("consultation_minutes")
   verificationStatus   VerificationStatus  @default(PENDING) @map("verification_status")
   reviewNote           String?             @map("review_note")
+  timezone             String              @default("UTC")
   updatedAt            DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user            User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  specializations DoctorSpecialization[]
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specializations         DoctorSpecialization[]
+  availabilityRules       AvailabilityRule[]
+  availabilityExceptions  AvailabilityException[]
 
   @@map("doctor_profiles")
+}
+
+/// A doctor's weekly working range: a weekday (1-7, ISO, Monday = 1) plus a
+/// start and end time of day in minutes since local midnight (0-1440, steps of
+/// 15), interpreted in `DoctorProfile.timezone`. Slots are computed from these
+/// on every read; nothing about slots is stored.
+model AvailabilityRule {
+  id          String   @id @default(uuid()) @db.Uuid
+  doctorId    String   @map("doctor_id") @db.Uuid
+  weekday     Int
+  startMinute Int      @map("start_minute")
+  endMinute   Int      @map("end_minute")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  doctor DoctorProfile @relation(fields: [doctorId], references: [userId], onDelete: Cascade)
+
+  @@index([doctorId])
+  @@map("availability_rules")
+}
+
+/// A block of time, stored as UTC instants, during which a doctor offers no
+/// slots regardless of their weekly schedule.
+model AvailabilityException {
+  id        String   @id @default(uuid()) @db.Uuid
+  doctorId  String   @map("doctor_id") @db.Uuid
+  startsAt  DateTime @map("starts_at") @db.Timestamptz(3)
+  endsAt    DateTime @map("ends_at") @db.Timestamptz(3)
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  doctor DoctorProfile @relation(fields: [doctorId], references: [userId], onDelete: Cascade)
+
+  @@index([doctorId])
+  @@map("availability_exceptions")
 }
 
 model Specialization {

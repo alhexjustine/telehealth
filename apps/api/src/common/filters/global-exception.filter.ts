@@ -15,6 +15,8 @@ interface ErrorBody {
   error: string;
   message: string;
   requestId: string;
+  /** Field-indexed validation details, when the exception payload carried them (see `resolve`). */
+  errors?: unknown;
 }
 
 const UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
@@ -43,7 +45,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     response.status(resolved.statusCode).json(body);
   }
 
-  private resolve(exception: unknown): { statusCode: number; error: string; message: string } {
+  private resolve(exception: unknown): {
+    statusCode: number;
+    error: string;
+    message: string;
+    errors?: unknown;
+  } {
     if (exception instanceof HttpException) {
       const statusCode = exception.getStatus();
       const payload = exception.getResponse();
@@ -51,10 +58,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         typeof payload === 'string'
           ? payload
           : ((payload as { message?: string | string[] }).message ?? exception.message);
+      // A handler can throw `new BadRequestException({ message, errors })` to attach
+      // field-indexed validation details (e.g. the availability schedule validator);
+      // passed through as-is so the client can highlight the offending fields.
+      const errors =
+        typeof payload === 'object' && payload !== null && 'errors' in payload
+          ? (payload as { errors?: unknown }).errors
+          : undefined;
       return {
         statusCode,
         error: statusText(statusCode),
         message: Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage,
+        ...(errors !== undefined ? { errors } : {}),
       };
     }
 

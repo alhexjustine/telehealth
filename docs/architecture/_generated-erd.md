@@ -49,7 +49,24 @@ erDiagram
     int consultation_minutes
     verification_status verification_status
     string review_note
+    string timezone
     datetime updated_at
+  }
+  availability_rules {
+    string id PK
+    string doctor_id FK
+    int weekday
+    int start_minute
+    int end_minute
+    datetime created_at
+  }
+  availability_exceptions {
+    string id PK
+    string doctor_id FK
+    datetime starts_at
+    datetime ends_at
+    string reason
+    datetime created_at
   }
   specializations {
     string id PK
@@ -64,6 +81,8 @@ erDiagram
   users ||--o{ sessions : "user"
   users ||--o| patient_profiles : "user"
   users ||--o| doctor_profiles : "user"
+  doctor_profiles ||--o{ availability_rules : "doctor"
+  doctor_profiles ||--o{ availability_exceptions : "doctor"
   doctor_profiles ||--o{ doctor_specializations : "doctor"
   specializations ||--o{ doctor_specializations : "specialization"
 ```

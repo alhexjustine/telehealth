@@ -193,6 +193,75 @@ export interface paths {
         patch: operations["DoctorsController_updateProfile"];
         trace?: never;
     };
+    "/doctors/me/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the signed-in doctor's time zone, weekly schedule, and upcoming time off */
+        get: operations["AvailabilityController_getAvailability"];
+        /** Replaces the signed-in doctor's time zone and weekly schedule */
+        put: operations["AvailabilityController_saveAvailability"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/doctors/me/availability/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adds a time-off entry */
+        post: operations["AvailabilityController_addTimeOff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/doctors/me/availability/exceptions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Deletes one of the signed-in doctor's own time-off entries */
+        delete: operations["AvailabilityController_deleteTimeOff"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/doctors/{doctorId}/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns a doctor's available slots for a date range. Approved doctors are visible to any signed-in user; a doctor who is not yet approved can only see their own slots. */
+        get: operations["SlotsController_getSlots"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -307,6 +376,52 @@ export interface components {
             consultationMinutes?: 15 | 20 | 30 | 45 | 60;
             /** @description Replaces the full set of specializations; at least one is required when provided */
             specializationIds?: string[];
+        };
+        AvailabilityRuleResponseDto: {
+            weekday: number;
+            startMinute: number;
+            endMinute: number;
+        };
+        TimeOffResponseDto: {
+            id: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            reason: string | null;
+        };
+        AvailabilityResponseDto: {
+            /** @description IANA time zone */
+            timezone: string;
+            rules: components["schemas"]["AvailabilityRuleResponseDto"][];
+            /** @description Time off that ends in the future */
+            timeOff: components["schemas"]["TimeOffResponseDto"][];
+        };
+        AvailabilityRuleDto: {
+            /** @description ISO weekday: Monday = 1, Sunday = 7 */
+            weekday: number;
+            /** @description Minutes since local midnight */
+            startMinute: number;
+            /** @description Minutes since local midnight */
+            endMinute: number;
+        };
+        SaveAvailabilityDto: {
+            /** @description IANA time zone, e.g. Asia/Manila */
+            timezone: string;
+            rules: components["schemas"]["AvailabilityRuleDto"][];
+        };
+        CreateTimeOffDto: {
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            reason?: string;
+        };
+        SlotResponseDto: {
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
         };
     };
     responses: never;
@@ -584,6 +699,114 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DoctorProfileResponseDto"];
+                };
+            };
+        };
+    };
+    AvailabilityController_getAvailability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailabilityResponseDto"];
+                };
+            };
+        };
+    };
+    AvailabilityController_saveAvailability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAvailabilityDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailabilityResponseDto"];
+                };
+            };
+        };
+    };
+    AvailabilityController_addTimeOff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTimeOffDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeOffResponseDto"];
+                };
+            };
+        };
+    };
+    AvailabilityController_deleteTimeOff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SlotsController_getSlots: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path: {
+                doctorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlotResponseDto"][];
                 };
             };
         };

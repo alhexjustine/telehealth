@@ -87,6 +87,10 @@ See `README.md` for the full command reference and local-development walkthrough
   request-scoped Express middleware onto a custom property (see `clientIpMiddleware` and
   `logging.module.ts`'s `serializers.req`), not read lazily inside the serializer itself —
   `req.ip` read there is already stale and resolves to `undefined`.
+- `@date-fns/tz`'s `TZDate#toISOString()` formats with its own zone offset (e.g. `...+08:00`),
+  not `Z` — unlike a plain `Date`. To get a UTC-`Z` ISO string for the API (timestamps, time-off
+  instants) from a `TZDate`, wrap it: `new Date(tzDate.getTime()).toISOString()`. See
+  `apps/web/src/lib/availability/time-off-conversion.ts`.
 
 ## What this repo is building
 

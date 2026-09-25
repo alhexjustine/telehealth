@@ -14,7 +14,7 @@ export async function resetDatabase(): Promise<void> {
   const prisma = new PrismaClient({ adapter });
   try {
     await prisma.$executeRawUnsafe(
-      'TRUNCATE TABLE "users", "sessions", "patient_profiles", "doctor_profiles", "doctor_specializations" RESTART IDENTITY CASCADE;',
+      'TRUNCATE TABLE "users", "sessions", "patient_profiles", "doctor_profiles", "doctor_specializations", "availability_rules", "availability_exceptions" RESTART IDENTITY CASCADE;',
     );
   } finally {
     await prisma.$disconnect();

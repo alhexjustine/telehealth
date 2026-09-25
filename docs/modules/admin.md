@@ -16,6 +16,11 @@ sign-out). Admins share the same underlying tables as Patient and Doctor (`users
 role-based access control is enforced in NestJS, not just hidden in the UI (see
 [Authentication & Authorization](/architecture/auth)).
 
+The admin area already has the notification bell and `/admin/notifications` page
+(`add-notifications`), same as Patient and Doctor — it's just empty until `add-admin-console`
+adds admin-relevant notification types (there are no appointment events to notify an admin about
+today).
+
 ## L2 Container View
 
 Reuses the [C4 L2 Container](/architecture/c4-container) diagram's `web` and `api` containers —

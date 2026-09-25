@@ -27,6 +27,7 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       SESSION_IDLE_MINUTES: ${SESSION_IDLE_MINUTES:-120}
       SESSION_ABSOLUTE_HOURS: ${SESSION_ABSOLUTE_HOURS:-12}
+      REMINDERS_ENABLED: ${REMINDERS_ENABLED:-true}
       # Local-only defaults for the pre-provisioned admin account. Override in
       # `.env` for anything beyond local development; see README.md.
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@telehealth.local}

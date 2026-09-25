@@ -5,6 +5,7 @@ import { createTestApp } from './support/test-app.js';
 import { resetDatabase } from './support/reset-db.js';
 import { createAndSignInAdmin, registerDoctor, registerPatient } from './support/auth-helpers.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { SessionService } from '../src/auth/session/session.service.js';
 
 describe('Deny-by-default access control', () => {
   let app: INestApplication;
@@ -67,6 +68,18 @@ describe('Deny-by-default access control', () => {
 
     const res = await user.agent.get('/api/test/roles/any-signed-in');
     expect(res.status).toBe(401);
+  });
+
+  it('Background re-validation does not extend an idle session', async () => {
+    const user = await registerPatient(app);
+    const staleLastUsedAt = new Date(Date.now() - 30 * 60 * 1000);
+    await prisma.session.updateMany({ where: { userId: user.id }, data: { lastUsedAt: staleLastUsedAt } });
+
+    const validated = await app.get(SessionService).validateSession(user.token, { countsAsActivity: false });
+    expect(validated).not.toBeNull();
+
+    const [session] = await prisma.session.findMany({ where: { userId: user.id } });
+    expect(session?.lastUsedAt.getTime()).toBe(staleLastUsedAt.getTime());
   });
 
   it('Tampered or unknown token', async () => {

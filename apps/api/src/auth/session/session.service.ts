@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import type { Env } from '../../config/env.schema.js';
-import type { Session, User } from '../../generated/prisma/client.js';
+import type { Prisma, Session, User } from '../../generated/prisma/client.js';
 import { isSessionUsable } from './session-expiry.js';
 import { generateSessionToken, hashSessionToken } from './session-token.js';
+import { SESSION_REALTIME_NOTIFIER, type SessionRealtimeNotifier } from './session-realtime-notifier.js';
 
 // Only re-write `lastUsedAt` when it is at least this stale, to limit the
 // per-request write load of an otherwise read-only session lookup.
@@ -25,6 +26,8 @@ export class SessionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService<Env, true>,
+    @Inject(SESSION_REALTIME_NOTIFIER)
+    private readonly realtimeNotifier: SessionRealtimeNotifier,
   ) {}
 
   private get idleMinutes(): number {
@@ -61,8 +64,14 @@ export class SessionService {
    * token, expired/idle/revoked, or a non-ACTIVE user all resolve to `null`. A
    * non-ACTIVE user's sessions are revoked as a side effect so status changes
    * (suspend/deactivate) take effect for every device on their very next request.
+   *
+   * `countsAsActivity: false` is for background re-checks (e.g. open sockets), which must
+   * not refresh `lastUsedAt` or an unattended tab would defeat the idle timeout.
    */
-  async validateSession(token: string): Promise<ValidatedSession | null> {
+  async validateSession(
+    token: string,
+    { countsAsActivity = true }: { countsAsActivity?: boolean } = {},
+  ): Promise<ValidatedSession | null> {
     const tokenHash = hashSessionToken(token);
     const session = await this.prisma.session.findUnique({ where: { tokenHash }, include: { user: true } });
     if (!session) {
@@ -79,7 +88,7 @@ export class SessionService {
       return null;
     }
 
-    if (now.getTime() - session.lastUsedAt.getTime() > LAST_USED_AT_THROTTLE_MS) {
+    if (countsAsActivity && now.getTime() - session.lastUsedAt.getTime() > LAST_USED_AT_THROTTLE_MS) {
       await this.prisma.session.update({ where: { id: session.id }, data: { lastUsedAt: now } });
     }
 
@@ -91,19 +100,30 @@ export class SessionService {
       where: { id: sessionId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+    this.realtimeNotifier.disconnectSessions([sessionId]);
   }
 
   async revokeAllSessions(userId: string): Promise<void> {
-    await this.prisma.session.updateMany({
-      where: { userId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    const revokedIds = await this.revokeMany({ userId, revokedAt: null });
+    this.realtimeNotifier.disconnectSessions(revokedIds);
   }
 
   async revokeAllSessionsExcept(userId: string, keepSessionId: string): Promise<void> {
-    await this.prisma.session.updateMany({
-      where: { userId, revokedAt: null, id: { not: keepSessionId } },
-      data: { revokedAt: new Date() },
-    });
+    const revokedIds = await this.revokeMany({ userId, revokedAt: null, id: { not: keepSessionId } });
+    this.realtimeNotifier.disconnectSessions(revokedIds);
+  }
+
+  /**
+   * `updateMany` doesn't report which rows it touched, but the gateway needs
+   * the exact session IDs to disconnect (their sockets are keyed by session,
+   * not by user — see `RealtimeGateway.disconnectSessions`). Selecting first
+   * and updating by the same IDs keeps both steps consistent.
+   */
+  private async revokeMany(where: Prisma.SessionWhereInput): Promise<string[]> {
+    const sessions = await this.prisma.session.findMany({ where, select: { id: true } });
+    const ids = sessions.map((s) => s.id);
+    if (ids.length === 0) return ids;
+    await this.prisma.session.updateMany({ where: { id: { in: ids } }, data: { revokedAt: new Date() } });
+    return ids;
   }
 }

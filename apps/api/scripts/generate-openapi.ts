@@ -9,6 +9,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // Config validation runs when AppModule is evaluated, so a placeholder URL must be set before
 // the dynamic import. Prisma connects lazily, so the placeholder is never dialed.
 process.env.DATABASE_URL ??= 'postgresql://openapi:openapi@localhost:5432/openapi';
+// No cron should outlive this one-shot script (see `REMINDERS_ENABLED` in env.schema.ts).
+process.env.REMINDERS_ENABLED ??= 'false';
 
 async function main(): Promise<void> {
   const { AppModule } = await import('../src/app.module.js');

@@ -109,6 +109,16 @@ erDiagram
     string appointment_id PK,FK
     string symptom_id PK,FK
   }
+  Notification {
+    string id PK
+    string user_id
+    notification_type type
+    string title
+    string body
+    json data
+    string link
+    string appointment_id
+  }
   users ||--o{ sessions : "user"
   users ||--o| patient_profiles : "user"
   users ||--o| doctor_profiles : "user"

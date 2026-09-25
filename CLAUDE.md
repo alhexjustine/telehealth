@@ -108,6 +108,24 @@ See `README.md` for the full command reference and local-development walkthrough
   "..." is of type uuid but expression is of type text` — cheap to miss because a single
   `INSERT ... VALUES` with real UUID columns needs no such cast. See
   `apps/api/prisma/migrations/20260925103000_add_symptom_catalog/migration.sql`.
+- Unlike `@nestjs/throttler`, `@nestjs/schedule`, `@nestjs/websockets`, and
+  `@nestjs/platform-socket.io` are genuinely `"type": "module"` ESM packages (not a CJS build
+  `require()`-ing an ESM-only one), so they import fine under Jest's ESM mode — no plain-`setInterval`
+  or raw-`socket.io`-`Server` fallback was needed for `add-notifications`.
+- A genuine two-way constructor-injection dependency between two Nest providers (`SessionService`
+  needs the realtime gateway to disconnect sockets on revocation; the gateway needs
+  `SessionService` to validate handshakes) can't be fixed with `forwardRef` alone when one side's
+  constructor parameter is typed as the other's real class: `emitDecoratorMetadata` emits that
+  class as a plain value in `design:paramtypes` at class-definition time (eager), not lazily like
+  `forwardRef`'s own callback, so whichever file's module evaluates first throws `ReferenceError:
+  Cannot access '<Class>' before initialization` — and if you only fix one side, Nest's DI
+  container deadlocks instead (silent hang, `NestFactory.create()` never resolves; the "unsettled
+  top-level await" trace names the actual `await`, not the cycle, so tracking it down needs a
+  minimal repro module). `forwardRef` still works for the *module-level* `imports: [...]` array on
+  both sides (that's a plain decorator argument, not a typed parameter). Fix the *provider-level*
+  cycle by breaking it with a token + interface on one side instead of the real class (see
+  `apps/api/src/auth/session/session-realtime-notifier.ts`), and keep `forwardRef` on the
+  remaining, now one-directional, class injection.
 
 ## What this repo is building
 

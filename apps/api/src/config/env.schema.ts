@@ -23,6 +23,11 @@ export const envSchema = z.object({
     .transform((value) => value === 'true'),
   SESSION_IDLE_MINUTES: z.coerce.number().int().positive().default(120),
   SESSION_ABSOLUTE_HOURS: z.coerce.number().int().positive().default(12),
+  // Off in tests, CI, and OpenAPI generation so no cron keeps the process (or Jest) alive.
+  REMINDERS_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
   // Pre-provisioned admin account. When unset, provisioning is skipped.
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().min(10).max(128).optional(),

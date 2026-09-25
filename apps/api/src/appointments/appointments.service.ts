@@ -10,6 +10,13 @@ import {
   postgresConstraintName,
   postgresErrorCode,
 } from '../common/errors/postgres-error.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
+import { withNotifications } from '../notifications/with-notifications.js';
+import {
+  bookNotificationDrafts,
+  cancelNotificationDrafts,
+  rescheduleNotificationDrafts,
+} from '../notifications/appointment-notifications.js';
 import { BookingRules } from './booking-rules.js';
 import { RESCHEDULE_CUTOFF_MINUTES } from './booking.constants.js';
 import type { CreateAppointmentDto } from './dto/create-appointment.dto.js';
@@ -44,6 +51,7 @@ export class AppointmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly bookingRules: BookingRules,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async book(patientId: string, dto: CreateAppointmentDto): Promise<AppointmentResponseDto> {
@@ -51,32 +59,47 @@ export class AppointmentsService {
     const now = new Date();
     const symptomIds = await this.validateSymptomIds(dto.symptomIds);
 
-    const created = await this.prisma.$transaction(async (tx) => {
-      const { endsAt } = await this.bookingRules.assertBookable(tx, {
-        patientId,
-        doctorId: dto.doctorId,
-        startsAt,
-        now,
-      });
-
-      try {
-        return await tx.appointment.create({
-          data: {
-            patientId,
-            doctorId: dto.doctorId,
-            startsAt,
-            endsAt,
-            reason: dto.reason,
-            symptoms:
-              symptomIds.length > 0 ? { create: symptomIds.map((symptomId) => ({ symptomId })) } : undefined,
-          },
-          include: WITH_RELATIONS,
+    const { result: created, notifications } = await withNotifications(
+      this.prisma,
+      this.notificationsService,
+      async (tx, notify) => {
+        const { endsAt } = await this.bookingRules.assertBookable(tx, {
+          patientId,
+          doctorId: dto.doctorId,
+          startsAt,
+          now,
         });
-      } catch (error) {
-        throw this.mapOverlapError(error);
-      }
-    });
 
+        let appointment: AppointmentWithRelations;
+        try {
+          appointment = await tx.appointment.create({
+            data: {
+              patientId,
+              doctorId: dto.doctorId,
+              startsAt,
+              endsAt,
+              reason: dto.reason,
+              symptoms:
+                symptomIds.length > 0 ? { create: symptomIds.map((symptomId) => ({ symptomId })) } : undefined,
+            },
+            include: WITH_RELATIONS,
+          });
+        } catch (error) {
+          throw this.mapOverlapError(error);
+        }
+
+        await notify(bookNotificationDrafts({
+          appointmentId: appointment.id,
+          doctor: participant(appointment.doctorId, appointment.doctor),
+          patient: participant(appointment.patientId, appointment.patient),
+          startsAt: appointment.startsAt,
+        }));
+
+        return appointment;
+      },
+    );
+
+    await this.notificationsService.publish(notifications);
     return this.toResponseDto(created);
   }
 
@@ -88,66 +111,83 @@ export class AppointmentsService {
     const newStartsAt = new Date(dto.startsAt);
     const now = new Date();
 
-    const rescheduled = await this.prisma.$transaction(async (tx) => {
-      const original = await tx.appointment.findUnique({ where: { id: appointmentId } });
-      if (!original || original.patientId !== patientId) {
-        throw new NotFoundException('Appointment not found');
-      }
+    const { result: rescheduled, notifications } = await withNotifications(
+      this.prisma,
+      this.notificationsService,
+      async (tx, notify) => {
+        const original = await tx.appointment.findUnique({ where: { id: appointmentId } });
+        if (!original || original.patientId !== patientId) {
+          throw new NotFoundException('Appointment not found');
+        }
 
-      const minutesUntilStart = (original.startsAt.getTime() - now.getTime()) / 60_000;
-      if (original.status !== AppointmentStatus.BOOKED || minutesUntilStart < RESCHEDULE_CUTOFF_MINUTES) {
-        throw new DomainError(
-          HttpStatus.CONFLICT,
-          ErrorCode.RESCHEDULE_WINDOW_CLOSED,
-          `Rescheduling closes ${RESCHEDULE_CUTOFF_MINUTES / 60} hours before the appointment starts.`,
-        );
-      }
+        const minutesUntilStart = (original.startsAt.getTime() - now.getTime()) / 60_000;
+        if (original.status !== AppointmentStatus.BOOKED || minutesUntilStart < RESCHEDULE_CUTOFF_MINUTES) {
+          throw new DomainError(
+            HttpStatus.CONFLICT,
+            ErrorCode.RESCHEDULE_WINDOW_CLOSED,
+            `Rescheduling closes ${RESCHEDULE_CUTOFF_MINUTES / 60} hours before the appointment starts.`,
+          );
+        }
 
-      const { endsAt } = await this.bookingRules.assertBookable(tx, {
-        patientId: original.patientId,
-        doctorId: original.doctorId,
-        startsAt: newStartsAt,
-        now,
-        excludeAppointmentId: original.id,
-      });
-
-      // Cancel the original before inserting the new row: the exclusion
-      // constraints only apply to BOOKED rows, so this is what lets the new
-      // row reuse a time range that touches or overlaps the old one (see
-      // design.md's "Exclusion constraints in raw SQL").
-      await tx.appointment.update({
-        where: { id: original.id },
-        data: {
-          status: AppointmentStatus.CANCELLED,
-          cancelledAt: now,
-          cancelledById: patientId,
-          cancellationReason: 'Rescheduled',
-        },
-      });
-
-      const carriedSymptoms = await tx.appointmentSymptom.findMany({ where: { appointmentId: original.id } });
-
-      try {
-        return await tx.appointment.create({
-          data: {
-            patientId: original.patientId,
-            doctorId: original.doctorId,
-            startsAt: newStartsAt,
-            endsAt,
-            reason: original.reason,
-            rescheduledFromId: original.id,
-            symptoms:
-              carriedSymptoms.length > 0
-                ? { create: carriedSymptoms.map((s) => ({ symptomId: s.symptomId })) }
-                : undefined,
-          },
-          include: WITH_RELATIONS,
+        const { endsAt } = await this.bookingRules.assertBookable(tx, {
+          patientId: original.patientId,
+          doctorId: original.doctorId,
+          startsAt: newStartsAt,
+          now,
+          excludeAppointmentId: original.id,
         });
-      } catch (error) {
-        throw this.mapOverlapError(error);
-      }
-    });
 
+        // Cancel the original before inserting the new row: the exclusion
+        // constraints only apply to BOOKED rows, so this is what lets the new
+        // row reuse a time range that touches or overlaps the old one (see
+        // design.md's "Exclusion constraints in raw SQL"). This internal
+        // cancel never notifies — the reschedule notifications below cover it.
+        await tx.appointment.update({
+          where: { id: original.id },
+          data: {
+            status: AppointmentStatus.CANCELLED,
+            cancelledAt: now,
+            cancelledById: patientId,
+            cancellationReason: 'Rescheduled',
+          },
+        });
+
+        const carriedSymptoms = await tx.appointmentSymptom.findMany({ where: { appointmentId: original.id } });
+
+        let appointment: AppointmentWithRelations;
+        try {
+          appointment = await tx.appointment.create({
+            data: {
+              patientId: original.patientId,
+              doctorId: original.doctorId,
+              startsAt: newStartsAt,
+              endsAt,
+              reason: original.reason,
+              rescheduledFromId: original.id,
+              symptoms:
+                carriedSymptoms.length > 0
+                  ? { create: carriedSymptoms.map((s) => ({ symptomId: s.symptomId })) }
+                  : undefined,
+            },
+            include: WITH_RELATIONS,
+          });
+        } catch (error) {
+          throw this.mapOverlapError(error);
+        }
+
+        await notify(rescheduleNotificationDrafts({
+          newAppointmentId: appointment.id,
+          doctor: participant(appointment.doctorId, appointment.doctor),
+          patient: participant(appointment.patientId, appointment.patient),
+          startsAt: appointment.startsAt,
+          previousStartsAt: original.startsAt,
+        }));
+
+        return appointment;
+      },
+    );
+
+    await this.notificationsService.publish(notifications);
     return this.toResponseDto(rescheduled);
   }
 
@@ -177,16 +217,34 @@ export class AppointmentsService {
       );
     }
 
-    const updated = await this.prisma.appointment.update({
-      where: { id: appointmentId },
-      data: {
-        status: AppointmentStatus.CANCELLED,
-        cancelledAt: now,
-        cancelledById: caller.id,
-        cancellationReason: dto.reason?.trim() || null,
+    const { result: updated, notifications } = await withNotifications(
+      this.prisma,
+      this.notificationsService,
+      async (tx, notify) => {
+        const cancelled = await tx.appointment.update({
+          where: { id: appointmentId },
+          data: {
+            status: AppointmentStatus.CANCELLED,
+            cancelledAt: now,
+            cancelledById: caller.id,
+            cancellationReason: dto.reason?.trim() || null,
+          },
+          include: WITH_RELATIONS,
+        });
+
+        await notify(cancelNotificationDrafts({
+          appointmentId: cancelled.id,
+          doctor: participant(cancelled.doctorId, cancelled.doctor),
+          patient: participant(cancelled.patientId, cancelled.patient),
+          cancelledById: caller.id,
+          cancellationReason: cancelled.cancellationReason,
+        }));
+
+        return cancelled;
       },
-      include: WITH_RELATIONS,
-    });
+    );
+
+    await this.notificationsService.publish(notifications);
     return this.toResponseDto(updated);
   }
 
@@ -338,6 +396,11 @@ export class AppointmentsService {
       rescheduledFromId: appointment.rescheduledFromId,
     };
   }
+}
+
+/** `{ id, displayName }` for the notification recipient-rules module, from either side of an `AppointmentWithRelations`. */
+function participant(id: string, profile: { firstName: string; lastName: string }): { id: string; displayName: string } {
+  return { id, displayName: `${profile.firstName} ${profile.lastName}` };
 }
 
 function cancelledByRole(appointment: {

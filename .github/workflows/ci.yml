@@ -32,6 +32,7 @@ jobs:
       COOKIE_SECURE: 'false'
       SESSION_IDLE_MINUTES: '120'
       SESSION_ABSOLUTE_HOURS: '12'
+      REMINDERS_ENABLED: 'false'
     steps:
       - uses: actions/checkout@v4
 

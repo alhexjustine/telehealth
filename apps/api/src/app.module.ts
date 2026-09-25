@@ -15,6 +15,8 @@ import { AvailabilityModule } from './availability/availability.module.js';
 import { DiscoveryModule } from './discovery/discovery.module.js';
 import { MatchingModule } from './matching/matching.module.js';
 import { AppointmentsModule } from './appointments/appointments.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
+import { RealtimeModule } from './realtime/realtime.module.js';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { AppointmentsModule } from './appointments/appointments.module.js';
     DiscoveryModule,
     MatchingModule,
     AppointmentsModule,
+    RealtimeModule,
+    NotificationsModule,
   ],
   providers: [
     {

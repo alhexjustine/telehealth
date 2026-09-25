@@ -27,8 +27,8 @@ function appointmentDetailKey(id: string) {
   return ['appointments', 'detail', id] as const;
 }
 
-/** Every query that could be affected by a booking/reschedule/cancel mutation. */
-function invalidateAppointmentQueries(queryClient: ReturnType<typeof useQueryClient>) {
+/** Every query that could be affected by a booking/reschedule/cancel mutation (also reused by the realtime provider). */
+export function invalidateAppointmentQueries(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: APPOINTMENTS_LIST_KEY });
   void queryClient.invalidateQueries({
     predicate: (query) => query.queryKey[0] === 'appointments' && query.queryKey[1] === 'detail',

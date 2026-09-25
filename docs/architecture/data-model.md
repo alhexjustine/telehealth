@@ -18,6 +18,8 @@ Each table belongs to one of three capabilities documented per module:
 - **Appointments** (`appointments`, `appointment_symptoms`) — booking, rescheduling, and
   cancelling, see the [Patient](/modules/patient#booking-an-appointment) and
   [Doctor](/modules/doctor#managing-bookings) module pages.
+- **Notifications** (`notifications`) — appointment-event notifications and reminders, delivered
+  live over the realtime gateway; see [Notifications & Real-time](/architecture/realtime).
 
 <!--@include: ./_generated-erd.md-->
 
@@ -55,3 +57,10 @@ Each table belongs to one of three capabilities documented per module:
     EXCLUDE USING gist (patient_id WITH =, tstzrange(starts_at, ends_at, '[)') WITH &&)
     WHERE (status = 'BOOKED');
   ```
+
+- `notifications.dedupe_key` is unique but nullable: appointment-event notifications leave it
+  unset (any number of `NULL`s is allowed in a unique index), while reminders set
+  `reminder:{24h|1h}:{appointmentId}:{userId}` so re-running the reminder cron can never create a
+  duplicate — see [Notifications & Real-time](/architecture/realtime). `data` is a free-form JSON
+  blob (`startsAt`, `previousStartsAt`, `counterpartName`, `reason`) the web formats in the
+  viewer's own time zone; the server never bakes a formatted time into `title`/`body`.

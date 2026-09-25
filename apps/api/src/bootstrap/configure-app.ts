@@ -4,6 +4,7 @@ import type { INestApplication } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { requestIdMiddleware } from '../common/middleware/request-id.middleware.js';
 import { clientIpMiddleware } from '../common/middleware/client-ip.middleware.js';
 import { createOriginCheckMiddleware } from '../common/middleware/origin-check.middleware.js';
@@ -31,6 +32,11 @@ export function configureApp(app: INestApplication, options: { setupSwagger?: bo
   app.use(clientIpMiddleware);
   app.use(cookieParser());
   app.use(createOriginCheckMiddleware(configService.get('APP_ORIGINS', { infer: true })));
+  // The realtime gateway (`RealtimeGateway`, path `/socket.io`) needs this
+  // adapter registered before `app.listen()`; it does its own cookie +
+  // Origin + session handshake check (see `RealtimeGateway.authenticate`),
+  // independent of the Express middleware above.
+  app.useWebSocketAdapter(new IoAdapter(app));
   app.use(
     helmet({
       contentSecurityPolicy: {

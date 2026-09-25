@@ -1,10 +1,10 @@
 # Doctor
 
-> Accounts, sign-in/out, profile, availability/schedule management, and booking oversight (own
-> appointments, cancellation, schedule protection against existing bookings) are done
-> (`add-authentication`, `add-doctor-availability`, `add-appointment-booking`). Role-scoped
-> patient records, in-app notifications, and consultation notes/prescriptions authoring are
-> planned for later changes.
+> Accounts, sign-in/out, profile, availability/schedule management, booking oversight (own
+> appointments, cancellation, schedule protection against existing bookings), and in-app
+> notifications are done (`add-authentication`, `add-doctor-availability`,
+> `add-appointment-booking`, `add-notifications`). Role-scoped patient records and consultation
+> notes/prescriptions authoring are planned for later changes.
 
 ## Module Overview
 
@@ -56,6 +56,14 @@ can't silently orphan a patient's booking by editing their hours; they cancel it
 resolution as slot generation (`isBookingContained` in
 `apps/api/src/availability/booking-containment.ts`), including across a daylight-saving change.
 
+## Notifications
+
+A new booking, a reschedule, or a patient cancelling notifies the doctor ("New booking",
+"Appointment rescheduled", "Appointment cancelled"), plus 24h/1h reminders before every `BOOKED`
+appointment — delivered live while signed in, and always visible in the notification bell and
+`/doctor/notifications`. See [Notifications & Real-time](/architecture/realtime) for the event →
+transaction → commit → delivery model and the socket.io gateway.
+
 ## L2 Container View
 
 Reuses the [C4 L2 Container](/architecture/c4-container) diagram's `web` and `api` containers —
@@ -67,9 +75,12 @@ flowchart LR
   D -->|"view / edit profile"| W
   D -->|"set schedule, time off, preview slots"| W
   D -->|"view own appointments, cancel with reason"| W
+  D -->|"bell, notifications page"| W
   P((Patient)) -->|"view an approved doctor's slots"| W
-  W -->|"REST/JSON, session cookie"| A["API: Auth, Doctors, Specializations, Availability, Appointments"]
+  W -->|"REST/JSON, session cookie"| A["API: Auth, Doctors, Specializations, Availability, Appointments, Notifications"]
+  W -->|"socket.io, session cookie"| RT[Realtime Gateway]
   A -->|"SQL"| DB[(PostgreSQL)]
+  RT -->|"SQL (unread count)"| DB
 ```
 
 ## Data Model
@@ -125,12 +136,25 @@ erDiagram
     datetime ends_at
     string status
   }
+  notifications {
+    string id PK
+    string user_id FK
+    string type
+    string title
+    string body
+    string appointment_id FK
+    string dedupe_key UK
+    datetime read_at
+    datetime created_at
+  }
   users ||--o| doctor_profiles : "user"
   doctor_profiles ||--o{ availability_rules : "doctor"
   doctor_profiles ||--o{ availability_exceptions : "doctor"
   doctor_profiles ||--o{ doctor_specializations : "doctor"
   specializations ||--o{ doctor_specializations : "specialization"
   doctor_profiles ||--o{ appointments : "doctor"
+  users ||--o{ notifications : "recipient"
+  appointments ||--o{ notifications : "about"
 ```
 
 `availability_rules.weekday` is ISO (Monday = 1 … Sunday = 7); `start_minute`/`end_minute` are

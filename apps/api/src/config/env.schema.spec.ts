@@ -26,8 +26,18 @@ describe('validateEnv', () => {
     expect(config.COOKIE_SECURE).toBe(false);
     expect(config.SESSION_IDLE_MINUTES).toBe(120);
     expect(config.SESSION_ABSOLUTE_HOURS).toBe(12);
+    expect(config.REMINDERS_ENABLED).toBe(true);
     expect(config.ADMIN_EMAIL).toBeUndefined();
     expect(config.ADMIN_PASSWORD).toBeUndefined();
+  });
+
+  it('coerces REMINDERS_ENABLED from a string', () => {
+    const config = validateEnv({
+      DATABASE_URL: 'postgresql://localhost:5432/db',
+      REMINDERS_ENABLED: 'false',
+    });
+
+    expect(config.REMINDERS_ENABLED).toBe(false);
   });
 
   it('parses a comma-separated APP_ORIGINS list', () => {

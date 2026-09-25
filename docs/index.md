@@ -28,6 +28,9 @@ the [Deployment page](/architecture/deployment) for how it runs locally.
 | Guided symptom matching                            | Done    | `add-doctor-discovery` |
 | Booking, reschedule, cancel                        | Done    | `add-appointment-booking` |
 | Database-enforced double-booking prevention        | Done    | `add-appointment-booking` |
+| In-app notifications (booking, reschedule, cancel) | Done    | `add-notifications`  |
+| Upcoming-appointment reminders (24h/1h)             | Done    | `add-notifications`  |
+| Live delivery (socket.io) + notification bell/page | Done    | `add-notifications`  |
 | Consultation workspace                             | Planned | a later change       |
 | Notes & prescriptions                              | Planned | a later change       |
 | Admin user/doctor/appointment oversight            | Planned | a later change       |

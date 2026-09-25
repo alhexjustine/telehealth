@@ -1,9 +1,10 @@
 # Patient
 
-> Accounts, sign-in/out, profile, doctor discovery, guided symptom matching, and booking/
-> reschedule/cancel are done (`add-authentication`, `add-doctor-availability`,
-> `add-doctor-discovery`, `add-appointment-booking`). In-app notifications, the consultation
-> workspace, and the medical records/prescriptions view are planned for later changes.
+> Accounts, sign-in/out, profile, doctor discovery, guided symptom matching, booking/
+> reschedule/cancel, and in-app notifications are done (`add-authentication`,
+> `add-doctor-availability`, `add-doctor-discovery`, `add-appointment-booking`,
+> `add-notifications`). The consultation workspace and the medical records/prescriptions view are
+> planned for later changes.
 
 ## Module Overview
 
@@ -103,6 +104,15 @@ sequenceDiagram
   API-->>PatientB: 409 {code: "SLOT_UNAVAILABLE"}
 ```
 
+## Notifications
+
+Booking, rescheduling, or having an appointment cancelled by the doctor notifies the patient
+("Booking confirmed", "Reschedule confirmed", "Appointment cancelled"), plus 24h/1h reminders
+before every `BOOKED` appointment — delivered live while signed in, and always visible in the
+notification bell and `/patient/notifications`. See
+[Notifications & Real-time](/architecture/realtime) for the event → transaction → commit →
+delivery model and the socket.io gateway.
+
 ## L2 Container View
 
 Reuses the [C4 L2 Container](/architecture/c4-container) diagram's `web` and `api` containers —
@@ -117,8 +127,11 @@ flowchart LR
   P -->|"pick symptoms / describe"| W
   P -->|"book / reschedule / cancel"| W
   P -->|"list / view own appointments"| W
-  W -->|"REST/JSON, session cookie"| A["API: Auth, Patients, Discovery, Matching, Appointments"]
+  P -->|"bell, notifications page"| W
+  W -->|"REST/JSON, session cookie"| A["API: Auth, Patients, Discovery, Matching, Appointments, Notifications"]
+  W -->|"socket.io, session cookie"| RT[Realtime Gateway]
   A -->|"SQL"| D[(PostgreSQL)]
+  RT -->|"SQL (unread count)"| D
 ```
 
 ## Data Model
@@ -171,10 +184,23 @@ erDiagram
     string status
     string rescheduled_from_id FK
   }
+  notifications {
+    string id PK
+    string user_id FK
+    string type
+    string title
+    string body
+    string appointment_id FK
+    string dedupe_key UK
+    datetime read_at
+    datetime created_at
+  }
   users ||--o| patient_profiles : "user"
   symptoms ||--o{ symptom_specializations : "links to"
   specializations ||--o{ symptom_specializations : "linked from"
   patient_profiles ||--o{ appointments : "patient"
+  users ||--o{ notifications : "recipient"
+  appointments ||--o{ notifications : "about"
 ```
 
 Profile completeness (name, birthday, weight, height, phone all set) is computed on read, not

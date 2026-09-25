@@ -21,6 +21,7 @@ import { DoctorSchedulePage } from '@/routes/doctor/schedule';
 import { DoctorAppointmentsPage } from '@/routes/doctor/appointments';
 import { DoctorAppointmentDetailPage } from '@/routes/doctor/appointment-detail';
 import { AdminHomePage } from '@/routes/admin/home';
+import { NotificationsPage } from '@/routes/notifications-page';
 
 export const router = createBrowserRouter([
   { path: '/', element: <RootPage /> },
@@ -58,6 +59,7 @@ export const router = createBrowserRouter([
           { path: 'find-care', element: <FindCarePage /> },
           { path: 'appointments', element: <PatientAppointmentsPage /> },
           { path: 'appointments/:id', element: <PatientAppointmentDetailPage /> },
+          { path: 'notifications', element: <NotificationsPage /> },
         ],
       },
     ],
@@ -83,6 +85,7 @@ export const router = createBrowserRouter([
           { path: 'schedule', element: <DoctorSchedulePage /> },
           { path: 'appointments', element: <DoctorAppointmentsPage /> },
           { path: 'appointments/:id', element: <DoctorAppointmentDetailPage /> },
+          { path: 'notifications', element: <NotificationsPage /> },
         ],
       },
     ],
@@ -93,7 +96,10 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <RoleAreaLayout navItems={[{ to: '/admin', label: 'Home' }]} />,
-        children: [{ index: true, element: <AdminHomePage /> }],
+        children: [
+          { index: true, element: <AdminHomePage /> },
+          { path: 'notifications', element: <NotificationsPage /> },
+        ],
       },
     ],
   },

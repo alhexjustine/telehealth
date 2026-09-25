@@ -16,6 +16,18 @@ export interface RegisteredUser {
   email: string;
   password: string;
   id: string;
+  /** The raw `th_session` token, for tests that need it outside the agent's cookie jar (e.g. socket.io-client). */
+  token: string;
+}
+
+function extractSessionToken(setCookie: string | string[] | undefined): string {
+  const cookies = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
+  const raw = cookies.find((cookie) => cookie.startsWith('th_session='));
+  const value = raw?.split(';')[0]?.split('=')[1];
+  if (!value) {
+    throw new Error('Response did not set a th_session cookie');
+  }
+  return value;
 }
 
 export async function registerPatient(
@@ -34,7 +46,7 @@ export async function registerPatient(
       lastName: overrides.lastName ?? 'Lovelace',
     })
     .expect(201);
-  return { agent, email, password, id: res.body.id as string };
+  return { agent, email, password, id: res.body.id as string, token: extractSessionToken(res.headers['set-cookie']) };
 }
 
 export async function registerDoctor(
@@ -69,7 +81,7 @@ export async function registerDoctor(
       licenseNumber: overrides.licenseNumber ?? `LIC-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     })
     .expect(201);
-  return { agent, email, password, id: res.body.id as string };
+  return { agent, email, password, id: res.body.id as string, token: extractSessionToken(res.headers['set-cookie']) };
 }
 
 /** Creates an ADMIN user directly (there is no public admin registration) and signs in. */
@@ -82,6 +94,6 @@ export async function createAndSignInAdmin(app: INestApplication): Promise<Regis
   const user = await prisma.user.create({ data: { email, passwordHash, role: Role.ADMIN } });
 
   const agent = request.agent(app.getHttpServer());
-  await agent.post('/api/auth/login').send({ email, password }).expect(200);
-  return { agent, email, password, id: user.id };
+  const res = await agent.post('/api/auth/login').send({ email, password }).expect(200);
+  return { agent, email, password, id: user.id, token: extractSessionToken(res.headers['set-cookie']) };
 }

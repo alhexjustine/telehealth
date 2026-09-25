@@ -119,6 +119,34 @@ erDiagram
     string link
     string appointment_id
   }
+  consultation_sessions {
+    string appointment_id PK,FK
+    session_state state
+    datetime patient_joined_at
+    datetime doctor_joined_at
+    datetime started_at
+    datetime completed_at
+    datetime updated_at
+  }
+  consultation_notes {
+    string appointment_id PK,FK
+    string findings
+    string assessment
+    string plan
+    string patient_summary
+    datetime updated_at
+  }
+  prescriptions {
+    string id PK
+    string appointment_id FK
+    string medication
+    string dosage
+    string frequency
+    string duration
+    string instructions
+    datetime created_at
+    datetime updated_at
+  }
   users ||--o{ sessions : "user"
   users ||--o| patient_profiles : "user"
   users ||--o| doctor_profiles : "user"
@@ -133,4 +161,7 @@ erDiagram
   users ||--o{ appointments : "cancelledBy"
   appointments ||--o{ appointment_symptoms : "appointment"
   symptoms ||--o{ appointment_symptoms : "symptom"
+  appointments ||--o| consultation_sessions : "appointment"
+  appointments ||--o| consultation_notes : "appointment"
+  appointments ||--o{ prescriptions : "appointment"
 ```

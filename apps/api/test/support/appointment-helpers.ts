@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../../src/prisma/prisma.service.js';
-import { VerificationStatus } from '../../src/generated/prisma/enums.js';
+import { AppointmentStatus, VerificationStatus } from '../../src/generated/prisma/enums.js';
 import { registerDoctor, registerPatient, type RegisteredUser } from './auth-helpers.js';
 
 /** Approves a doctor directly via Prisma (bypassing the admin review flow, which doesn't exist yet). */
@@ -73,4 +73,72 @@ export async function registerBookableDoctor(
   await approveDoctor(app, doctor.id);
   await giveFullWeekAvailability(doctor.agent);
   return doctor;
+}
+
+/**
+ * Inserts an appointment directly via Prisma, bypassing `BookingRules`
+ * (including its 60-minute lead time) — the only way to land an appointment's
+ * `startsAt` inside the consultation join window (`[-15m, +30m]`) or in the
+ * past, for time-dependent consultation/records tests. See design.md's
+ * "Testing approach".
+ */
+export async function createAppointmentDirect(
+  app: INestApplication,
+  params: {
+    patientId: string;
+    doctorId: string;
+    startsAt: Date;
+    endsAt?: Date;
+    status?: AppointmentStatus;
+    reason?: string;
+  },
+): Promise<{ id: string; startsAt: Date; endsAt: Date }> {
+  const prisma = app.get(PrismaService);
+  const endsAt = params.endsAt ?? new Date(params.startsAt.getTime() + 30 * 60_000);
+  const appointment = await prisma.appointment.create({
+    data: {
+      patientId: params.patientId,
+      doctorId: params.doctorId,
+      startsAt: params.startsAt,
+      endsAt,
+      reason: params.reason ?? 'Direct-inserted appointment for testing',
+      status: params.status ?? AppointmentStatus.BOOKED,
+    },
+  });
+  return { id: appointment.id, startsAt: appointment.startsAt, endsAt: appointment.endsAt };
+}
+
+/**
+ * Marks an appointment `COMPLETED` with a consultation session/note directly
+ * via Prisma, bypassing the join/start/complete API calls (and their join
+ * window) — for tests that need several already-completed records as fixture
+ * data, not the completion flow itself.
+ */
+export async function completeAppointmentDirect(
+  app: INestApplication,
+  appointmentId: string,
+  patientSummary = 'Completed for testing.',
+): Promise<void> {
+  const prisma = app.get(PrismaService);
+  const now = new Date();
+  await prisma.$transaction([
+    prisma.appointment.update({ where: { id: appointmentId }, data: { status: AppointmentStatus.COMPLETED } }),
+    prisma.consultationSession.upsert({
+      where: { appointmentId },
+      create: {
+        appointmentId,
+        state: 'COMPLETED',
+        patientJoinedAt: now,
+        doctorJoinedAt: now,
+        startedAt: now,
+        completedAt: now,
+      },
+      update: { state: 'COMPLETED', completedAt: now },
+    }),
+    prisma.consultationNote.upsert({
+      where: { appointmentId },
+      create: { appointmentId, patientSummary },
+      update: { patientSummary },
+    }),
+  ]);
 }

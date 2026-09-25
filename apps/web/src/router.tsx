@@ -20,8 +20,12 @@ import { DoctorProfilePage } from '@/routes/doctor/profile';
 import { DoctorSchedulePage } from '@/routes/doctor/schedule';
 import { DoctorAppointmentsPage } from '@/routes/doctor/appointments';
 import { DoctorAppointmentDetailPage } from '@/routes/doctor/appointment-detail';
+import { DoctorPatientRecordPage } from '@/routes/doctor/patient-record';
 import { AdminHomePage } from '@/routes/admin/home';
 import { NotificationsPage } from '@/routes/notifications-page';
+import { ConsultationWorkspacePage } from '@/routes/consultation/workspace';
+import { PatientRecordsPage } from '@/routes/patient/records';
+import { PatientRecordDetailPage } from '@/routes/patient/record-detail';
 
 export const router = createBrowserRouter([
   { path: '/', element: <RootPage /> },
@@ -59,6 +63,8 @@ export const router = createBrowserRouter([
           { path: 'find-care', element: <FindCarePage /> },
           { path: 'appointments', element: <PatientAppointmentsPage /> },
           { path: 'appointments/:id', element: <PatientAppointmentDetailPage /> },
+          { path: 'records', element: <PatientRecordsPage /> },
+          { path: 'records/:appointmentId', element: <PatientRecordDetailPage /> },
           { path: 'notifications', element: <NotificationsPage /> },
         ],
       },
@@ -85,10 +91,16 @@ export const router = createBrowserRouter([
           { path: 'schedule', element: <DoctorSchedulePage /> },
           { path: 'appointments', element: <DoctorAppointmentsPage /> },
           { path: 'appointments/:id', element: <DoctorAppointmentDetailPage /> },
+          { path: 'patients/:patientId', element: <DoctorPatientRecordPage /> },
           { path: 'notifications', element: <NotificationsPage /> },
         ],
       },
     ],
+  },
+  {
+    path: '/consultations/:appointmentId',
+    element: <RequireRoleLayout role={['PATIENT', 'DOCTOR']} />,
+    children: [{ index: true, element: <ConsultationWorkspacePage /> }],
   },
   {
     path: '/admin',

@@ -126,6 +126,34 @@ See `README.md` for the full command reference and local-development walkthrough
   cycle by breaking it with a token + interface on one side instead of the real class (see
   `apps/api/src/auth/session/session-realtime-notifier.ts`), and keep `forwardRef` on the
   remaining, now one-directional, class injection.
+- Global HTTP guards (`SessionAuthGuard`/`RolesGuard`, registered as `APP_GUARD`) also run for a
+  gateway's `@SubscribeMessage` handlers, not just HTTP routes — Nest's guard pipeline is
+  transport-agnostic. Both guards call `context.switchToHttp().getRequest()`, which is meaningless
+  for a WS message and makes them throw "Sign in required"/403 on *every* socket message,
+  independent of whether the socket itself is genuinely authenticated. `handleConnection`/
+  `handleDisconnect` never hit this (they're gateway lifecycle hooks, not guarded handlers), which
+  is why `RealtimeGateway` never needed `@Public()` until it grew its first `@SubscribeMessage`
+  method (`add-consultations-and-records`'s `consultation:subscribe`) — mark the whole gateway
+  class `@Public()` and do auth entirely via `socket.data` (set by `authenticate()`) inside each
+  handler. Diagnosing this needs the client's `exception` event (`socket.on('exception', ...)`) —
+  the default `BaseWsExceptionFilter` reports the real cause there, but Nest's own `Logger.error`
+  call for it is silent in the test harness (`test/support/test-app.ts` never calls
+  `app.useLogger(...)`, unlike `main.ts`).
+- A socket client's own `connect` event fires once the transport handshake completes, which is
+  *before* `RealtimeGateway.handleConnection`'s async `authenticate()` (a DB round trip) has
+  necessarily finished — so a message emitted right after `await waitForEvent(socket, 'connect')`
+  can still arrive with `socket.data.userId` unset. Existing notification tests never hit this
+  because they always awaited an unrelated DB call first, which incidentally gave `authenticate()`
+  enough time. A handler reachable this way (e.g. `consultation:subscribe`) must treat "not yet
+  authenticated" as a normal, retryable `{ok: false}`, not an error — see
+  `test/consultations-realtime.e2e-spec.ts`'s `subscribeUntilAuthenticated` retry helper and
+  `src/realtime/realtime.gateway.spec.ts`'s direct-call unit tests for the deterministic version.
+- In-memory per-room state in a gateway (e.g. consultation presence, keyed by appointment) should
+  cache whatever it needs (here, `patientId`/`doctorId`) at the point a socket *joins*, not re-fetch
+  it from the DB when a socket *leaves*. `OnGatewayDisconnect.handleDisconnect` returns `void`
+  (can't be awaited by the framework), so a fire-and-forget DB query there is exactly the kind of
+  dangling handle Jest's "did not exit one second after the test run" warning is about — sockets
+  disconnect during `afterEach`, and `app.close()` can race an in-flight query from that cleanup.
 
 ## What this repo is building
 

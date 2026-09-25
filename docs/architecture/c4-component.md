@@ -1,9 +1,9 @@
 # C4 L3 — Component (Backend API)
 
 Components inside the Backend API container. Foundation, `add-authentication`,
-`add-doctor-availability`, `add-doctor-discovery`, `add-appointment-booking`, and
-`add-notifications` components are done; the remaining feature modules are planned and will move
-to "done" as the change that implements them lands.
+`add-doctor-availability`, `add-doctor-discovery`, `add-appointment-booking`, `add-notifications`,
+and `add-consultations-and-records` components are done; the Admin Console is planned and will
+move to "done" once that change lands.
 
 ```mermaid
 C4Component
@@ -25,9 +25,10 @@ C4Component
     Component(matching, "Doctor Matching", "SymptomsController/MatchingController/Service, matching-engine", "Symptom catalog and deterministic specialty matching; done")
     Component(availability, "Availability", "AvailabilityController/SlotsController/Service", "Weekly schedule, time off, slot calculation; done")
     Component(booking, "Booking", "AppointmentsController/Service, BookingRules", "Book, reschedule, cancel, list/detail; database exclusion constraints against double-booking; done")
-    Component(consult, "Consultations", "planned", "Session workspace, notes; later change")
+    Component(consult, "Consultations", "ConsultationsController/Service, ClinicalAccessPolicy, transition", "Workspace, join/start/complete state machine; done")
+    Component(records, "Records", "RecordsController/Service", "Notes, prescriptions, patient records; role-scoped by ClinicalAccessPolicy; done")
     Component(notifications, "Notifications", "NotificationsController/Service, ReminderService", "In-app, DB-backed notifications and reminders; done")
-    Component(realtime, "Realtime Gateway", "socket.io (self-hosted)", "Session-authenticated live delivery, per-user/session rooms; done")
+    Component(realtime, "Realtime Gateway", "socket.io (self-hosted)", "Session-authenticated live delivery, per-user/session rooms, consultation presence; done")
     Component(admin, "Admin Console", "planned", "User/doctor/appointment oversight, audit log; later change")
   }
 
@@ -55,10 +56,18 @@ C4Component
   Rel(booking, auth, "protected by")
   Rel(booking, availability, "reuses generateSlots/booking-containment for exact-slot and schedule-protection checks")
   Rel(consult, prisma, "uses")
+  Rel(consult, auth, "protected by")
+  Rel(consult, booking, "reads/updates appointment status")
+  Rel(consult, realtime, "joinRoom/emitToRoom for consultation:state, presence")
+  Rel(records, prisma, "uses")
+  Rel(records, auth, "protected by")
+  Rel(records, consult, "shares ClinicalAccessPolicy, session lock")
   Rel(notifications, prisma, "uses")
   Rel(notifications, auth, "protected by")
   Rel(notifications, booking, "notified by, via withNotifications")
+  Rel(consult, notifications, "notified by, via withNotifications")
   Rel(realtime, auth, "validates sessions via SessionService")
+  Rel(realtime, consult, "consultation:subscribe checked via ClinicalAccessPolicy")
   Rel(notifications, realtime, "publishes after commit")
   Rel(admin, prisma, "uses")
 ```

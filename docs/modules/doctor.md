@@ -1,10 +1,10 @@
 # Doctor
 
 > Accounts, sign-in/out, profile, availability/schedule management, booking oversight (own
-> appointments, cancellation, schedule protection against existing bookings), and in-app
-> notifications are done (`add-authentication`, `add-doctor-availability`,
-> `add-appointment-booking`, `add-notifications`). Role-scoped patient records and consultation
-> notes/prescriptions authoring are planned for later changes.
+> appointments, cancellation, schedule protection against existing bookings), in-app
+> notifications, running consultations, and role-scoped patient records are done
+> (`add-authentication`, `add-doctor-availability`, `add-appointment-booking`,
+> `add-notifications`, `add-consultations-and-records`).
 
 ## Module Overview
 
@@ -33,10 +33,11 @@ the doctor's own slots for the next seven days.
 ## Managing bookings
 
 `/doctor/appointments` lists the doctor's own appointments in **Upcoming**/**Past** tabs, each
-card showing the patient's name, age, reason, and any symptoms carried over from guided matching —
-never the patient's full medical history, which stays out of scope until
-`add-consultations-and-records`. The doctor home page's **Today** card lists the day's
-appointments (by the doctor's own local date) in start order.
+card showing the patient's name, age, reason, and any symptoms carried over from guided matching,
+plus a "Join consultation" action once the join window is open (see
+[Clinical Access](/architecture/clinical-access)) and a link to the patient's full record. The
+doctor home page's **Today** card lists the day's appointments (by the doctor's own local date) in
+start order, with the same join action.
 
 A doctor cancels their own upcoming `BOOKED` appointment with a required reason (5-500
 characters); `POST /appointments/{id}/cancel` returns `400` if it's missing or too short. See
@@ -64,6 +65,29 @@ appointment — delivered live while signed in, and always visible in the notifi
 `/doctor/notifications`. See [Notifications & Real-time](/architecture/realtime) for the event →
 transaction → commit → delivery model and the socket.io gateway.
 
+## Running a consultation
+
+`/consultations/:appointmentId` is where the doctor runs the appointment: appointment context, a
+state timeline, presence dots for both participants, and — once the patient has joined —
+"Start consultation" (disabled until then, with a hint), a notes editor (findings, assessment,
+plan, patient summary — four textareas, autosaved on a 1-second debounce), a prescriptions table
+(add/edit/remove: medication, dosage, frequency, duration, optional instructions; capped at 20 per
+consultation), and "Complete consultation" (a confirm dialog, disabled while the patient summary
+is blank). Completing sets the appointment `COMPLETED`, locks the note and prescriptions against
+any further edit, and notifies the patient live. See
+[Clinical Access](/architecture/clinical-access) for the full state machine, every guard and
+rejection code, and who else can read a completed note (continuity of care).
+
+## Patient records
+
+`/doctor/patients/:patientId`, reachable from an appointment card, the appointment detail page, or
+the workspace, shows the patient's profile, medical history, every appointment with this doctor,
+and — for continuity of care — the patient's completed consultations with *any* doctor, each
+linking back into that consultation's workspace for the full note. This requires the doctor to
+have (or have had) a `BOOKED` or `COMPLETED` appointment with the patient; a doctor with only a
+cancelled appointment, or none at all, gets a `404` (see
+[Clinical Access](/architecture/clinical-access)).
+
 ## L2 Container View
 
 Reuses the [C4 L2 Container](/architecture/c4-container) diagram's `web` and `api` containers —
@@ -76,11 +100,14 @@ flowchart LR
   D -->|"set schedule, time off, preview slots"| W
   D -->|"view own appointments, cancel with reason"| W
   D -->|"bell, notifications page"| W
+  D -->|"join, start, write notes/prescriptions, complete"| W
+  D -->|"view a patient's record"| W
   P((Patient)) -->|"view an approved doctor's slots"| W
-  W -->|"REST/JSON, session cookie"| A["API: Auth, Doctors, Specializations, Availability, Appointments, Notifications"]
+  W -->|"REST/JSON, session cookie"| A["API: Auth, Doctors, Specializations, Availability, Appointments, Notifications, Consultations, Records"]
   W -->|"socket.io, session cookie"| RT[Realtime Gateway]
   A -->|"SQL"| DB[(PostgreSQL)]
   RT -->|"SQL (unread count)"| DB
+  RT -->|"consultation:state, consultation:presence"| W
 ```
 
 ## Data Model
@@ -147,6 +174,30 @@ erDiagram
     datetime read_at
     datetime created_at
   }
+  consultation_sessions {
+    string appointment_id PK,FK
+    string state
+    datetime patient_joined_at
+    datetime doctor_joined_at
+    datetime started_at
+    datetime completed_at
+  }
+  consultation_notes {
+    string appointment_id PK,FK
+    string findings
+    string assessment
+    string plan
+    string patient_summary
+  }
+  prescriptions {
+    string id PK
+    string appointment_id FK
+    string medication
+    string dosage
+    string frequency
+    string duration
+    string instructions
+  }
   users ||--o| doctor_profiles : "user"
   doctor_profiles ||--o{ availability_rules : "doctor"
   doctor_profiles ||--o{ availability_exceptions : "doctor"
@@ -155,12 +206,19 @@ erDiagram
   doctor_profiles ||--o{ appointments : "doctor"
   users ||--o{ notifications : "recipient"
   appointments ||--o{ notifications : "about"
+  appointments ||--o| consultation_sessions : "appointment"
+  appointments ||--o| consultation_notes : "appointment"
+  appointments ||--o{ prescriptions : "appointment"
 ```
 
 `availability_rules.weekday` is ISO (Monday = 1 … Sunday = 7); `start_minute`/`end_minute` are
 minutes since local midnight (0-1440, steps of 15), interpreted in `doctor_profiles.timezone`.
 `availability_exceptions` (time off) stores `starts_at`/`ends_at` as UTC instants directly — the
 web app converts the doctor's local input to and from UTC using their chosen time zone.
+`consultation_sessions`/`consultation_notes`/`prescriptions` are trimmed here to their
+doctor-relevant fields — see the [full Data Model](/architecture/data-model) and
+[Clinical Access](/architecture/clinical-access) for the complete schema, the state machine, and
+every access rule.
 
 ## Slot Algorithm
 

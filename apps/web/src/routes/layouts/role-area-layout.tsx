@@ -52,7 +52,7 @@ export function RoleAreaLayout({ navItems }: { navItems: RoleNavItem[] }) {
   return (
     <RealtimeProvider>
       <div className="flex min-h-screen flex-col">
-        <header className="flex items-center justify-between border-b border-border px-6 py-3">
+        <header className="flex items-center justify-between border-b border-border px-6 py-3 print:hidden">
           <nav className="flex items-center gap-6">
             <span className="font-semibold">Telehealth</span>
             {navItems.map((item) => (

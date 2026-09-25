@@ -467,6 +467,177 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/consultations/{appointmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The appointment's consultation workspace; participants only */
+        get: operations["ConsultationsController_getWorkspace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consultations/{appointmentId}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Joins the consultation, from 15 minutes before it starts until 30 minutes after it ends */
+        post: operations["ConsultationsController_join"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consultations/{appointmentId}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Starts the consultation once the patient has joined; doctor only */
+        post: operations["ConsultationsController_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consultations/{appointmentId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Completes the consultation once a patient summary is written; doctor only */
+        post: operations["ConsultationsController_complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consultations/{appointmentId}/note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replaces the consultation's note; doctor only, while the session is JOINED or IN_PROGRESS */
+        put: operations["ConsultationRecordsController_saveNote"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consultations/{appointmentId}/prescriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adds a prescription to the consultation; doctor only */
+        post: operations["ConsultationRecordsController_addPrescription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consultations/{appointmentId}/prescriptions/{prescriptionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Removes a prescription; doctor only */
+        delete: operations["ConsultationRecordsController_deletePrescription"];
+        options?: never;
+        head?: never;
+        /** Updates one field or more of a prescription; doctor only */
+        patch: operations["ConsultationRecordsController_updatePrescription"];
+        trace?: never;
+    };
+    "/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the signed-in patient's completed consultations, newest first */
+        get: operations["RecordsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/records/{appointmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One of the signed-in patient's own completed consultation records */
+        get: operations["RecordsController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patients/{patientId}/record": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A patient's record, for a doctor with a booked or completed appointment with them */
+        get: operations["RecordsController_doctorViewPatient"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -835,7 +1006,7 @@ export interface components {
         NotificationResponseDto: {
             id: string;
             /** @enum {string} */
-            type: "APPOINTMENT_BOOKED" | "BOOKING_CONFIRMED" | "APPOINTMENT_RESCHEDULED" | "RESCHEDULE_CONFIRMED" | "APPOINTMENT_CANCELLED" | "REMINDER_24H" | "REMINDER_1H";
+            type: "APPOINTMENT_BOOKED" | "BOOKING_CONFIRMED" | "APPOINTMENT_RESCHEDULED" | "RESCHEDULE_CONFIRMED" | "APPOINTMENT_CANCELLED" | "REMINDER_24H" | "REMINDER_1H" | "CONSULTATION_SUMMARY_AVAILABLE";
             title: string;
             body: string;
             /** @description Structured event data (startsAt, previousStartsAt, counterpartName, reason) for the viewer to format. */
@@ -859,6 +1030,121 @@ export interface components {
         };
         UnreadCountResponseDto: {
             unreadCount: number;
+        };
+        ConsultationSessionStateDto: {
+            /** @enum {string} */
+            state: "SCHEDULED" | "JOINED" | "IN_PROGRESS" | "COMPLETED";
+            /** Format: date-time */
+            patientJoinedAt: string | null;
+            /** Format: date-time */
+            doctorJoinedAt: string | null;
+            /** Format: date-time */
+            startedAt: string | null;
+            /** Format: date-time */
+            completedAt: string | null;
+        };
+        ConsultationPatientSummaryDto: {
+            age: number | null;
+            medicalConditions: string | null;
+            allergies: string | null;
+            currentMedications: string | null;
+        };
+        ConsultationNoteDto: {
+            findings: string | null;
+            assessment: string | null;
+            plan: string | null;
+            patientSummary: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PrescriptionResponseDto: {
+            id: string;
+            medication: string;
+            dosage: string;
+            frequency: string;
+            duration: string;
+            instructions: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ConsultationWorkspaceResponseDto: {
+            appointmentId: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            reason: string;
+            doctor: components["schemas"]["AppointmentDoctorSummaryDto"];
+            patient: components["schemas"]["AppointmentPatientSummaryDto"];
+            symptoms: components["schemas"]["AppointmentSymptomSummaryDto"][];
+            session: components["schemas"]["ConsultationSessionStateDto"];
+            patientMedicalSummary?: components["schemas"]["ConsultationPatientSummaryDto"] | null;
+            note?: components["schemas"]["ConsultationNoteDto"] | null;
+            prescriptions?: components["schemas"]["PrescriptionResponseDto"][];
+        };
+        SaveConsultationNoteDto: {
+            findings?: string;
+            assessment?: string;
+            plan?: string;
+            patientSummary?: string;
+        };
+        CreatePrescriptionDto: {
+            medication: string;
+            dosage: string;
+            frequency: string;
+            duration: string;
+            instructions?: string;
+        };
+        UpdatePrescriptionDto: {
+            medication?: string;
+            dosage?: string;
+            frequency?: string;
+            duration?: string;
+            instructions?: string;
+        };
+        RecordListItemDto: {
+            appointmentId: string;
+            /** Format: date-time */
+            startsAt: string;
+            doctor: components["schemas"]["AppointmentDoctorSummaryDto"];
+            patientSummary: string | null;
+        };
+        RecordListResponseDto: {
+            items: components["schemas"]["RecordListItemDto"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        RecordDetailResponseDto: {
+            appointmentId: string;
+            /** Format: date-time */
+            startsAt: string;
+            doctor: components["schemas"]["AppointmentDoctorSummaryDto"];
+            note: components["schemas"]["ConsultationNoteDto"] | null;
+            prescriptions: components["schemas"]["PrescriptionResponseDto"][];
+        };
+        DoctorPatientAppointmentDto: {
+            id: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            /** @enum {string} */
+            status: "BOOKED" | "CANCELLED" | "COMPLETED";
+            reason: string;
+        };
+        DoctorPatientRecordResponseDto: {
+            patientId: string;
+            firstName: string;
+            lastName: string;
+            age: number | null;
+            medicalConditions: string | null;
+            allergies: string | null;
+            currentMedications: string | null;
+            appointmentsWithDoctor: components["schemas"]["DoctorPatientAppointmentDto"][];
+            completedConsultations: components["schemas"]["RecordListItemDto"][];
         };
     };
     responses: never;
@@ -1562,6 +1848,322 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ConsultationsController_getWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultationWorkspaceResponseDto"];
+                };
+            };
+            /** @description The appointment is not active */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ConsultationsController_join: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultationSessionStateDto"];
+                };
+            };
+            /** @description A business rule was violated (see the code field) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ConsultationsController_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultationSessionStateDto"];
+                };
+            };
+            /** @description A business rule was violated (see the code field) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ConsultationsController_complete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultationSessionStateDto"];
+                };
+            };
+            /** @description A business rule was violated (see the code field) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ConsultationRecordsController_saveNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveConsultationNoteDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsultationNoteDto"];
+                };
+            };
+            /** @description A business rule was violated (see the code field) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ConsultationRecordsController_addPrescription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePrescriptionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrescriptionResponseDto"];
+                };
+            };
+            /** @description A business rule was violated (see the code field) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ConsultationRecordsController_deletePrescription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointmentId: string;
+                prescriptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A business rule was violated (see the code field) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    ConsultationRecordsController_updatePrescription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointmentId: string;
+                prescriptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePrescriptionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrescriptionResponseDto"];
+                };
+            };
+            /** @description A business rule was violated (see the code field) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    RecordsController_list: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordListResponseDto"];
+                };
+            };
+        };
+    };
+    RecordsController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordDetailResponseDto"];
+                };
+            };
+        };
+    };
+    RecordsController_doctorViewPatient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoctorPatientRecordResponseDto"];
+                };
             };
         };
     };

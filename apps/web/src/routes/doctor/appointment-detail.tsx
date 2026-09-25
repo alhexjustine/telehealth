@@ -1,8 +1,9 @@
-import { useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppointment } from '@/lib/appointments/use-appointments';
 import { formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
+import { JoinConsultationButton } from '@/components/join-consultation-button';
 
 export function DoctorAppointmentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +26,14 @@ export function DoctorAppointmentDetailPage() {
         <Badge>{data.status}</Badge>
       </div>
 
+      <JoinConsultationButton
+        appointmentId={data.id}
+        status={data.status}
+        startsAt={data.startsAt}
+        endsAt={data.endsAt}
+        size="default"
+      />
+
       <Card>
         <CardHeader>
           <CardTitle>
@@ -35,6 +44,9 @@ export function DoctorAppointmentDetailPage() {
         <CardContent className="flex flex-col gap-2">
           <p className="font-medium">{formatSlotDateAndTime(data.startsAt, timezone)}</p>
           <p className="text-sm">{data.reason}</p>
+          <Link to={`/doctor/patients/${data.patient.id}`} className="text-sm text-primary underline-offset-4 hover:underline">
+            View patient record
+          </Link>
           {data.symptoms.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {data.symptoms.map((symptom) => (

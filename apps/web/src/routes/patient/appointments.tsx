@@ -19,6 +19,7 @@ import {
 import { useAppointments, useCancelAppointment, useRescheduleAppointment } from '@/lib/appointments/use-appointments';
 import { useDoctorSlots } from '@/lib/availability/use-availability';
 import { formatSlotDateAndTime, formatSlotTimeOnly, groupSlotsByLocalDate } from '@/lib/discovery/slot-grouping';
+import { JoinConsultationButton } from '@/components/join-consultation-button';
 
 type AppointmentDto =
   ApiPaths['/appointments']['get']['responses'][200]['content']['application/json']['items'][number];
@@ -81,6 +82,12 @@ export function PatientAppointmentsPage() {
                   </div>
                   <div className="flex flex-col items-start gap-2 sm:items-end">
                     <Badge variant={statusVariant(appointment.status)}>{appointment.status}</Badge>
+                    <JoinConsultationButton
+                      appointmentId={appointment.id}
+                      status={appointment.status}
+                      startsAt={appointment.startsAt}
+                      endsAt={appointment.endsAt}
+                    />
                     <div className="flex gap-2">
                       <Button
                         type="button"

@@ -203,8 +203,8 @@ model DoctorSpecialization {
 enum AppointmentStatus {
   BOOKED
   CANCELLED
-  /// Set by a later change (`add-consultations-and-records`); nothing in this
-  /// change sets it. Included now so that change needs no enum migration.
+  /// Set by `ConsultationsService.complete` when the doctor completes the
+  /// consultation session (`add-consultations-and-records`).
   COMPLETED
 
   @@map("appointment_status")
@@ -239,6 +239,9 @@ model Appointment {
   rescheduledTo   Appointment?         @relation("AppointmentReschedule")
   symptoms        AppointmentSymptom[]
   notifications   Notification[]
+  consultationSession ConsultationSession?
+  consultationNote    ConsultationNote?
+  prescriptions       Prescription[]
 
   @@index([doctorId, startsAt])
   @@index([patientId, startsAt])
@@ -267,6 +270,9 @@ enum NotificationType {
   APPOINTMENT_CANCELLED
   REMINDER_24H
   REMINDER_1H
+  /// Sent to the patient when the doctor completes a consultation
+  /// (`add-consultations-and-records`); links to the record detail page.
+  CONSULTATION_SUMMARY_AVAILABLE
 
   @@map("notification_type")
 }
@@ -301,4 +307,67 @@ model Notification {
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, readAt])
   @@map("notifications")
+}
+
+enum SessionState {
+  SCHEDULED
+  JOINED
+  IN_PROGRESS
+  COMPLETED
+
+  @@map("session_state")
+}
+
+/// The consultation workspace for one appointment, lazily created on the
+/// first join (a missing row means `SCHEDULED` — see
+/// `ConsultationsService`/`consultation-state.ts`). One row per appointment;
+/// `appointmentId` is both the primary key and the foreign key.
+model ConsultationSession {
+  appointmentId   String       @id @map("appointment_id") @db.Uuid
+  state           SessionState @default(SCHEDULED)
+  patientJoinedAt DateTime?    @map("patient_joined_at") @db.Timestamptz(3)
+  doctorJoinedAt  DateTime?    @map("doctor_joined_at") @db.Timestamptz(3)
+  startedAt       DateTime?    @map("started_at") @db.Timestamptz(3)
+  completedAt     DateTime?    @map("completed_at") @db.Timestamptz(3)
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@map("consultation_sessions")
+}
+
+/// The doctor's findings/assessment/plan/patient-summary for one appointment.
+/// One row per appointment, upserted by `RecordsService.saveNote`; locked
+/// once the session is `COMPLETED` (see `ClinicalAccessPolicy.canWriteRecord`).
+model ConsultationNote {
+  appointmentId  String   @id @map("appointment_id") @db.Uuid
+  findings       String?  @db.VarChar(4000)
+  assessment     String?  @db.VarChar(4000)
+  plan           String?  @db.VarChar(4000)
+  patientSummary String?  @map("patient_summary") @db.VarChar(4000)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@map("consultation_notes")
+}
+
+/// One medication prescribed during a consultation. A consultation may have
+/// several; capped at 20 by `RecordsService` (application-level, not a
+/// database constraint).
+model Prescription {
+  id            String   @id @default(uuid()) @db.Uuid
+  appointmentId String   @map("appointment_id") @db.Uuid
+  medication    String   @db.VarChar(120)
+  dosage        String   @db.VarChar(60)
+  frequency     String   @db.VarChar(60)
+  duration      String   @db.VarChar(60)
+  instructions  String?  @db.VarChar(500)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([appointmentId])
+  @@map("prescriptions")
 }

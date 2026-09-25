@@ -132,3 +132,12 @@ area SHALL include a notifications page listing all notifications, with an unrea
 #### Scenario: Empty state
 - **WHEN** a user with no notifications opens the dropdown
 - **THEN** a "You're all caught up" message is shown
+
+### Requirement: Consultation outcome notification
+When a doctor completes a consultation, the system SHALL notify the patient with "Consultation
+summary available", in the same transaction as the completion. The notification links to the
+record detail page.
+
+#### Scenario: Patient notified on completion
+- **WHEN** the doctor completes a consultation
+- **THEN** the patient has one unread "Consultation summary available" notification linking to that record, and the doctor receives none

@@ -1,10 +1,9 @@
 # Patient
 
 > Accounts, sign-in/out, profile, doctor discovery, guided symptom matching, booking/
-> reschedule/cancel, and in-app notifications are done (`add-authentication`,
-> `add-doctor-availability`, `add-doctor-discovery`, `add-appointment-booking`,
-> `add-notifications`). The consultation workspace and the medical records/prescriptions view are
-> planned for later changes.
+> reschedule/cancel, in-app notifications, the consultation workspace, and medical records are
+> done (`add-authentication`, `add-doctor-availability`, `add-doctor-discovery`,
+> `add-appointment-booking`, `add-notifications`, `add-consultations-and-records`).
 
 ## Module Overview
 
@@ -108,10 +107,36 @@ sequenceDiagram
 
 Booking, rescheduling, or having an appointment cancelled by the doctor notifies the patient
 ("Booking confirmed", "Reschedule confirmed", "Appointment cancelled"), plus 24h/1h reminders
-before every `BOOKED` appointment — delivered live while signed in, and always visible in the
-notification bell and `/patient/notifications`. See
-[Notifications & Real-time](/architecture/realtime) for the event → transaction → commit →
-delivery model and the socket.io gateway.
+before every `BOOKED` appointment and, once a consultation is completed, "Consultation summary
+available" — delivered live while signed in, and always visible in the notification bell and
+`/patient/notifications`. See [Notifications & Real-time](/architecture/realtime) for the event →
+transaction → commit → delivery model and the socket.io gateway.
+
+## Joining and the consultation workspace
+
+Appointment cards, the appointment detail page, and `/consultations/:appointmentId` itself all
+show a "Join consultation" action from 15 minutes before the appointment starts until 30 minutes
+after it ends (`isJoinable`/`JOIN_OPENS_BEFORE_MINUTES`/`JOIN_CLOSES_AFTER_MINUTES` in
+`apps/web/src/lib/consultations/consultation-window.ts`, kept equal to the API's own constants by
+a test). Opening the workspace before the window shows a live countdown instead.
+
+The workspace page auto-joins on mount (idempotent — rejoining has no effect), subscribes over the
+shared realtime socket, and shows a state timeline (`SCHEDULED` → `JOINED` → `IN_PROGRESS` →
+`COMPLETED`) and presence dots for both participants. The patient sees "Waiting for the
+doctor…", then "In progress" once the doctor starts (pushed live, no reload — see
+[Notifications & Real-time](/architecture/realtime#consultation-presence-add-consultations-and-records)),
+then, once the doctor completes it, the patient summary and prescriptions right there in the
+workspace. See [Clinical Access](/architecture/clinical-access) for the full state machine and who
+can see what.
+
+## Medical records
+
+`/patient/records` lists the patient's own completed consultations, newest first, each showing the
+doctor, date, and patient summary; `/patient/records/:appointmentId` shows the full record —
+summary, findings/assessment/plan, and prescriptions — in a print-friendly layout (`window.print()`
+with the role navigation hidden via `print:hidden`, so a printed copy is a clean single column).
+A consultation that is not yet completed, or belongs to another patient, `404`s the same way a
+non-existent one would (see [Clinical Access](/architecture/clinical-access)).
 
 ## L2 Container View
 
@@ -128,10 +153,13 @@ flowchart LR
   P -->|"book / reschedule / cancel"| W
   P -->|"list / view own appointments"| W
   P -->|"bell, notifications page"| W
-  W -->|"REST/JSON, session cookie"| A["API: Auth, Patients, Discovery, Matching, Appointments, Notifications"]
+  P -->|"join, view live state and presence"| W
+  P -->|"list / view own completed records"| W
+  W -->|"REST/JSON, session cookie"| A["API: Auth, Patients, Discovery, Matching, Appointments, Notifications, Consultations, Records"]
   W -->|"socket.io, session cookie"| RT[Realtime Gateway]
   A -->|"SQL"| D[(PostgreSQL)]
   RT -->|"SQL (unread count)"| D
+  RT -->|"consultation:state, consultation:presence"| W
 ```
 
 ## Data Model
@@ -195,12 +223,33 @@ erDiagram
     datetime read_at
     datetime created_at
   }
+  consultation_sessions {
+    string appointment_id PK,FK
+    string state
+    datetime patient_joined_at
+    datetime doctor_joined_at
+    datetime started_at
+    datetime completed_at
+  }
+  consultation_notes {
+    string appointment_id PK,FK
+    string patient_summary
+  }
+  prescriptions {
+    string id PK
+    string appointment_id FK
+    string medication
+    string dosage
+  }
   users ||--o| patient_profiles : "user"
   symptoms ||--o{ symptom_specializations : "links to"
   specializations ||--o{ symptom_specializations : "linked from"
   patient_profiles ||--o{ appointments : "patient"
   users ||--o{ notifications : "recipient"
   appointments ||--o{ notifications : "about"
+  appointments ||--o| consultation_sessions : "appointment"
+  appointments ||--o| consultation_notes : "appointment"
+  appointments ||--o{ prescriptions : "appointment"
 ```
 
 Profile completeness (name, birthday, weight, height, phone all set) is computed on read, not
@@ -208,7 +257,11 @@ stored — see [Authentication & Authorization](/architecture/auth) for the acco
 this all sits behind. The symptom catalog is reference data shipped by a migration
 (`20260925103000_add_symptom_catalog`), the same pattern as the specialization catalog: fixed
 UUIDs, present in every environment without a separate seeding step, and read-only (nothing in the
-app writes to it).
+app writes to it). `consultation_sessions`/`consultation_notes`/`prescriptions` (trimmed here to
+their patient-relevant fields — see the [full Data Model](/architecture/data-model) and
+[Clinical Access](/architecture/clinical-access) for the complete schema and access rules) hold the
+workspace state and its outcome; a patient only ever sees the note and prescriptions once the
+session is `COMPLETED`.
 
 ## Matching algorithm
 

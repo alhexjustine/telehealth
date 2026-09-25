@@ -1143,6 +1143,532 @@
           "notifications"
         ]
       }
+    },
+    "/consultations/{appointmentId}": {
+      "get": {
+        "operationId": "ConsultationsController_getWorkspace",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultationWorkspaceResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The appointment is not active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "The appointment's consultation workspace; participants only",
+        "tags": [
+          "consultations"
+        ]
+      }
+    },
+    "/consultations/{appointmentId}/join": {
+      "post": {
+        "operationId": "ConsultationsController_join",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultationSessionStateDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A business rule was violated (see the code field)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Joins the consultation, from 15 minutes before it starts until 30 minutes after it ends",
+        "tags": [
+          "consultations"
+        ]
+      }
+    },
+    "/consultations/{appointmentId}/start": {
+      "post": {
+        "operationId": "ConsultationsController_start",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultationSessionStateDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A business rule was violated (see the code field)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Starts the consultation once the patient has joined; doctor only",
+        "tags": [
+          "consultations"
+        ]
+      }
+    },
+    "/consultations/{appointmentId}/complete": {
+      "post": {
+        "operationId": "ConsultationsController_complete",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultationSessionStateDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A business rule was violated (see the code field)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Completes the consultation once a patient summary is written; doctor only",
+        "tags": [
+          "consultations"
+        ]
+      }
+    },
+    "/consultations/{appointmentId}/note": {
+      "put": {
+        "operationId": "ConsultationRecordsController_saveNote",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveConsultationNoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsultationNoteDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A business rule was violated (see the code field)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Replaces the consultation's note; doctor only, while the session is JOINED or IN_PROGRESS",
+        "tags": [
+          "records"
+        ]
+      }
+    },
+    "/consultations/{appointmentId}/prescriptions": {
+      "post": {
+        "operationId": "ConsultationRecordsController_addPrescription",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePrescriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrescriptionResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A business rule was violated (see the code field)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Adds a prescription to the consultation; doctor only",
+        "tags": [
+          "records"
+        ]
+      }
+    },
+    "/consultations/{appointmentId}/prescriptions/{prescriptionId}": {
+      "patch": {
+        "operationId": "ConsultationRecordsController_updatePrescription",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "prescriptionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePrescriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrescriptionResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A business rule was violated (see the code field)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Updates one field or more of a prescription; doctor only",
+        "tags": [
+          "records"
+        ]
+      },
+      "delete": {
+        "operationId": "ConsultationRecordsController_deletePrescription",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "prescriptionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "409": {
+            "description": "A business rule was violated (see the code field)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Removes a prescription; doctor only",
+        "tags": [
+          "records"
+        ]
+      }
+    },
+    "/records": {
+      "get": {
+        "operationId": "RecordsController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Lists the signed-in patient's completed consultations, newest first",
+        "tags": [
+          "records"
+        ]
+      }
+    },
+    "/records/{appointmentId}": {
+      "get": {
+        "operationId": "RecordsController_detail",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "One of the signed-in patient's own completed consultation records",
+        "tags": [
+          "records"
+        ]
+      }
+    },
+    "/patients/{patientId}/record": {
+      "get": {
+        "operationId": "RecordsController_doctorViewPatient",
+        "parameters": [
+          {
+            "name": "patientId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorPatientRecordResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "A patient's record, for a doctor with a booked or completed appointment with them",
+        "tags": [
+          "records"
+        ]
+      }
     }
   },
   "info": {
@@ -2510,7 +3036,8 @@
               "RESCHEDULE_CONFIRMED",
               "APPOINTMENT_CANCELLED",
               "REMINDER_24H",
-              "REMINDER_1H"
+              "REMINDER_1H",
+              "CONSULTATION_SUMMARY_AVAILABLE"
             ]
           },
           "title": {
@@ -2595,6 +3122,476 @@
         },
         "required": [
           "unreadCount"
+        ]
+      },
+      "ConsultationSessionStateDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "SCHEDULED",
+              "JOINED",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "patientJoinedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "doctorJoinedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "state",
+          "patientJoinedAt",
+          "doctorJoinedAt",
+          "startedAt",
+          "completedAt"
+        ]
+      },
+      "ConsultationPatientSummaryDto": {
+        "type": "object",
+        "properties": {
+          "age": {
+            "type": "number",
+            "nullable": true
+          },
+          "medicalConditions": {
+            "type": "string",
+            "nullable": true
+          },
+          "allergies": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentMedications": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "age",
+          "medicalConditions",
+          "allergies",
+          "currentMedications"
+        ]
+      },
+      "ConsultationNoteDto": {
+        "type": "object",
+        "properties": {
+          "findings": {
+            "type": "string",
+            "nullable": true
+          },
+          "assessment": {
+            "type": "string",
+            "nullable": true
+          },
+          "plan": {
+            "type": "string",
+            "nullable": true
+          },
+          "patientSummary": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "findings",
+          "assessment",
+          "plan",
+          "patientSummary",
+          "updatedAt"
+        ]
+      },
+      "PrescriptionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "medication": {
+            "type": "string"
+          },
+          "dosage": {
+            "type": "string"
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "medication",
+          "dosage",
+          "frequency",
+          "duration",
+          "instructions",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ConsultationWorkspaceResponseDto": {
+        "type": "object",
+        "properties": {
+          "appointmentId": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "doctor": {
+            "$ref": "#/components/schemas/AppointmentDoctorSummaryDto"
+          },
+          "patient": {
+            "$ref": "#/components/schemas/AppointmentPatientSummaryDto"
+          },
+          "symptoms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppointmentSymptomSummaryDto"
+            }
+          },
+          "session": {
+            "$ref": "#/components/schemas/ConsultationSessionStateDto"
+          },
+          "patientMedicalSummary": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConsultationPatientSummaryDto"
+              }
+            ]
+          },
+          "note": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConsultationNoteDto"
+              }
+            ]
+          },
+          "prescriptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrescriptionResponseDto"
+            }
+          }
+        },
+        "required": [
+          "appointmentId",
+          "startsAt",
+          "endsAt",
+          "reason",
+          "doctor",
+          "patient",
+          "symptoms",
+          "session"
+        ]
+      },
+      "SaveConsultationNoteDto": {
+        "type": "object",
+        "properties": {
+          "findings": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "assessment": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "plan": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "patientSummary": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        }
+      },
+      "CreatePrescriptionDto": {
+        "type": "object",
+        "properties": {
+          "medication": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "dosage": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "frequency": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "duration": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "instructions": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "medication",
+          "dosage",
+          "frequency",
+          "duration"
+        ]
+      },
+      "UpdatePrescriptionDto": {
+        "type": "object",
+        "properties": {
+          "medication": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "dosage": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "frequency": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "duration": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "instructions": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "RecordListItemDto": {
+        "type": "object",
+        "properties": {
+          "appointmentId": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "doctor": {
+            "$ref": "#/components/schemas/AppointmentDoctorSummaryDto"
+          },
+          "patientSummary": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "appointmentId",
+          "startsAt",
+          "doctor",
+          "patientSummary"
+        ]
+      },
+      "RecordListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordListItemDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "RecordDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "appointmentId": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "doctor": {
+            "$ref": "#/components/schemas/AppointmentDoctorSummaryDto"
+          },
+          "note": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ConsultationNoteDto"
+              }
+            ]
+          },
+          "prescriptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrescriptionResponseDto"
+            }
+          }
+        },
+        "required": [
+          "appointmentId",
+          "startsAt",
+          "doctor",
+          "note",
+          "prescriptions"
+        ]
+      },
+      "DoctorPatientAppointmentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "BOOKED",
+              "CANCELLED",
+              "COMPLETED"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "startsAt",
+          "endsAt",
+          "status",
+          "reason"
+        ]
+      },
+      "DoctorPatientRecordResponseDto": {
+        "type": "object",
+        "properties": {
+          "patientId": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "age": {
+            "type": "number",
+            "nullable": true
+          },
+          "medicalConditions": {
+            "type": "string",
+            "nullable": true
+          },
+          "allergies": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentMedications": {
+            "type": "string",
+            "nullable": true
+          },
+          "appointmentsWithDoctor": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoctorPatientAppointmentDto"
+            }
+          },
+          "completedConsultations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordListItemDto"
+            }
+          }
+        },
+        "required": [
+          "patientId",
+          "firstName",
+          "lastName",
+          "age",
+          "medicalConditions",
+          "allergies",
+          "currentMedications",
+          "appointmentsWithDoctor",
+          "completedConsultations"
         ]
       }
     }

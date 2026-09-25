@@ -7,6 +7,7 @@ import { useDoctorProfile } from '@/lib/doctors/use-doctor-profile';
 import { useAvailability } from '@/lib/availability/use-availability';
 import { useAppointments } from '@/lib/appointments/use-appointments';
 import { formatSlotTimeOnly } from '@/lib/discovery/slot-grouping';
+import { JoinConsultationButton } from '@/components/join-consultation-button';
 
 /** Whether `iso` falls on `reference`'s calendar date in `timezone`. */
 function isSameLocalDate(iso: string, timezone: string, reference: Date): boolean {
@@ -64,17 +65,24 @@ export function DoctorHomePage() {
             <p className="text-muted-foreground">No appointments today.</p>
           )}
           {today.map((appointment) => (
-            <Link
+            <div
               key={appointment.id}
-              to={`/doctor/appointments/${appointment.id}`}
               className="flex items-center justify-between gap-2 rounded-md border border-input p-3 hover:bg-accent/50"
             >
-              <div>
+              <Link to={`/doctor/appointments/${appointment.id}`} className="flex-1">
                 <p className="font-medium">{appointment.patient.displayName}</p>
                 <p className="text-sm text-muted-foreground">{appointment.reason}</p>
+              </Link>
+              <div className="flex items-center gap-2">
+                <JoinConsultationButton
+                  appointmentId={appointment.id}
+                  status={appointment.status}
+                  startsAt={appointment.startsAt}
+                  endsAt={appointment.endsAt}
+                />
+                <Badge variant="outline">{formatSlotTimeOnly(appointment.startsAt, timezone)}</Badge>
               </div>
-              <Badge variant="outline">{formatSlotTimeOnly(appointment.startsAt, timezone)}</Badge>
-            </Link>
+            </div>
           ))}
         </CardContent>
       </Card>

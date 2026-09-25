@@ -1,7 +1,8 @@
 # Notifications & Real-time
 
-Database-backed in-app notifications for appointment events and upcoming-appointment reminders,
-delivered live over a self-hosted socket.io gateway — `add-notifications`. No external
+Database-backed in-app notifications for appointment events, upcoming-appointment reminders, and
+consultation completion, plus consultation-workspace presence — all delivered live over one
+self-hosted socket.io gateway (`add-notifications`, `add-consultations-and-records`). No external
 notification/push/email/SMS service is used anywhere in this path.
 
 ## Notification model
@@ -39,6 +40,12 @@ Reminders (24h and 1h before a `BOOKED` appointment's start) come from `Reminder
 on a `@nestjs/schedule` `@Cron('*/1 * * * *')` when `REMINDERS_ENABLED` is on (it's off in tests,
 CI, and OpenAPI generation, so no timer keeps those processes alive). A unique `dedupeKey`
 (`reminder:{24h|1h}:{appointmentId}:{userId}`) makes re-running the cron idempotent.
+
+`ConsultationsService.complete` follows the same transactional-write/post-commit-publish shape:
+inside the transaction that moves the session to `COMPLETED` and sets `appointment.status =
+COMPLETED`, it stages one `CONSULTATION_SUMMARY_AVAILABLE` notification for the patient (never the
+doctor), linking to `/patient/records/{appointmentId}` — see
+[Clinical Access](/architecture/clinical-access).
 
 ## The realtime gateway
 
@@ -79,8 +86,36 @@ behind `forwardRef` — see `apps/api/src/auth/session/session-realtime-notifier
 | `notifications:count` | `{ unreadCount }`                       | After mark-read / mark-all-read, so every open tab stays in sync |
 
 There is a single API instance and no Redis adapter — acceptable at this scale (see design.md's
-"Risks / Trade-offs"). `RealtimeGateway` also exposes `joinRoom`/`emitToRoom` helpers for
-`add-consultations-and-records` to reuse the same connection for consultation state.
+"Risks / Trade-offs"). `RealtimeGateway` also exposes `joinRoom`/`emitToRoom` helpers, used by
+`ConsultationsService` to push consultation state onto the same connection (see
+[Clinical Access](/architecture/clinical-access) for the consultation workspace itself).
+
+### Consultation presence (`add-consultations-and-records`)
+
+Two incoming `@SubscribeMessage` handlers, refused unless the socket has already finished
+authenticating (`socket.data.userId` set — `handleConnection`'s `authenticate()` is async, so a
+message can arrive before it resolves) and `ClinicalAccessPolicy.canViewWorkspace` allows this
+user onto that appointment:
+
+| Event (client → server)   | Payload               | Ack                                         |
+| --------------------------- | ---------------------- | --------------------------------------------- |
+| `consultation:subscribe`    | `{ appointmentId }`    | `{ ok, presence? }` — joins `appointment:{id}` on success |
+| `consultation:unsubscribe`  | `{ appointmentId }`    | `{ ok }` — leaves the room |
+
+Presence (who currently has the workspace open) is tracked in memory, keyed by appointment, as a
+`userId -> open-socket-count` map cached with the appointment's `patientId`/`doctorId` at
+subscribe time — so leaving (unsubscribe or disconnect) never needs its own DB round trip, which
+keeps `handleDisconnect` synchronous.
+
+| Event (server → client) | Payload                                       | When |
+| -------------------------- | ------------------------------------------------ | ---- |
+| `consultation:state`       | The session's current state + timestamps         | After `join`/`start`/`complete` commits, to `appointment:{id}` |
+| `consultation:presence`    | `{ patientPresent, doctorPresent }`               | On subscribe, unsubscribe, and disconnect |
+
+The web client emitting `consultation:subscribe` right after opening the socket — without waiting
+for its own `connect` event — can still race `authenticate()`; a real client retries on `{ok:
+false}` (see `apps/web/src/lib/consultations/use-consultation-socket.ts`'s
+`subscribeWithRetry`) rather than treating it as an error.
 
 ## Web
 
@@ -96,6 +131,11 @@ requires. The `NotificationBell` in every role header shows the badge and a drop
 most recent notifications with "mark all as read"; opening one marks it read and navigates to its
 (already role-relative) `link`. Each role area also has a `/{role}/notifications` page with an
 unread filter and pagination.
+
+`RealtimeProvider` also exposes the raw socket itself (`useRealtimeSocket`), not just
+`connected` — the consultation workspace's `useConsultationPresence` reuses this one connection
+to subscribe/unsubscribe and listen for `consultation:state`/`consultation:presence`, rather than
+opening a second socket.io connection per page.
 
 ## Reading API
 

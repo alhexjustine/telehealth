@@ -17,6 +17,8 @@ import { MatchingModule } from './matching/matching.module.js';
 import { AppointmentsModule } from './appointments/appointments.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { RealtimeModule } from './realtime/realtime.module.js';
+import { ConsultationsModule } from './consultations/consultations.module.js';
+import { RecordsModule } from './records/records.module.js';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { RealtimeModule } from './realtime/realtime.module.js';
     AppointmentsModule,
     RealtimeModule,
     NotificationsModule,
+    ConsultationsModule,
+    RecordsModule,
   ],
   providers: [
     {

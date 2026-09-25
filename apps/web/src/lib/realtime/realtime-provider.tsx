@@ -20,7 +20,13 @@ interface NotificationsCountPayload {
 
 const NOTIFICATIONS_LIST_KEY = ['notifications', 'list'] as const;
 
-const RealtimeContext = createContext<{ connected: boolean } | undefined>(undefined);
+interface RealtimeContextValue {
+  connected: boolean;
+  /** The single shared socket, reused by feature-specific hooks (e.g. the consultation workspace) instead of opening a second connection. */
+  socket: Socket | undefined;
+}
+
+const RealtimeContext = createContext<RealtimeContextValue | undefined>(undefined);
 
 /**
  * Connects a single socket.io-client for the whole authenticated session
@@ -33,11 +39,19 @@ const RealtimeContext = createContext<{ connected: boolean } | undefined>(undefi
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [connected, setConnected] = useState(false);
+  const [socket, setSocket] = useState<Socket | undefined>(undefined);
   const socketRef = useRef<Socket | undefined>(undefined);
 
   useEffect(() => {
     const socket = io({ path: '/socket.io', withCredentials: true });
     socketRef.current = socket;
+    // Exposes the socket this effect just created to context consumers (e.g.
+    // the consultation workspace's subscribe hook), which need the instance
+    // itself, not just the `connected` flag — the socket accepts emits
+    // (queued client-side) before "connect" fires. Runs once per connect
+    // effect, not on every render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSocket(socket);
 
     const handleConnect = () => setConnected(true);
     const handleDisconnect = () => setConnected(false);
@@ -63,13 +77,19 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       socket.off('notifications:count', handleCount);
       socket.disconnect();
       socketRef.current = undefined;
+      setSocket(undefined);
     };
   }, [queryClient]);
 
-  return <RealtimeContext.Provider value={{ connected }}>{children}</RealtimeContext.Provider>;
+  return <RealtimeContext.Provider value={{ connected, socket }}>{children}</RealtimeContext.Provider>;
 }
 
 /** Whether the live connection is currently up — drives the unread-count query's polling fallback. */
 export function useRealtimeConnected(): boolean {
   return useContext(RealtimeContext)?.connected ?? false;
+}
+
+/** The shared socket.io connection, for hooks that need to emit/listen directly (e.g. the consultation workspace). `undefined` until the provider's effect has run. */
+export function useRealtimeSocket(): Socket | undefined {
+  return useContext(RealtimeContext)?.socket;
 }

@@ -22,6 +22,22 @@ export const ErrorCode = {
   APPOINTMENT_NOT_CANCELLABLE: 'APPOINTMENT_NOT_CANCELLABLE',
   /** Saving a schedule or adding time off would leave one or more booked appointments uncovered. */
   SCHEDULE_CONFLICTS_WITH_BOOKINGS: 'SCHEDULE_CONFLICTS_WITH_BOOKINGS',
+  /** The appointment behind a consultation workspace/record is not `BOOKED` (e.g. cancelled). */
+  APPOINTMENT_NOT_ACTIVE: 'APPOINTMENT_NOT_ACTIVE',
+  /** A join was attempted outside `[startsAt - 15m, endsAt + 30m]`. */
+  OUTSIDE_JOIN_WINDOW: 'OUTSIDE_JOIN_WINDOW',
+  /** The doctor tried to start a consultation before the patient joined. */
+  PATIENT_NOT_JOINED: 'PATIENT_NOT_JOINED',
+  /** The doctor tried to complete a consultation with no patient summary written. */
+  SUMMARY_REQUIRED: 'SUMMARY_REQUIRED',
+  /** The requested consultation-session action isn't a legal transition from its current state. */
+  INVALID_SESSION_TRANSITION: 'INVALID_SESSION_TRANSITION',
+  /** A note/prescription write was attempted while the session isn't `JOINED` or `IN_PROGRESS`. */
+  SESSION_NOT_ACTIVE: 'SESSION_NOT_ACTIVE',
+  /** A note/prescription write was attempted after the consultation was completed. */
+  RECORD_LOCKED: 'RECORD_LOCKED',
+  /** A consultation already has `MAX_PRESCRIPTIONS_PER_CONSULTATION` prescriptions. */
+  PRESCRIPTION_LIMIT_REACHED: 'PRESCRIPTION_LIMIT_REACHED',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

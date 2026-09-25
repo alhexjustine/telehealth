@@ -20,6 +20,9 @@ Each table belongs to one of three capabilities documented per module:
   [Doctor](/modules/doctor#managing-bookings) module pages.
 - **Notifications** (`notifications`) — appointment-event notifications and reminders, delivered
   live over the realtime gateway; see [Notifications & Real-time](/architecture/realtime).
+- **Consultations & records** (`consultation_sessions`, `consultation_notes`, `prescriptions`) —
+  the workspace state machine, and the doctor's notes and prescriptions, locked once the session
+  is `COMPLETED`; see [Clinical Access](/architecture/clinical-access).
 
 <!--@include: ./_generated-erd.md-->
 
@@ -64,3 +67,15 @@ Each table belongs to one of three capabilities documented per module:
   duplicate — see [Notifications & Real-time](/architecture/realtime). `data` is a free-form JSON
   blob (`startsAt`, `previousStartsAt`, `counterpartName`, `reason`) the web formats in the
   viewer's own time zone; the server never bakes a formatted time into `title`/`body`.
+- `consultation_sessions.appointment_id` is both the primary key and the foreign key to
+  `appointments`: one row per appointment, created lazily on the first `join` (a missing row means
+  `SCHEDULED`) rather than at booking time, so the booking code never has to know about the
+  consultation workspace. `consultation_notes.appointment_id` is likewise the note's own primary
+  key — one note per appointment, upserted in place rather than versioned.
+- `prescriptions` is the one table here with its own `id`, since an appointment can have several;
+  `@@index([appointment_id])` backs both the workspace read and the 20-per-consultation limit
+  check (`RecordsService`, application-level, not a database constraint).
+- Every write to `consultation_sessions`, `consultation_notes`, or `prescriptions` happens inside a
+  transaction that first takes `SELECT ... FOR UPDATE` on the `consultation_sessions` row
+  (`apps/api/src/consultations/session-lock.ts`), so a concurrent completion can never race past a
+  note or prescription edit, or vice versa — see [Clinical Access](/architecture/clinical-access).

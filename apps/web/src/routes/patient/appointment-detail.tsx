@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppointment } from '@/lib/appointments/use-appointments';
 import { formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
+import { JoinConsultationButton } from '@/components/join-consultation-button';
 
 export function PatientAppointmentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,14 @@ export function PatientAppointmentDetailPage() {
         <h1 className="text-2xl font-semibold">Appointment details</h1>
         <Badge>{data.status}</Badge>
       </div>
+
+      <JoinConsultationButton
+        appointmentId={data.id}
+        status={data.status}
+        startsAt={data.startsAt}
+        endsAt={data.endsAt}
+        size="default"
+      />
 
       <Card>
         <CardHeader>

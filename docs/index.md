@@ -31,7 +31,8 @@ the [Deployment page](/architecture/deployment) for how it runs locally.
 | In-app notifications (booking, reschedule, cancel) | Done    | `add-notifications`  |
 | Upcoming-appointment reminders (24h/1h)             | Done    | `add-notifications`  |
 | Live delivery (socket.io) + notification bell/page | Done    | `add-notifications`  |
-| Consultation workspace                             | Planned | a later change       |
-| Notes & prescriptions                              | Planned | a later change       |
+| Consultation workspace (join, state machine, presence) | Done | `add-consultations-and-records` |
+| Consultation notes & prescriptions, locked on completion | Done | `add-consultations-and-records` |
+| Patient records view + doctor patient-record view  | Done    | `add-consultations-and-records` |
 | Admin user/doctor/appointment oversight            | Planned | a later change       |
 | Product website (landing, disclaimers)             | Planned | a later change       |

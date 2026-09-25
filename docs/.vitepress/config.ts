@@ -26,6 +26,7 @@ export default withMermaid({
           { text: 'Deployment', link: '/architecture/deployment' },
           { text: 'Authentication & Authorization', link: '/architecture/auth' },
           { text: 'Notifications & Real-time', link: '/architecture/realtime' },
+          { text: 'Clinical Access', link: '/architecture/clinical-access' },
           { text: 'API Conventions', link: '/architecture/api-conventions' },
           { text: 'Data Model', link: '/architecture/data-model' },
         ],

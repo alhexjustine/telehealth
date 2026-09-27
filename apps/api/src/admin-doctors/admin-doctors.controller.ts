@@ -60,7 +60,7 @@ export class AdminDoctorsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Rejects a doctor, with a required note' })
   @ApiOkResponse({ type: AdminDoctorProfileDto })
-  @ApiResponse({ status: 409, description: 'STATUS_UNCHANGED', type: ErrorResponseDto })
+  @ApiResponse({ status: 409, description: 'STATUS_UNCHANGED | INVALID_VERIFICATION_TRANSITION', type: ErrorResponseDto })
   async reject(
     @CurrentUser() admin: AuthUser,
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,

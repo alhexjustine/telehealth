@@ -40,6 +40,8 @@ export const ErrorCode = {
   PRESCRIPTION_LIMIT_REACHED: 'PRESCRIPTION_LIMIT_REACHED',
   /** An admin status/verification change requested the status the target already has. */
   STATUS_UNCHANGED: 'STATUS_UNCHANGED',
+  /** An admin tried to reject a doctor whose verification status is not `PENDING` (e.g. already `APPROVED`). */
+  INVALID_VERIFICATION_TRANSITION: 'INVALID_VERIFICATION_TRANSITION',
   /** An admin tried to mark an appointment `NOT_HELD` that isn't flagged `NOT_COMPLETED`. */
   NOT_ELIGIBLE_FOR_NOT_HELD: 'NOT_ELIGIBLE_FOR_NOT_HELD',
 } as const;

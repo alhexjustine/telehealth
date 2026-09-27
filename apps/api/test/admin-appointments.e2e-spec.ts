@@ -121,7 +121,7 @@ describe('Admin appointment oversight', () => {
     expect(res.body.flags).toContain('NOT_COMPLETED');
   });
 
-  it('Upcoming appointment with a rejected doctor', async () => {
+  it('Upcoming appointment with a suspended doctor', async () => {
     const admin = await createAndSignInAdmin(app);
     const doctor = await registerBookableDoctor(app);
     const patient = await registerBookablePatient(app);
@@ -131,7 +131,13 @@ describe('Admin appointment oversight', () => {
       .send({ doctorId: doctor.id, startsAt: startsAt.toISOString(), reason: 'Follow-up consultation visit' })
       .expect(201);
 
-    await admin.agent.post(`/api/admin/doctors/${doctor.id}/reject`).send({ note: 'License could not be verified' }).expect(200);
+    // An approved doctor can no longer be rejected (restrict-doctor-reject-after-approval); suspend
+    // is the administrator's path to pull them out of active service, and the account-not-active
+    // branch of invalid-booking detection is what actually flags the appointment either way.
+    await admin.agent
+      .post(`/api/admin/users/${doctor.id}/status`)
+      .send({ status: 'SUSPENDED', reason: 'License could not be verified' })
+      .expect(200);
 
     const res = await admin.agent.get(`/api/admin/appointments/${booked.body.id as string}`).expect(200);
     expect(res.body.flags).toContain('DOCTOR_UNAVAILABLE');
@@ -146,7 +152,10 @@ describe('Admin appointment oversight', () => {
       .post('/api/appointments')
       .send({ doctorId: doctor.id, startsAt: startsAt.toISOString(), reason: 'Follow-up consultation visit' })
       .expect(201);
-    await admin.agent.post(`/api/admin/doctors/${doctor.id}/reject`).send({ note: 'License could not be verified' }).expect(200);
+    await admin.agent
+      .post(`/api/admin/users/${doctor.id}/status`)
+      .send({ status: 'SUSPENDED', reason: 'License could not be verified' })
+      .expect(200);
 
     const res = await admin.agent
       .post(`/api/admin/appointments/${booked.body.id as string}/cancel`)

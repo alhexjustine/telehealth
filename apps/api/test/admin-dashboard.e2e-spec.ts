@@ -25,7 +25,9 @@ describe('Admin dashboard', () => {
 
     const doctor = await registerBookableDoctor(app);
     const patient = await registerBookablePatient(app);
-    // Two invalid bookings: one stale-uncompleted, one with a since-rejected doctor.
+    // Two invalid bookings: one stale-uncompleted, one with a since-suspended doctor. (An approved
+    // doctor can no longer be rejected — restrict-doctor-reject-after-approval — so suspending the
+    // account is what pulls this one out of active service.)
     await createAppointmentDirect(app, {
       patientId: patient.id,
       doctorId: doctor.id,
@@ -38,7 +40,10 @@ describe('Admin dashboard', () => {
       doctorId: otherDoctor.id,
       startsAt: new Date(Date.now() + 3 * 3_600_000),
     });
-    await admin.agent.post(`/api/admin/doctors/${otherDoctor.id}/reject`).send({ note: 'Needs re-verification' }).expect(200);
+    await admin.agent
+      .post(`/api/admin/users/${otherDoctor.id}/status`)
+      .send({ status: 'SUSPENDED', reason: 'Needs re-verification' })
+      .expect(200);
 
     const res = await admin.agent.get('/api/admin/dashboard').expect(200);
 

@@ -1,28 +1,6 @@
-# admin-doctor-review Specification
+# Spec Delta
 
-## Purpose
-Lets administrators verify fictional doctor profiles before patients can see them, and correct
-doctor profile and specialization data, without any external verification service.
-
-## Requirements
-
-### Requirement: Review queue
-An administrator SHALL be able to list doctor profiles filtered by verification status (default
-`PENDING`), oldest submission first. The administrator SHALL be able to open any doctor's full
-profile, including email, license number, specializations, biography, experience, consultation
-length, account status, verification status, and review note.
-
-#### Scenario: Pending queue
-- **WHEN** an administrator opens the review queue with no filter
-- **THEN** only pending doctors are listed, the longest-waiting first
-
-#### Scenario: Full profile for review
-- **WHEN** an administrator opens a pending doctor's profile
-- **THEN** the response includes the doctor's email and license number
-
-#### Scenario: Non-admin denied
-- **WHEN** a signed-in doctor or patient calls any doctor review endpoint
-- **THEN** the response is `403`
+## MODIFIED Requirements
 
 ### Requirement: Approve or reject
 An administrator SHALL be able to approve a doctor, with an optional note, or reject a doctor,
@@ -55,19 +33,6 @@ are not cancelled automatically; they appear as invalid bookings in appointment 
 #### Scenario: Cannot reject an approved doctor
 - **WHEN** an administrator attempts to reject a doctor whose status is `APPROVED`
 - **THEN** the response is `409` with code `INVALID_VERIFICATION_TRANSITION`, and the doctor's verification status is unchanged
-
-### Requirement: Admin edits to doctor profiles
-An administrator SHALL be able to update a doctor's names, specializations, biography, years of
-experience, license number, and consultation length, under the same validation rules as the
-doctor's own profile update. Admin edits MUST NOT change the verification status.
-
-#### Scenario: Correct a specialization
-- **WHEN** an administrator replaces an approved doctor's specializations with Cardiology
-- **THEN** the profile shows Cardiology only, and the doctor stays `APPROVED`
-
-#### Scenario: Invalid admin edit
-- **WHEN** an administrator submits a consultation length of 25 minutes for a doctor
-- **THEN** the response is `400` and nothing changes
 
 ### Requirement: Doctor review pages in the web app
 The admin area SHALL include a review queue with tabs for pending, approved, and rejected doctors,

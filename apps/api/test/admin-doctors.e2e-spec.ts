@@ -103,6 +103,21 @@ describe('Admin doctor review', () => {
     expect(res.body.code).toBe('STATUS_UNCHANGED');
   });
 
+  it('Cannot reject an approved doctor', async () => {
+    const admin = await createAndSignInAdmin(app);
+    const doctor = await registerDoctor(app, { specializationIds: [spec(0)] });
+    await admin.agent.post(`/api/admin/doctors/${doctor.id}/approve`).send({}).expect(200);
+
+    const res = await admin.agent
+      .post(`/api/admin/doctors/${doctor.id}/reject`)
+      .send({ note: 'Repeated no-shows reported by patients' });
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('INVALID_VERIFICATION_TRANSITION');
+
+    const detail = await admin.agent.get(`/api/admin/doctors/${doctor.id}`).expect(200);
+    expect(detail.body.verificationStatus).toBe('APPROVED');
+  });
+
   it('Doctor notified of approval', async () => {
     const admin = await createAndSignInAdmin(app);
     const doctor = await registerDoctor(app, { specializationIds: [spec(0)] });
@@ -135,9 +150,17 @@ describe('Admin doctor review', () => {
     // Approving an already-approved doctor is rejected (409); no second entry should appear.
     await admin.agent.post(`/api/admin/doctors/${doctor.id}/approve`).send({}).expect(409);
 
+    // Rejecting an already-approved doctor is also rejected (409); no reject entry should appear.
+    await admin.agent
+      .post(`/api/admin/doctors/${doctor.id}/reject`)
+      .send({ note: 'Repeated no-shows reported by patients' })
+      .expect(409);
+
     const prisma = app.get(PrismaService);
-    const entries = await prisma.auditLog.findMany({ where: { action: AuditAction.DOCTOR_APPROVED, entityId: doctor.id } });
-    expect(entries).toHaveLength(1);
+    const approvedEntries = await prisma.auditLog.findMany({ where: { action: AuditAction.DOCTOR_APPROVED, entityId: doctor.id } });
+    expect(approvedEntries).toHaveLength(1);
+    const rejectedEntries = await prisma.auditLog.findMany({ where: { action: AuditAction.DOCTOR_REJECTED, entityId: doctor.id } });
+    expect(rejectedEntries).toHaveLength(0);
   });
 
   it('Correct a specialization', async () => {

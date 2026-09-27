@@ -209,6 +209,13 @@ export class AdminDoctorsService {
         if (doctor.verificationStatus === params.status) {
           throw new DomainError(HttpStatus.CONFLICT, ErrorCode.STATUS_UNCHANGED, 'The doctor already has this verification status.');
         }
+        if (params.status === VerificationStatus.REJECTED && doctor.verificationStatus === VerificationStatus.APPROVED) {
+          throw new DomainError(
+            HttpStatus.CONFLICT,
+            ErrorCode.INVALID_VERIFICATION_TRANSITION,
+            'An approved doctor cannot be rejected; suspend or deactivate the account instead.',
+          );
+        }
 
         const before = { verificationStatus: doctor.verificationStatus, reviewNote: doctor.reviewNote };
         const updated = await tx.doctorProfile.update({

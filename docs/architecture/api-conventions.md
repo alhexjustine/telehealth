@@ -44,6 +44,7 @@ Stable across releases — once shipped, a code is never renamed or repurposed.
 | Code                                | Status | Meaning                                                                 |
 | ------------------------------------ | :----: | ------------------------------------------------------------------------ |
 | `PROFILE_INCOMPLETE`                 |  409   | The patient's profile is missing a required field                       |
+| `DOCTOR_NOT_ACCEPTING_BOOKINGS`      |  409   | The doctor has paused new bookings (their "In"/"Out" toggle is "Out")   |
 | `SLOT_UNAVAILABLE`                   |  409   | The requested start/end no longer matches an available slot             |
 | `BEYOND_BOOKING_HORIZON`             |  409   | The requested start is more than 60 days ahead                          |
 | `BOOKING_LIMIT_REACHED`              |  409   | The patient already has 5 upcoming booked appointments                  |

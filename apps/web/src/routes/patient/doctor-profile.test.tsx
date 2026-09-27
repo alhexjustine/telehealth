@@ -19,6 +19,7 @@ const PROFILE = {
   yearsOfExperience: 10,
   consultationMinutes: 30,
   timezone: 'UTC',
+  acceptingBookings: true,
 };
 
 function renderPage() {
@@ -83,5 +84,18 @@ describe('PatientDoctorProfilePage', () => {
     expect(await screen.findByText(/no times are available/i)).toBeInTheDocument();
     const link = screen.getByRole('link', { name: /other dermatology doctors/i });
     expect(link).toHaveAttribute('href', '/patient/doctors?specialization=dermatology');
+  });
+
+  it('Not accepting bookings', async () => {
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/doctors/{doctorId}') return Promise.resolve(ok({ ...PROFILE, acceptingBookings: false }));
+      if (path === '/doctors/{doctorId}/slots') return Promise.resolve(ok([]));
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    renderPage();
+
+    expect(await screen.findByText(/isn't accepting new bookings right now/i)).toBeInTheDocument();
+    expect(screen.queryByText(/no times are available/i)).not.toBeInTheDocument();
   });
 });

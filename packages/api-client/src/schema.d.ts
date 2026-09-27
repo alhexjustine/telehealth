@@ -985,6 +985,7 @@ export interface components {
             yearsOfExperience: number | null;
             licenseNumber: string;
             consultationMinutes: number;
+            acceptingBookings: boolean;
             /** @enum {string} */
             verificationStatus: "PENDING" | "APPROVED" | "REJECTED";
             reviewNote: string | null;
@@ -999,6 +1000,8 @@ export interface components {
             licenseNumber?: string;
             /** @enum {number} */
             consultationMinutes?: 15 | 20 | 30 | 45 | 60;
+            /** @description Whether the doctor is currently accepting new bookings */
+            acceptingBookings?: boolean;
             /** @description Replaces the full set of specializations; at least one is required when provided */
             specializationIds?: string[];
         };
@@ -1055,6 +1058,7 @@ export interface components {
             bioExcerpt: string | null;
             yearsOfExperience: number | null;
             consultationMinutes: number;
+            acceptingBookings: boolean;
             /** Format: date-time */
             nextAvailableSlot: string | null;
         };
@@ -1078,6 +1082,7 @@ export interface components {
             yearsOfExperience: number | null;
             consultationMinutes: number;
             timezone: string;
+            acceptingBookings: boolean;
         };
         SymptomSummaryDto: {
             id: string;
@@ -2797,7 +2802,7 @@ export interface operations {
                     "application/json": components["schemas"]["AdminDoctorProfileDto"];
                 };
             };
-            /** @description STATUS_UNCHANGED */
+            /** @description STATUS_UNCHANGED | INVALID_VERIFICATION_TRANSITION */
             409: {
                 headers: {
                     [name: string]: unknown;

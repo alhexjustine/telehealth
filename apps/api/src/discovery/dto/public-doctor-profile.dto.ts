@@ -19,4 +19,5 @@ export class PublicDoctorProfileDto {
   @ApiProperty({ nullable: true, type: Number }) yearsOfExperience!: number | null;
   @ApiProperty() consultationMinutes!: number;
   @ApiProperty() timezone!: string;
+  @ApiProperty() acceptingBookings!: boolean;
 }

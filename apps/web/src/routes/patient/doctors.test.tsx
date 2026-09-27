@@ -4,6 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, RouterProvider } from 'react-router';
+import { addDays, format, startOfDay } from 'date-fns';
 import { FindDoctorPage } from './doctors';
 import { apiClient } from '@/lib/api-client';
 
@@ -18,7 +19,15 @@ const SPECIALIZATIONS = [
   { id: 'cardio-id', slug: 'cardiology', name: 'Cardiology', description: 'Heart' },
 ];
 
-function doctorResult(overrides: Partial<{ id: string; displayName: string; specializations: unknown[] }> = {}) {
+function doctorResult(
+  overrides: Partial<{
+    id: string;
+    displayName: string;
+    specializations: unknown[];
+    acceptingBookings: boolean;
+    nextAvailableSlot: string | null;
+  }> = {},
+) {
   return {
     id: 'doc-1',
     displayName: 'Dr. Grace Hopper',
@@ -26,6 +35,7 @@ function doctorResult(overrides: Partial<{ id: string; displayName: string; spec
     bioExcerpt: 'A great doctor',
     yearsOfExperience: 10,
     consultationMinutes: 30,
+    acceptingBookings: true,
     nextAvailableSlot: '2026-10-05T09:00:00.000Z',
     ...overrides,
   };
@@ -74,6 +84,114 @@ describe('FindDoctorPage', () => {
     await waitFor(() => expect(lastQuery?.specialization).toBe('dermatology'));
     await waitFor(() => expect(screen.queryByText('Dr. Cardio')).not.toBeInTheDocument());
     expect(screen.getByText('Dr. Grace Hopper')).toBeInTheDocument();
+  });
+
+  it('Search as you type', async () => {
+    let lastQuery: Record<string, unknown> | undefined;
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown, options?: { params?: { query?: Record<string, unknown> } }) => {
+      if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/doctors') {
+        lastQuery = options?.params?.query;
+        return Promise.resolve(ok({ items: [doctorResult()], total: 1, page: 1, pageSize: 12 }));
+      }
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    const router = renderPage();
+    await screen.findByText('Dr. Grace Hopper');
+    expect(screen.queryByRole('button', { name: /^search$/i })).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Search'), 'Hopper');
+
+    await waitFor(() => expect(router.state.location.search).toContain('q=Hopper'));
+    await waitFor(() => expect(lastQuery?.q).toBe('Hopper'));
+  });
+
+  it('Pick an availability range', async () => {
+    let lastQuery: Record<string, unknown> | undefined;
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown, options?: { params?: { query?: Record<string, unknown> } }) => {
+      if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/doctors') {
+        lastQuery = options?.params?.query;
+        return Promise.resolve(ok({ items: [doctorResult()], total: 1, page: 1, pageSize: 12 }));
+      }
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    const router = renderPage();
+    await screen.findByText('Dr. Grace Hopper');
+    expect(lastQuery?.availableFrom).toBeUndefined();
+
+    const today = new Date();
+    const tomorrow = addDays(today, 1);
+    await userEvent.click(screen.getByRole('button', { name: 'Available on Any day' }));
+    await userEvent.click(await screen.findByRole('button', { name: new RegExp(format(today, 'MMMM do')) }));
+    if (tomorrow.getMonth() !== today.getMonth()) {
+      await userEvent.click(screen.getByRole('button', { name: /next month/i }));
+    }
+    await userEvent.click(screen.getByRole('button', { name: new RegExp(format(tomorrow, 'MMMM do')) }));
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+    await waitFor(() =>
+      expect(router.state.location.search).toBe(
+        `?from=${format(today, 'yyyy-MM-dd')}&to=${format(tomorrow, 'yyyy-MM-dd')}`,
+      ),
+    );
+    await waitFor(() => expect(lastQuery?.availableTo).toBe(startOfDay(addDays(today, 2)).toISOString()));
+    expect(typeof lastQuery?.availableFrom).toBe('string');
+    expect(
+      screen.getByRole('button', { name: `Available on ${format(today, 'MMM d')} – ${format(tomorrow, 'MMM d')}` }),
+    ).toBeInTheDocument();
+  });
+
+  it('restores an availability range from the URL, and a single day with Apply', async () => {
+    let lastQuery: Record<string, unknown> | undefined;
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown, options?: { params?: { query?: Record<string, unknown> } }) => {
+      if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/doctors') {
+        lastQuery = options?.params?.query;
+        return Promise.resolve(ok({ items: [doctorResult()], total: 1, page: 1, pageSize: 12 }));
+      }
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+    const today = new Date();
+    const inThreeDays = addDays(today, 3);
+
+    const router = renderPage(`/patient/doctors?from=${format(today, 'yyyy-MM-dd')}&to=${format(inThreeDays, 'yyyy-MM-dd')}`);
+    await screen.findByText('Dr. Grace Hopper');
+    expect(lastQuery?.availableTo).toBe(startOfDay(addDays(today, 4)).toISOString());
+
+    await userEvent.click(
+      screen.getByRole('button', { name: `Available on ${format(today, 'MMM d')} – ${format(inThreeDays, 'MMM d')}` }),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: new RegExp(format(today, 'MMMM do')) }));
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+    const todayParam = format(today, 'yyyy-MM-dd');
+    await waitFor(() => expect(router.state.location.search).toBe(`?from=${todayParam}&to=${todayParam}`));
+    expect(screen.getByRole('button', { name: `Available on ${format(today, 'EEE, MMM d')}` })).toBeInTheDocument();
+  });
+
+  it('shows a "Not accepting bookings" chip instead of a next-available time', async () => {
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/doctors') {
+        return Promise.resolve(
+          ok({
+            items: [doctorResult({ acceptingBookings: false, nextAvailableSlot: null })],
+            total: 1,
+            page: 1,
+            pageSize: 12,
+          }),
+        );
+      }
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    renderPage();
+
+    expect(await screen.findByText('Not accepting bookings')).toBeInTheDocument();
+    expect(screen.queryByText('Next available')).not.toBeInTheDocument();
   });
 
   it('No results', async () => {

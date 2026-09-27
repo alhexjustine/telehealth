@@ -131,6 +131,42 @@ describe('Doctor slots', () => {
     expect(res.body).toHaveLength(2);
   });
 
+  it('Slots hidden while not accepting bookings', async () => {
+    const doctor = await registerDoctor(app);
+    await approveDoctor(app, doctor.id);
+    await doctor.agent
+      .put('/api/doctors/me/availability')
+      .send({ timezone: 'UTC', rules: [{ weekday: 1, startMinute: 9 * 60, endMinute: 10 * 60 }] })
+      .expect(200);
+    await doctor.agent.patch('/api/doctors/me/profile').send({ acceptingBookings: false }).expect(200);
+
+    const monday = nextWeekday(1);
+    const from = monday.toISOString();
+    const to = new Date(monday.getTime() + 24 * 60 * 60 * 1000).toISOString();
+
+    const patient = await registerPatient(app);
+    const res = await patient.agent.get(`/api/doctors/${doctor.id}/slots`).query({ from, to });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  it('Doctor still previews own slots while not accepting bookings', async () => {
+    const doctor = await registerDoctor(app);
+    await doctor.agent
+      .put('/api/doctors/me/availability')
+      .send({ timezone: 'UTC', rules: [{ weekday: 1, startMinute: 9 * 60, endMinute: 10 * 60 }] })
+      .expect(200);
+    await doctor.agent.patch('/api/doctors/me/profile').send({ acceptingBookings: false }).expect(200);
+
+    const monday = nextWeekday(1);
+    const from = monday.toISOString();
+    const to = new Date(monday.getTime() + 24 * 60 * 60 * 1000).toISOString();
+
+    const res = await doctor.agent.get(`/api/doctors/${doctor.id}/slots`).query({ from, to });
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(2);
+  });
+
   it('Signed-out denied (slots)', async () => {
     const doctor = await registerDoctor(app);
     const from = new Date().toISOString();

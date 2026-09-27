@@ -82,7 +82,9 @@ export function PatientDoctorProfilePage() {
                   empty={
                     <div className="flex flex-col gap-2">
                       <p className="text-muted-foreground">
-                        No times are available in the next {SLOT_HORIZON_DAYS} days.
+                        {profileData.acceptingBookings
+                          ? `No times are available in the next ${SLOT_HORIZON_DAYS} days.`
+                          : "This doctor isn't accepting new bookings right now."}
                       </p>
                       <Link
                         to={`/patient/doctors?specialization=${encodeURIComponent(profileData.specializations[0]?.slug ?? '')}`}

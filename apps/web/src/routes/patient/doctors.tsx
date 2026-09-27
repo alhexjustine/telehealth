@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
@@ -9,21 +9,24 @@ import { InitialsAvatar } from '@/components/initials-avatar';
 import { useSpecializations } from '@/lib/use-specializations';
 import { useDoctorSearch } from '@/lib/discovery/use-doctor-search';
 import {
-  AVAILABILITY_PRESETS,
-  AVAILABILITY_PRESET_LABELS,
-  type AvailabilityPreset,
-} from '@/lib/discovery/availability-preset';
+  formatAvailabilityDate,
+  parseAvailabilityRange,
+  type DayRange,
+} from '@/lib/discovery/availability-date';
+import { AvailabilityDatePicker } from '@/components/availability-date-picker';
 import { formatSlotDateTime } from '@/lib/format-slot-time';
 import { QueryState } from '@/components/query-state';
 
 const SORT_OPTIONS = [
   { value: 'next', label: 'Soonest available' },
-  { value: 'name', label: 'Name' },
   { value: 'experience', label: 'Most experienced' },
 ] as const;
 
+// Long enough that a search isn't fired on every keystroke, short enough to feel live.
+const SEARCH_DEBOUNCE_MS = 300;
+
 const selectClassName =
-  'h-9 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
+  'h-11 rounded-lg border border-input bg-card px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
 
 export function FindDoctorPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -31,13 +34,21 @@ export function FindDoctorPage() {
 
   const q = searchParams.get('q') ?? '';
   const specialization = searchParams.get('specialization') ?? '';
-  const availability = (searchParams.get('availability') as AvailabilityPreset | null) ?? 'any';
+  const availability = parseAvailabilityRange(searchParams.get('from'), searchParams.get('to'), new Date());
   const sort = (searchParams.get('sort') as 'next' | 'name' | 'experience' | null) ?? 'next';
   const page = Number(searchParams.get('page') ?? '1') || 1;
 
   const [qInput, setQInput] = useState(q);
 
-  const search = useDoctorSearch({ q, specialization, availabilityPreset: availability, sort, page });
+  const search = useDoctorSearch({
+    q,
+    specialization,
+    availability: availability
+      ? { from: formatAvailabilityDate(availability.from), to: formatAvailabilityDate(availability.to) }
+      : undefined,
+    sort,
+    page,
+  });
 
   function updateParam(key: string, value: string) {
     const next = new URLSearchParams(searchParams);
@@ -47,8 +58,35 @@ export function FindDoctorPage() {
     setSearchParams(next);
   }
 
-  function submitQuery() {
-    updateParam('q', qInput);
+  useEffect(() => {
+    const term = qInput.trim();
+    if (term === q) return;
+    const timer = setTimeout(() => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (term) next.set('q', term);
+          else next.delete('q');
+          next.delete('page');
+          return next;
+        },
+        { replace: true },
+      );
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [qInput, q, setSearchParams]);
+
+  function updateAvailability(range: DayRange | undefined) {
+    const next = new URLSearchParams(searchParams);
+    if (range) {
+      next.set('from', formatAvailabilityDate(range.from));
+      next.set('to', formatAvailabilityDate(range.to));
+    } else {
+      next.delete('from');
+      next.delete('to');
+    }
+    next.delete('page');
+    setSearchParams(next);
   }
 
   function setPage(nextPage: number) {
@@ -63,28 +101,21 @@ export function FindDoctorPage() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Find a doctor</h1>
+    <div className="mx-auto flex max-w-5xl flex-col gap-6 py-2">
+      <h1 className="text-3xl font-medium">Find a doctor</h1>
 
       <Card>
-        <CardContent className="flex flex-wrap items-end gap-4 pt-6">
-          <div className="flex flex-col gap-1">
+        <CardContent className="flex flex-wrap items-end gap-4 p-5 sm:p-6">
+          <div className="flex w-full flex-col gap-1 sm:w-auto">
             <Label htmlFor="doctor-search-q">Search</Label>
-            <div className="flex gap-2">
-              <Input
-                id="doctor-search-q"
-                placeholder="Name or specialization"
-                value={qInput}
-                onChange={(e) => setQInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') submitQuery();
-                }}
-                className="w-56"
-              />
-              <Button type="button" variant="outline" onClick={submitQuery}>
-                Search
-              </Button>
-            </div>
+            <Input
+              id="doctor-search-q"
+              type="search"
+              placeholder="Name or specialization"
+              value={qInput}
+              onChange={(e) => setQInput(e.target.value)}
+              className="sm:w-72"
+            />
           </div>
 
           <div className="flex flex-col gap-1">
@@ -105,19 +136,14 @@ export function FindDoctorPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <Label htmlFor="doctor-search-availability">Available</Label>
-            <select
-              id="doctor-search-availability"
-              className={selectClassName}
+            <Label id="doctor-search-date-label" htmlFor="doctor-search-date">
+              Available on
+            </Label>
+            <AvailabilityDatePicker
+              id="doctor-search-date"
               value={availability}
-              onChange={(e) => updateParam('availability', e.target.value)}
-            >
-              {AVAILABILITY_PRESETS.map((preset) => (
-                <option key={preset} value={preset}>
-                  {AVAILABILITY_PRESET_LABELS[preset]}
-                </option>
-              ))}
-            </select>
+              onChange={updateAvailability}
+            />
           </div>
 
           <div className="flex flex-col gap-1">
@@ -156,35 +182,45 @@ export function FindDoctorPage() {
         {(data) => (
         <div className="flex flex-col gap-3">
           {data.items.map((doctor) => (
-            <Link key={doctor.id} to={`/patient/doctors/${doctor.id}`}>
-              <Card className="transition-colors hover:bg-accent/50">
-                <CardContent className="flex items-center gap-4 pt-6">
-                  <InitialsAvatar name={doctor.displayName} className="size-12" />
-                  <div className="flex flex-1 flex-col gap-1">
-                    <CardTitle className="text-base">{doctor.displayName}</CardTitle>
-                    <div className="flex flex-wrap gap-1">
-                      {doctor.specializations.map((s) => (
-                        <Badge key={s.id} variant="secondary">
-                          {s.name}
-                        </Badge>
-                      ))}
+            <Link
+              key={doctor.id}
+              to={`/patient/doctors/${doctor.id}`}
+              className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <Card className="transition-colors group-hover:border-primary">
+                <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:gap-5 sm:p-6">
+                  <div className="flex flex-1 items-center gap-4 sm:gap-5">
+                    <InitialsAvatar name={doctor.displayName} className="size-14" />
+                    <div className="flex flex-1 flex-col gap-1.5">
+                      <CardTitle className="text-xl">{doctor.displayName}</CardTitle>
+                      <div className="flex flex-wrap gap-1">
+                        {doctor.specializations.map((s) => (
+                          <Badge key={s.id} variant="secondary">
+                            {s.name}
+                          </Badge>
+                        ))}
+                      </div>
+                      {doctor.yearsOfExperience !== null && (
+                        <p className="text-sm text-muted-foreground">
+                          {doctor.yearsOfExperience} years of experience
+                        </p>
+                      )}
                     </div>
-                    {doctor.yearsOfExperience !== null && (
-                      <p className="text-sm text-muted-foreground">
-                        {doctor.yearsOfExperience} years of experience
-                      </p>
-                    )}
                   </div>
-                  <div className="text-right text-sm">
-                    {doctor.nextAvailableSlot ? (
-                      <>
-                        <p className="font-medium">Next available</p>
-                        <p className="text-muted-foreground">{formatSlotDateTime(doctor.nextAvailableSlot)}</p>
-                      </>
-                    ) : (
-                      <p className="text-muted-foreground">No upcoming availability</p>
-                    )}
-                  </div>
+                  {!doctor.acceptingBookings ? (
+                    <div className="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground sm:min-w-44 sm:text-right">
+                      <p>Not accepting bookings</p>
+                    </div>
+                  ) : doctor.nextAvailableSlot ? (
+                    <div className="rounded-xl bg-secondary px-4 py-3 text-sm text-secondary-foreground sm:min-w-44 sm:text-right">
+                      <p className="font-semibold">Next available</p>
+                      <p>{formatSlotDateTime(doctor.nextAvailableSlot)}</p>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground sm:min-w-44 sm:text-right">
+                      <p>No upcoming availability</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </Link>

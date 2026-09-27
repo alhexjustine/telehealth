@@ -1,10 +1,6 @@
-# doctor-discovery Specification
+# Spec Delta
 
-## Purpose
-Lets signed-in patients find approved doctors by name, specialization, and availability, and view
-a doctor's profile and upcoming slots before booking.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Doctor search
 The system SHALL let any signed-in user search approved doctors, and MUST NOT include doctors
@@ -52,20 +48,6 @@ have no bookable time in any range.
 - **WHEN** an approved doctor has turned off accepting bookings and a patient filters by an availability range
 - **THEN** that doctor is not returned, even though their configured weekly hours would otherwise cover the range
 
-### Requirement: Sorting and pagination
-Search results SHALL be sorted by soonest next available slot by default, with doctors who have no
-slot last and ties broken by display name. Alternative sorts by display name or by years of
-experience (most first) SHALL be supported. Results SHALL be paginated with a page number and a
-page size (default 12, maximum 50), and the response SHALL include the total number of matches.
-
-#### Scenario: Default sort
-- **WHEN** three approved doctors have next slots tomorrow, today, and none
-- **THEN** they are returned in the order: today, tomorrow, none
-
-#### Scenario: Pagination
-- **WHEN** 15 doctors match and the patient requests page 2 with page size 12
-- **THEN** the response contains the last 3 doctors and a total of 15
-
 ### Requirement: Doctor profile view
 The system SHALL let any signed-in user view an approved doctor's profile, which includes:
 - display name, specializations with descriptions, and full biography
@@ -86,43 +68,3 @@ other user MUST receive not-found for doctors that are not approved or not activ
 #### Scenario: Not accepting bookings shown on profile
 - **WHEN** a signed-in patient opens the profile of an approved doctor who has turned off accepting bookings
 - **THEN** the response's `acceptingBookings` field is `false`
-
-### Requirement: Find a doctor page
-The patient area SHALL include a "Find a doctor" page with:
-- a search box that updates the results as the patient types (no separate search button), a
-  specialization filter, and an availability range picker: a calendar showing one month at a time
-  with arrows to move between months, limited to today and the next 13 days, where the patient
-  picks a start and an end day (or a single day), plus an option to clear it for any day
-- a sort selector and pagination
-- doctor cards showing initials avatar, name, specializations, experience, and next available
-  time in the patient's local time
-- an empty state suggesting guided matching when nothing matches
-
-#### Scenario: Filter from the page
-- **WHEN** a patient selects the Dermatology filter on the Find a doctor page
-- **THEN** the list shows only dermatologists and the URL reflects the filter so the view can be shared or reloaded
-
-#### Scenario: Search as you type
-- **WHEN** a patient types a doctor's name into the search box and pauses
-- **THEN** the list updates to matching doctors without pressing a button, and the URL reflects the search
-
-#### Scenario: Pick an availability range
-- **WHEN** a patient picks a start and an end day in the availability calendar and applies it
-- **THEN** only doctors with at least one available slot between the start of the first day and the end of the last day, in the patient's time zone, are listed, and the URL reflects the range
-
-#### Scenario: No results
-- **WHEN** a search on the page returns no doctors
-- **THEN** an empty state is shown with a link to guided matching
-
-### Requirement: Doctor profile page with slot picker
-The patient area SHALL include a doctor profile page. It shows the profile and the doctor's
-available slots for the next 14 days, grouped by date and displayed in the patient's local time
-zone with the zone named. Selecting a slot shows its date, time, and duration.
-
-#### Scenario: Slots shown in patient time
-- **WHEN** a patient whose browser time zone differs from the doctor's opens the doctor profile page
-- **THEN** slot times are shown in the patient's time zone, and the time zone is labeled
-
-#### Scenario: No availability
-- **WHEN** the doctor has no slots in the next 14 days
-- **THEN** the page states that no times are available and suggests other doctors with the same specialization

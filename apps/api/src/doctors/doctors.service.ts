@@ -61,6 +61,7 @@ export class DoctorsService {
     if (dto.yearsOfExperience !== undefined) data.yearsOfExperience = dto.yearsOfExperience;
     if (dto.licenseNumber !== undefined) data.licenseNumber = dto.licenseNumber;
     if (dto.consultationMinutes !== undefined) data.consultationMinutes = dto.consultationMinutes;
+    if (dto.acceptingBookings !== undefined) data.acceptingBookings = dto.acceptingBookings;
     if (specializationIds) {
       // Full replace: doctors submit the complete desired set, not a delta.
       data.specializations = {
@@ -99,6 +100,7 @@ export class DoctorsService {
       yearsOfExperience: profile.yearsOfExperience,
       licenseNumber: profile.licenseNumber,
       consultationMinutes: profile.consultationMinutes,
+      acceptingBookings: profile.acceptingBookings,
       verificationStatus: profile.verificationStatus,
       reviewNote: profile.reviewNote,
       specializations: profile.specializations.map((link) => ({

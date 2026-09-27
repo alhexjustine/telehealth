@@ -4,7 +4,12 @@ import request from 'supertest';
 import { createTestApp } from './support/test-app.js';
 import { resetDatabase } from './support/reset-db.js';
 import { registerDoctor, registerPatient } from './support/auth-helpers.js';
-import { approveDoctor } from './support/appointment-helpers.js';
+import {
+  approveDoctor,
+  giveFullWeekAvailability,
+  nextSlotStart,
+  registerBookablePatient,
+} from './support/appointment-helpers.js';
 
 describe('Doctor profile', () => {
   let app: INestApplication;
@@ -126,6 +131,45 @@ describe('Doctor profile', () => {
 
     const search = await doctor.agent.get('/api/doctors').expect(200);
     expect(search.body.items.map((d: { id: string }) => d.id)).not.toContain(doctor.id);
+  });
+
+  it('Turn off accepting bookings', async () => {
+    const doctor = await registerDoctor(app, { specializationIds: [spec(0)] });
+    await approveDoctor(app, doctor.id);
+
+    const res = await doctor.agent.patch('/api/doctors/me/profile').send({ acceptingBookings: false });
+
+    expect(res.status).toBe(200);
+    expect(res.body.acceptingBookings).toBe(false);
+    expect(res.body.verificationStatus).toBe('APPROVED');
+  });
+
+  it('Turn on accepting bookings', async () => {
+    const doctor = await registerDoctor(app, { specializationIds: [spec(0)] });
+    await approveDoctor(app, doctor.id);
+    await doctor.agent.patch('/api/doctors/me/profile').send({ acceptingBookings: false }).expect(200);
+
+    const res = await doctor.agent.patch('/api/doctors/me/profile').send({ acceptingBookings: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body.acceptingBookings).toBe(true);
+  });
+
+  it('Existing appointments unaffected', async () => {
+    const doctor = await registerDoctor(app, { specializationIds: [spec(0)] });
+    await approveDoctor(app, doctor.id);
+    await giveFullWeekAvailability(doctor.agent);
+    const patient = await registerBookablePatient(app);
+    const start = nextSlotStart(new Date());
+    const booked = await patient.agent
+      .post('/api/appointments')
+      .send({ doctorId: doctor.id, startsAt: start.toISOString(), reason: 'Booked before pausing bookings' })
+      .expect(201);
+
+    await doctor.agent.patch('/api/doctors/me/profile').send({ acceptingBookings: false }).expect(200);
+
+    const appointment = await patient.agent.get(`/api/appointments/${booked.body.id}`).expect(200);
+    expect(appointment.body.status).toBe('BOOKED');
   });
 
   it('Other edits keep approval', async () => {

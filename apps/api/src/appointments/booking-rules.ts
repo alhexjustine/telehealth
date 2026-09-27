@@ -63,7 +63,16 @@ export class BookingRules {
       throw new NotFoundException('Doctor not found');
     }
 
-    // 3. Within the booking horizon.
+    // 3. Doctor is accepting bookings.
+    if (!doctorProfile.acceptingBookings) {
+      throw new DomainError(
+        HttpStatus.CONFLICT,
+        ErrorCode.DOCTOR_NOT_ACCEPTING_BOOKINGS,
+        'This doctor is not accepting new bookings right now.',
+      );
+    }
+
+    // 4. Within the booking horizon.
     const horizonMs = params.now.getTime() + BOOKING_HORIZON_DAYS * 24 * 60 * 60 * 1000;
     if (params.startsAt.getTime() > horizonMs) {
       throw new DomainError(
@@ -73,7 +82,7 @@ export class BookingRules {
       );
     }
 
-    // 4. Under the patient's upcoming-appointment limit.
+    // 5. Under the patient's upcoming-appointment limit.
     const upcomingCount = await tx.appointment.count({
       where: {
         patientId: params.patientId,
@@ -92,7 +101,7 @@ export class BookingRules {
 
     const endsAt = new Date(params.startsAt.getTime() + doctorProfile.consultationMinutes * 60_000);
 
-    // 5. Exactly matches a currently available slot.
+    // 6. Exactly matches a currently available slot.
     const [rules, exceptions, booked] = await Promise.all([
       tx.availabilityRule.findMany({ where: { doctorId: params.doctorId } }),
       tx.availabilityException.findMany({
@@ -125,7 +134,7 @@ export class BookingRules {
       throw new DomainError(HttpStatus.CONFLICT, ErrorCode.SLOT_UNAVAILABLE, 'That slot is no longer available.');
     }
 
-    // 6. No overlap with the patient's own other booked appointments.
+    // 7. No overlap with the patient's own other booked appointments.
     const patientOverlapCount = await tx.appointment.count({
       where: {
         patientId: params.patientId,

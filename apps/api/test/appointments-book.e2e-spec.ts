@@ -205,6 +205,23 @@ describe('Book an appointment', () => {
     expect(suspendedRes.status).toBe(404);
   });
 
+  it('Doctor not accepting bookings', async () => {
+    const doctor = await registerBookableDoctor(app);
+    const patient = await registerBookablePatient(app);
+    const start = nextSlotStart(new Date());
+
+    await doctor.agent.patch('/api/doctors/me/profile').send({ acceptingBookings: false }).expect(200);
+
+    const res = await patient.agent.post('/api/appointments').send({
+      doctorId: doctor.id,
+      startsAt: start.toISOString(),
+      reason: 'A valid ten-plus character reason',
+    });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('DOCTOR_NOT_ACCEPTING_BOOKINGS');
+  });
+
   it('Non-patient denied (booking)', async () => {
     const doctor = await registerBookableDoctor(app);
     const otherDoctor = await registerDoctor(app);

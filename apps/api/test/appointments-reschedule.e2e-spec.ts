@@ -111,6 +111,29 @@ describe('Reschedule an appointment', () => {
     expect(unchanged.body.status).toBe('BOOKED');
   });
 
+  it('Doctor stopped accepting bookings', async () => {
+    const doctor = await registerBookableDoctor(app);
+    const patient = await registerBookablePatient(app);
+    const originalStart = slotDaysOut(2);
+
+    const booked = await patient.agent
+      .post('/api/appointments')
+      .send({ doctorId: doctor.id, startsAt: originalStart.toISOString(), reason: 'Original booking to reschedule' })
+      .expect(201);
+
+    await doctor.agent.patch('/api/doctors/me/profile').send({ acceptingBookings: false }).expect(200);
+
+    const res = await patient.agent
+      .post(`/api/appointments/${booked.body.id}/reschedule`)
+      .send({ startsAt: slotDaysOut(3).toISOString() });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('DOCTOR_NOT_ACCEPTING_BOOKINGS');
+
+    const unchanged = await patient.agent.get(`/api/appointments/${booked.body.id}`).expect(200);
+    expect(unchanged.body.status).toBe('BOOKED');
+  });
+
   it("Not the patient's appointment", async () => {
     const doctor = await registerBookableDoctor(app);
     const owner = await registerBookablePatient(app);

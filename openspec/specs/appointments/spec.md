@@ -13,6 +13,7 @@ reason of 10 to 500 characters, and optionally up to 10 symptom IDs from the cat
 is accepted only when all of the following hold:
 - the patient's profile is complete
 - the doctor is visible (approved and active)
+- the doctor is currently accepting new bookings
 - the start and end exactly match one of the doctor's currently available slots
 - the start is at most 60 days ahead
 - the patient has fewer than 5 upcoming booked appointments
@@ -52,6 +53,10 @@ consultation length.
 - **WHEN** a signed-in doctor or administrator tries to book through the patient booking endpoint
 - **THEN** the response is `403`
 
+#### Scenario: Doctor not accepting bookings
+- **WHEN** a patient tries to book an otherwise-available slot with an approved doctor who has turned off accepting bookings
+- **THEN** the response is `409` with code `DOCTOR_NOT_ACCEPTING_BOOKINGS` and nothing is booked
+
 ### Requirement: No double-booking under concurrency
 The system MUST guarantee that a doctor never has two overlapping `BOOKED` appointments, and a
 patient never has two overlapping `BOOKED` appointments, even when requests race. This SHALL be
@@ -88,6 +93,10 @@ keeping the reason and symptoms, in one atomic operation.
 #### Scenario: Not the patient's appointment
 - **WHEN** a patient tries to reschedule an appointment that belongs to another patient
 - **THEN** the response is `404`
+
+#### Scenario: Doctor stopped accepting bookings
+- **WHEN** a patient tries to reschedule to a new slot with a doctor who has turned off accepting bookings since the original booking
+- **THEN** the response is `409` with code `DOCTOR_NOT_ACCEPTING_BOOKINGS`, and the original appointment is still `BOOKED`
 
 ### Requirement: Cancel an appointment
 A patient SHALL be able to cancel their own `BOOKED` appointment at any time before it starts, with

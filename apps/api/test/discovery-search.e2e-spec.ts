@@ -192,6 +192,67 @@ describe('Doctor search', () => {
     expect(ids).not.toContain(later.id);
   });
 
+  it('Next available slot reflects the availability filter, not the overall next slot', async () => {
+    const doctor = await registerDoctor(app, { specializationIds: [specBySlug('dermatology').id] });
+    await approveDoctor(app, doctor.id);
+    await doctor.agent
+      .put('/api/doctors/me/availability')
+      .send({ timezone: 'UTC', rules: [1, 2, 3, 4, 5, 6, 7].map(fullDayRule) })
+      .expect(200);
+
+    const patient = await registerPatient(app);
+    const from = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    const to = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString();
+    const res = await patient.agent.get('/api/doctors').query({ availableFrom: from, availableTo: to });
+
+    expect(res.status).toBe(200);
+    const item = res.body.items.find((i: { id: string }) => i.id === doctor.id);
+    expect(item).toBeDefined();
+    // The doctor is open every day, so their overall next slot is today — well before `from`.
+    // The card must show their next slot inside the filtered range instead.
+    const slot = new Date(item.nextAvailableSlot).getTime();
+    expect(slot).toBeGreaterThanOrEqual(new Date(from).getTime());
+    expect(slot).toBeLessThan(new Date(to).getTime());
+  });
+
+  it('Not accepting bookings still listed', async () => {
+    const doctor = await registerDoctor(app, { specializationIds: [specBySlug('dermatology').id] });
+    await approveDoctor(app, doctor.id);
+    await doctor.agent
+      .put('/api/doctors/me/availability')
+      .send({ timezone: 'UTC', rules: [1, 2, 3, 4, 5, 6, 7].map(fullDayRule) })
+      .expect(200);
+    await doctor.agent.patch('/api/doctors/me/profile').send({ acceptingBookings: false }).expect(200);
+
+    const patient = await registerPatient(app);
+    // A generous page size: this doctor has no next slot, so default ('next') sort puts them
+    // behind every doctor created by earlier tests in this file that does have one.
+    const res = await patient.agent.get('/api/doctors').query({ pageSize: 50 });
+
+    expect(res.status).toBe(200);
+    const item = res.body.items.find((i: { id: string }) => i.id === doctor.id);
+    expect(item).toMatchObject({ acceptingBookings: false, nextAvailableSlot: null });
+  });
+
+  it('Not accepting bookings excluded from an availability filter', async () => {
+    const doctor = await registerDoctor(app, { specializationIds: [specBySlug('dermatology').id] });
+    await approveDoctor(app, doctor.id);
+    await doctor.agent
+      .put('/api/doctors/me/availability')
+      .send({ timezone: 'UTC', rules: [1, 2, 3, 4, 5, 6, 7].map(fullDayRule) })
+      .expect(200);
+    await doctor.agent.patch('/api/doctors/me/profile').send({ acceptingBookings: false }).expect(200);
+
+    const patient = await registerPatient(app);
+    const from = new Date().toISOString();
+    const to = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    const res = await patient.agent.get('/api/doctors').query({ availableFrom: from, availableTo: to });
+
+    expect(res.status).toBe(200);
+    const ids = res.body.items.map((item: { id: string }) => item.id);
+    expect(ids).not.toContain(doctor.id);
+  });
+
   it('Invalid filters', async () => {
     const patient = await registerPatient(app);
 

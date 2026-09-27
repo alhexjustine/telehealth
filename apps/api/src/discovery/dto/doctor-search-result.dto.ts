@@ -8,6 +8,7 @@ export class DoctorSearchResultDto {
   @ApiProperty({ nullable: true, type: String, maxLength: 200 }) bioExcerpt!: string | null;
   @ApiProperty({ nullable: true, type: Number }) yearsOfExperience!: number | null;
   @ApiProperty() consultationMinutes!: number;
+  @ApiProperty() acceptingBookings!: boolean;
   @ApiProperty({ nullable: true, type: String, format: 'date-time' })
   nextAvailableSlot!: string | null;
 }

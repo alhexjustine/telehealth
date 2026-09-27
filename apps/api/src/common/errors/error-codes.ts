@@ -24,6 +24,8 @@ export const ErrorCode = {
   SCHEDULE_CONFLICTS_WITH_BOOKINGS: 'SCHEDULE_CONFLICTS_WITH_BOOKINGS',
   /** The appointment behind a consultation workspace/record is not `BOOKED` (e.g. cancelled). */
   APPOINTMENT_NOT_ACTIVE: 'APPOINTMENT_NOT_ACTIVE',
+  /** A booking or reschedule was attempted against a doctor who has turned off accepting bookings. */
+  DOCTOR_NOT_ACCEPTING_BOOKINGS: 'DOCTOR_NOT_ACCEPTING_BOOKINGS',
   /** A join was attempted outside `[startsAt - 15m, endsAt + 30m]`. */
   OUTSIDE_JOIN_WINDOW: 'OUTSIDE_JOIN_WINDOW',
   /** The doctor tried to start a consultation before the patient joined. */

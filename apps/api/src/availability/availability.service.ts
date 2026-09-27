@@ -185,6 +185,13 @@ export class AvailabilityService {
       throw new NotFoundException('Doctor not found');
     }
 
+    // A doctor who has paused new bookings still previews their own slots (for planning), but
+    // shows none to anyone else — distinct from the visibility check above, which is about
+    // verification/account status, not this deliberate, doctor-controlled pause.
+    if (caller.id !== doctorId && !profile.acceptingBookings) {
+      return [];
+    }
+
     const [rules, exceptions, booked] = await Promise.all([
       this.prisma.availabilityRule.findMany({ where: { doctorId } }),
       this.prisma.availabilityException.findMany({

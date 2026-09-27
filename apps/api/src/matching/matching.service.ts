@@ -108,7 +108,9 @@ export class MatchingService {
       id: profile.userId,
       displayName: `${profile.firstName} ${profile.lastName}`,
       specializationIds: profile.specializations.map((s) => s.specializationId),
-      nextAvailableSlot: nextSlots.get(profile.userId) ?? null,
+      // A doctor who has paused new bookings has no bookable time; the existing "no slot sorts
+      // last" rule already puts them appropriately behind bookable doctors.
+      nextAvailableSlot: profile.acceptingBookings ? (nextSlots.get(profile.userId) ?? null) : null,
     }));
   }
 }

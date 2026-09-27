@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { DoctorHomePage } from './home';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
@@ -8,7 +8,10 @@ import { useAvailability } from '@/lib/availability/use-availability';
 import { useAppointments } from '@/lib/appointments/use-appointments';
 
 vi.mock('@/lib/auth/use-current-user', () => ({ useCurrentUser: vi.fn() }));
-vi.mock('@/lib/doctors/use-doctor-profile', () => ({ useDoctorProfile: vi.fn() }));
+vi.mock('@/lib/doctors/use-doctor-profile', () => ({
+  useDoctorProfile: vi.fn(),
+  useUpdateDoctorProfile: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
+}));
 vi.mock('@/lib/availability/use-availability', () => ({ useAvailability: vi.fn() }));
 vi.mock('@/lib/appointments/use-appointments', () => ({ useAppointments: vi.fn() }));
 
@@ -119,5 +122,21 @@ describe('DoctorHomePage', () => {
     expect(names.map((el) => el.textContent)).toEqual(['Ada Lovelace', 'Rosalind Franklin', 'Alan Turing']);
     expect(screen.queryByText('Not Today')).not.toBeInTheDocument();
     expect(screen.getByText('Checkup')).toBeInTheDocument();
+  });
+
+  it('links to the doctor areas from the action cards', () => {
+    vi.mocked(useCurrentUser).mockReturnValue({
+      data: { id: '1', email: 'd@example.com', role: 'DOCTOR', status: 'ACTIVE', displayName: 'Grace Hopper', verificationStatus: 'APPROVED' },
+    } as never);
+    vi.mocked(useDoctorProfile).mockReturnValue({ data: undefined } as never);
+    mockNoAppointments();
+
+    renderHome();
+    const actions = within(screen.getByRole('region', { name: 'What would you like to do?' }));
+
+    expect(actions.getByRole('link', { name: /^appointments/i })).toHaveAttribute('href', '/doctor/appointments');
+    expect(actions.getByRole('link', { name: /^schedule/i })).toHaveAttribute('href', '/doctor/schedule');
+    expect(actions.queryByRole('link', { name: /^profile/i })).not.toBeInTheDocument();
+    expect(actions.queryByRole('link', { name: /^notifications/i })).not.toBeInTheDocument();
   });
 });

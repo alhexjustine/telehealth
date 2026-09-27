@@ -2,6 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsOptional,
@@ -53,6 +54,11 @@ export class UpdateDoctorProfileDto {
   @IsOptional()
   @IsIn(ALLOWED_CONSULTATION_MINUTES)
   consultationMinutes?: number;
+
+  @ApiPropertyOptional({ description: 'Whether the doctor is currently accepting new bookings' })
+  @IsOptional()
+  @IsBoolean()
+  acceptingBookings?: boolean;
 
   @ApiPropertyOptional({
     type: [String],

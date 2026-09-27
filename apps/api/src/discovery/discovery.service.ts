@@ -59,9 +59,12 @@ export class DiscoveryService {
       now,
     );
 
+    // A doctor who has paused new bookings has no bookable time at all, regardless of their
+    // configured weekly hours — treated as slot-less here so they still appear in an unfiltered
+    // search (with no next-available time) but never match an availability-range filter.
     let candidates = profiles.map((profile) => ({
       profile,
-      slots: slotsByDoctor.get(profile.userId) ?? [],
+      slots: profile.acceptingBookings ? (slotsByDoctor.get(profile.userId) ?? []) : [],
     }));
 
     if (availabilityRange) {
@@ -78,7 +81,7 @@ export class DiscoveryService {
     const pageItems = candidates.slice(start, start + pageSize);
 
     return {
-      items: pageItems.map((candidate) => toSearchResultDto(candidate.profile, candidate.slots)),
+      items: pageItems.map((candidate) => toSearchResultDto(candidate.profile, candidate.slots, availabilityRange)),
       total,
       page,
       pageSize,
@@ -116,6 +119,7 @@ export class DiscoveryService {
       yearsOfExperience: profile.yearsOfExperience,
       consultationMinutes: profile.consultationMinutes,
       timezone: profile.timezone,
+      acceptingBookings: profile.acceptingBookings,
     };
   }
 
@@ -166,7 +170,17 @@ function toSlotInput(profile: DoctorWithSpecializations): DoctorSlotInput {
   };
 }
 
-function toSearchResultDto(profile: DoctorWithSpecializations, slots: Slot[]): DoctorSearchResultDto {
+function toSearchResultDto(
+  profile: DoctorWithSpecializations,
+  slots: Slot[],
+  availabilityRange?: { from: Date; to: Date },
+): DoctorSearchResultDto {
+  // When the patient picked an availability range, show the doctor's next slot inside that range
+  // (every listed candidate has at least one, per the filter above) rather than their overall next
+  // slot, which can fall outside — and before — the range the patient asked for.
+  const relevantSlots = availabilityRange
+    ? slots.filter((slot) => slot.start >= availabilityRange.from && slot.start < availabilityRange.to)
+    : slots;
   return {
     id: profile.userId,
     displayName: `${profile.firstName} ${profile.lastName}`,
@@ -177,7 +191,8 @@ function toSearchResultDto(profile: DoctorWithSpecializations, slots: Slot[]): D
     bioExcerpt: excerpt(profile.bio, BIO_EXCERPT_LENGTH),
     yearsOfExperience: profile.yearsOfExperience,
     consultationMinutes: profile.consultationMinutes,
-    nextAvailableSlot: slots[0] ? slots[0].start.toISOString() : null,
+    acceptingBookings: profile.acceptingBookings,
+    nextAvailableSlot: relevantSlots[0] ? relevantSlots[0].start.toISOString() : null,
   };
 }
 

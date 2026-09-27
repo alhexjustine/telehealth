@@ -84,6 +84,18 @@ describe('Doctor public profile', () => {
     expect(notADoctorRes.status).toBe(404);
   });
 
+  it('Not accepting bookings shown on profile', async () => {
+    const doctor = await registerDoctor(app);
+    await approveDoctor(app, doctor.id);
+    await doctor.agent.patch('/api/doctors/me/profile').send({ acceptingBookings: false }).expect(200);
+
+    const patient = await registerPatient(app);
+    const res = await patient.agent.get(`/api/doctors/${doctor.id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.acceptingBookings).toBe(false);
+  });
+
   it('Doctor views own profile regardless of status', async () => {
     const doctor = await registerDoctor(app);
     const res = await doctor.agent.get(`/api/doctors/${doctor.id}`);

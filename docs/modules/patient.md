@@ -9,19 +9,28 @@
 
 A visitor registers as a patient with an email, password, and name; the account is signed in
 immediately (server-side session, `httpOnly` cookie — see
-[Authentication & Authorization](/architecture/auth)). The patient area has its own navigation,
-an initials avatar, and sign-out (this device or all devices). Patients view and edit their own
+[Authentication & Authorization](/architecture/auth)). The patient area has its own navigation and
+an initials-avatar account menu (Profile, Sign out); signing out of all devices lives in the
+Profile page's Security card. Patients view and edit their own
 profile — name, birthday, weight, height, phone, emergency contact, and basic medical history —
 and the patient home page prompts them to finish it until the required fields (name, birthday,
 weight, height, phone) are all set.
 
 Once signed in, a patient finds a doctor one of two ways:
 
-- **Find a doctor** — a search over approved, active doctors by name or specialization, with a
-  specialization filter, an "available between" filter (today / next 3, 7, or 14 days / any), and
-  sorting by soonest availability, name, or years of experience. Each result shows the doctor's
-  next available slot within 14 days. Opening a doctor shows their full profile and a 14-day slot
-  picker, grouped by date and shown in the patient's own time zone.
+- **Find a doctor** — a search over approved, active doctors by name or specialization that
+  updates as the patient types (debounced, no search button), with a specialization filter, an
+  "Available on" range calendar (one month at a time with arrows, today through the next 13 days;
+  pick a start and end day, or a single day, then Apply — the range of local days is sent as an
+  `availableFrom`/`availableTo` instant range), and sorting by soonest availability or years of
+  experience (the API also accepts a name sort; the page's Sort by control just doesn't offer it).
+  Search, filters, and the picked range live in the URL. Each result shows the doctor's
+  next available slot within 14 days, or, for a doctor who has paused new bookings
+  (`acceptingBookings: false` — see [Doctor](/modules/doctor)), a plain "Not accepting bookings"
+  notice in its place; that doctor is still listed, just excluded from a range-filtered search since
+  they have no bookable time. Opening a doctor shows their full profile — including the same
+  not-accepting notice in place of the slot picker when it applies — and a 14-day slot picker,
+  grouped by date and shown in the patient's own time zone.
 - **Find care** — guided matching. The patient picks symptoms from a categorized catalog and/or
   describes them in free text; the API scores specializations and ranks doctors with a
   deterministic, explainable algorithm (no external AI). A red-flag symptom shows an emergency
@@ -45,12 +54,15 @@ share so the rules can't diverge:
 1. the patient's own profile is complete
 2. the doctor is visible (`APPROVED` and `ACTIVE`) — otherwise `404`, the same non-disclosure as
    discovery
-3. the start is at most 60 days ahead (`BEYOND_BOOKING_HORIZON`)
-4. the patient has fewer than 5 upcoming `BOOKED` appointments (`BOOKING_LIMIT_REACHED`)
-5. the start exactly matches a slot `generateSlots` would currently return for that doctor
+3. the doctor is currently accepting bookings (`DOCTOR_NOT_ACCEPTING_BOOKINGS`) — see
+   [Doctor](/modules/doctor)'s "In"/"Out" toggle; a doctor pausing bookings mid-request is caught
+   here, in the same transaction as the write
+4. the start is at most 60 days ahead (`BEYOND_BOOKING_HORIZON`)
+5. the patient has fewer than 5 upcoming `BOOKED` appointments (`BOOKING_LIMIT_REACHED`)
+6. the start exactly matches a slot `generateSlots` would currently return for that doctor
    (`SLOT_UNAVAILABLE`) — reusing the same slot calculation the doctor availability page and the
    slot picker call, so "available" never means two different things
-6. the time doesn't overlap the patient's own other `BOOKED` appointments (`PATIENT_CONFLICT`)
+7. the time doesn't overlap the patient's own other `BOOKED` appointments (`PATIENT_CONFLICT`)
 
 See [API Conventions](/architecture/api-conventions) for the full error `code` catalogue. On
 `SLOT_UNAVAILABLE` the booking page says the time was just taken and refreshes the slot list; on

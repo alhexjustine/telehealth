@@ -2190,7 +2190,7 @@
             }
           },
           "409": {
-            "description": "STATUS_UNCHANGED",
+            "description": "STATUS_UNCHANGED | INVALID_VERIFICATION_TRANSITION",
             "content": {
               "application/json": {
                 "schema": {
@@ -2977,6 +2977,9 @@
           "consultationMinutes": {
             "type": "number"
           },
+          "acceptingBookings": {
+            "type": "boolean"
+          },
           "verificationStatus": {
             "type": "string",
             "enum": [
@@ -3003,6 +3006,7 @@
           "yearsOfExperience",
           "licenseNumber",
           "consultationMinutes",
+          "acceptingBookings",
           "verificationStatus",
           "reviewNote",
           "specializations"
@@ -3038,6 +3042,10 @@
               45,
               60
             ]
+          },
+          "acceptingBookings": {
+            "type": "boolean",
+            "description": "Whether the doctor is currently accepting new bookings"
           },
           "specializationIds": {
             "description": "Replaces the full set of specializations; at least one is required when provided",
@@ -3238,6 +3246,9 @@
           "consultationMinutes": {
             "type": "number"
           },
+          "acceptingBookings": {
+            "type": "boolean"
+          },
           "nextAvailableSlot": {
             "type": "string",
             "nullable": true,
@@ -3251,6 +3262,7 @@
           "bioExcerpt",
           "yearsOfExperience",
           "consultationMinutes",
+          "acceptingBookings",
           "nextAvailableSlot"
         ]
       },
@@ -3331,6 +3343,9 @@
           },
           "timezone": {
             "type": "string"
+          },
+          "acceptingBookings": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -3340,7 +3355,8 @@
           "specializations",
           "yearsOfExperience",
           "consultationMinutes",
-          "timezone"
+          "timezone",
+          "acceptingBookings"
         ]
       },
       "SymptomSummaryDto": {

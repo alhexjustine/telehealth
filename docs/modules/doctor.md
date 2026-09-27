@@ -42,6 +42,16 @@ plus a "Join consultation" action once the join window is open (see
 doctor home page's **Today** card lists the day's appointments (by the doctor's own local date) in
 start order, with the same join action.
 
+The home page also has an "In" / "Out" toggle (`acceptingBookings` on the doctor's profile,
+defaulting to `true`) that pauses or resumes new bookings without touching verification status,
+account status, or any existing appointment. While "Out", `BookingRules.assertBookable()` rejects
+new bookings and reschedules with `409 DOCTOR_NOT_ACCEPTING_BOOKINGS`, and the doctor's slots are
+hidden from patients (`GET /doctors/{id}/slots` returns `[]` to anyone but the doctor themselves,
+who still previews their own full schedule). The doctor still appears in search, their profile
+still opens, and guided matching still considers them — each just shows no next-available time and,
+on search/the profile page, a plain "Not accepting bookings" notice instead. See
+[Patient](/modules/patient#booking-an-appointment) for what a patient sees.
+
 A doctor cancels their own upcoming `BOOKED` appointment with a required reason (5-500
 characters); `POST /appointments/{id}/cancel` returns `400` if it's missing or too short. See
 [Patient](/modules/patient#booking-an-appointment) for the shared booking rules, error codes, and

@@ -1,3 +1,4 @@
+import { CalendarClock, CalendarDays } from 'lucide-react';
 import { Link } from 'react-router';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -9,15 +10,25 @@ import { useAppointments } from '@/lib/appointments/use-appointments';
 import { formatSlotTimeOnly } from '@/lib/discovery/slot-grouping';
 import { JoinConsultationButton } from '@/components/join-consultation-button';
 import { QueryState } from '@/components/query-state';
+import { HomeActions, type HomeAction } from '@/components/home-actions';
+import { AcceptingBookingsToggle } from '@/components/accepting-bookings-toggle';
+import { isSameLocalDate } from '@/lib/appointments/is-same-local-date';
 
-/** Whether `iso` falls on `reference`'s calendar date in `timezone`. */
-function isSameLocalDate(iso: string, timezone: string, reference: Date): boolean {
-  const format = (date: Date) =>
-    new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(
-      date,
-    );
-  return format(new Date(iso)) === format(reference);
-}
+const ACTIONS: HomeAction[] = [
+  {
+    to: '/doctor/appointments',
+    label: 'Appointments',
+    description: 'Upcoming and past consultations with your patients.',
+    icon: CalendarDays,
+  },
+  {
+    to: '/doctor/schedule',
+    label: 'Schedule',
+    description: 'Set your weekly hours and block out time off.',
+    icon: CalendarClock,
+  },
+];
+
 
 export function DoctorHomePage() {
   const { data: user } = useCurrentUser();
@@ -28,8 +39,11 @@ export function DoctorHomePage() {
   const timezone = availability.data?.timezone ?? 'UTC';
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Welcome{user ? `, ${user.displayName}` : ''}</h1>
+    <div className="mx-auto flex max-w-6xl flex-col gap-8 py-2">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-3xl font-medium">Welcome{user ? `, ${user.displayName}` : ''}</h1>
+        <AcceptingBookingsToggle />
+      </div>
       {user?.verificationStatus === 'PENDING' && (
         <Alert>
           <AlertTitle>Verification pending</AlertTitle>
@@ -73,10 +87,10 @@ export function DoctorHomePage() {
                 .map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="flex items-center justify-between gap-2 rounded-md border border-input p-3 hover:bg-accent/50"
+                    className="flex flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <Link to={`/doctor/appointments/${appointment.id}`} className="flex-1">
-                      <p className="font-medium">{appointment.patient.displayName}</p>
+                      <p className="font-semibold">{appointment.patient.displayName}</p>
                       <p className="text-sm text-muted-foreground">{appointment.reason}</p>
                     </Link>
                     <div className="flex items-center gap-2">
@@ -94,6 +108,8 @@ export function DoctorHomePage() {
           </QueryState>
         </CardContent>
       </Card>
+
+      <HomeActions actions={ACTIONS} />
     </div>
   );
 }

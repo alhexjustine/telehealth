@@ -100,6 +100,7 @@ model DoctorProfile {
   yearsOfExperience    Int?                @map("years_of_experience")
   licenseNumber        String              @unique @map("license_number")
   consultationMinutes  Int                 @default(30) @map("consultation_minutes")
+  acceptingBookings    Boolean             @default(true) @map("accepting_bookings")
   verificationStatus   VerificationStatus  @default(PENDING) @map("verification_status")
   reviewNote           String?             @map("review_note")
   timezone             String              @default("UTC")

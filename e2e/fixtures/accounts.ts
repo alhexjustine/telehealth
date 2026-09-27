@@ -151,8 +151,8 @@ export async function approveDoctorByName(adminPage: Page, lastName: string): Pr
 /** From `/patient/doctors`, searches by name and opens the matching doctor's public profile. Returns the doctor's id. */
 export async function findDoctorAndOpenProfile(page: Page, lastName: string): Promise<string> {
   await page.goto('/patient/doctors');
+  // Results update as the patient types (debounced); the visibility wait below covers the delay.
   await page.getByLabel('Search').fill(lastName);
-  await page.getByRole('button', { name: 'Search', exact: true }).click();
   const doctorLink = page.getByRole('link').filter({ hasText: lastName }).first();
   await expect(doctorLink).toBeVisible({ timeout: 15_000 });
   await doctorLink.click();

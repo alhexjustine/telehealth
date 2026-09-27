@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { DoctorProfileFormFields } from '@/components/doctor-profile-form-fields';
 import { AdminAuditLink } from '@/components/admin/audit-link';
+import { InitialsAvatar } from '@/components/initials-avatar';
 import { useSpecializations } from '@/lib/use-specializations';
 import {
   doctorProfileSchema,
@@ -117,41 +118,59 @@ export function AdminDoctorDetailPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-4">
+    <div className="mx-auto flex max-w-3xl flex-col gap-5 py-2">
       <QueryState query={doctor} label="this doctor">
         {(data) => (
           <>
-      <div className="flex items-center gap-2">
-        <h1 className="text-2xl font-semibold">
-          {data.firstName} {data.lastName}
-        </h1>
-        <Badge variant={verificationVariant(data.verificationStatus)}>{data.verificationStatus}</Badge>
-        <Badge variant="outline">{data.accountStatus}</Badge>
-      </div>
-      <p className="text-sm text-muted-foreground">{data.email}</p>
-      {data.reviewNote && (
-        <p className="text-sm text-muted-foreground">Review note: {data.reviewNote}</p>
-      )}
-      <AdminAuditLink entityType="DoctorProfile" entityId={doctorId} />
-
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          disabled={data.verificationStatus === 'APPROVED'}
-          onClick={() => setApproveOpen(true)}
-        >
-          Approve
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="border-destructive text-destructive hover:bg-destructive/10"
-          disabled={data.verificationStatus === 'REJECTED'}
-          onClick={() => setRejectOpen(true)}
-        >
-          Reject
-        </Button>
-      </div>
+      <Card className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center">
+        <InitialsAvatar name={`${data.firstName} ${data.lastName}`} className="size-16" />
+        <div className="flex flex-1 flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="mr-1 text-2xl font-medium">
+              {data.firstName} {data.lastName}
+            </h1>
+            <Badge variant={verificationVariant(data.verificationStatus)}>{data.verificationStatus}</Badge>
+            <Badge variant="outline">{data.accountStatus}</Badge>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            <span>{data.email}</span>
+            <span aria-hidden="true">·</span>
+            <AdminAuditLink entityType="DoctorProfile" entityId={doctorId} />
+          </div>
+          {data.reviewNote && (
+            <p className="text-sm text-muted-foreground">Review note: {data.reviewNote}</p>
+          )}
+        </div>
+        <div className="flex flex-col gap-2 sm:items-end">
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              disabled={data.verificationStatus === 'APPROVED'}
+              onClick={() => setApproveOpen(true)}
+            >
+              Approve
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-destructive text-destructive hover:bg-destructive/10"
+              disabled={data.verificationStatus !== 'PENDING'}
+              onClick={() => setRejectOpen(true)}
+            >
+              Reject
+            </Button>
+          </div>
+          {data.verificationStatus === 'APPROVED' && (
+            <p className="max-w-64 text-sm text-muted-foreground sm:text-right">
+              Approved doctors can be suspended or deactivated from{' '}
+              <Link to="/admin/users" className="font-semibold text-primary underline-offset-4 hover:underline">
+                Users
+              </Link>
+              .
+            </p>
+          )}
+        </div>
+      </Card>
 
       <Card>
         <CardHeader>

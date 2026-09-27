@@ -31,6 +31,7 @@ import { describe, expect, it } from 'vitest';
  */
 const MIGRATED_ROUTE_FILES = [
   // Patient
+  'patient/home.tsx',
   'patient/appointments.tsx',
   'patient/appointment-detail.tsx',
   'patient/records.tsx',

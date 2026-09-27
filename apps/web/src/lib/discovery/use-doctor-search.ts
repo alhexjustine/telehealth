@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { unwrap } from '@/lib/api-error';
-import { availabilityPresetToRange, type AvailabilityPreset } from './availability-preset';
+import { availabilityRangeToQuery } from './availability-date';
 
 export interface DoctorSearchParams {
   q?: string;
   specialization?: string;
-  availabilityPreset?: AvailabilityPreset;
+  /** Inclusive local days, `yyyy-MM-dd`: only doctors with a free slot in that range. */
+  availability?: { from: string; to: string };
   sort?: 'next' | 'name' | 'experience';
   page?: number;
 }
@@ -15,7 +16,9 @@ const PAGE_SIZE = 12;
 
 export function useDoctorSearch(params: DoctorSearchParams) {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const range = availabilityPresetToRange(params.availabilityPreset ?? 'any', timezone, new Date());
+  const range = params.availability
+    ? availabilityRangeToQuery(params.availability.from, params.availability.to, timezone, new Date())
+    : undefined;
 
   return useQuery({
     queryKey: [
@@ -23,7 +26,8 @@ export function useDoctorSearch(params: DoctorSearchParams) {
       'search',
       params.q ?? '',
       params.specialization ?? '',
-      params.availabilityPreset ?? 'any',
+      params.availability?.from ?? '',
+      params.availability?.to ?? '',
       params.sort ?? 'next',
       params.page ?? 1,
     ] as const,

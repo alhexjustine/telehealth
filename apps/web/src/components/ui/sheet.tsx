@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils';
 
 // Built on Radix's Dialog primitive (same one `dialog.tsx` uses), styled as
 // a slide-in panel. Radix's Dialog already provides the focus trap, the
-// Escape-to-close, and returning focus to the trigger on close that the
-// "Mobile menu" scenario needs — no extra wiring required here.
+// Escape-to-close, and returning focus to the trigger on close that the role
+// areas' mobile nav menu needs — no extra wiring required here.
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />;

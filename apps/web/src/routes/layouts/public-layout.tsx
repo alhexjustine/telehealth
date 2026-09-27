@@ -1,11 +1,8 @@
-import { useState } from 'react';
 import { Link, Outlet } from 'react-router';
-import { Menu } from 'lucide-react';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { buttonVariants } from '@/components/ui/button';
+import { BrandMark } from '@/components/brand-mark';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { roleHomePath } from '@/lib/auth/role-home';
-import { cn } from '@/lib/utils';
 
 const FOOTER_SECTION_LINKS = [
   { to: '/#capabilities', label: 'What you can do' },
@@ -16,47 +13,30 @@ const FOOTER_SECTION_LINKS = [
   { to: '/#faq', label: 'FAQ' },
 ];
 
-function PublicNavLinks({ onNavigate, className }: { onNavigate?: () => void; className?: string }) {
+const FOOTER_ACCOUNT_LINKS = [
+  { to: '/login', label: 'Sign in' },
+  { to: '/register/patient', label: 'Register as a patient' },
+  { to: '/register/doctor', label: 'Join as a doctor' },
+  { to: '/status', label: 'System status' },
+];
+
+// The registration calls to action live in the landing hero and the footer, so the header only
+// needs one link — which is also why it never collapses into a menu on small screens.
+function HeaderAction() {
   const { data: user } = useCurrentUser();
 
   if (user) {
     return (
-      <div className={className}>
-        <Link
-          to={roleHomePath(user.role)}
-          onClick={onNavigate}
-          className={buttonVariants({ variant: 'default' })}
-        >
-          Go to my dashboard
-        </Link>
-      </div>
+      <Link to={roleHomePath(user.role)} className={buttonVariants({ variant: 'default', size: 'sm' })}>
+        Go to my dashboard
+      </Link>
     );
   }
 
   return (
-    <div className={className}>
-      <Link
-        to="/login"
-        onClick={onNavigate}
-        className="text-sm font-medium text-foreground hover:text-primary"
-      >
-        Sign in
-      </Link>
-      <Link
-        to="/register/patient"
-        onClick={onNavigate}
-        className={buttonVariants({ variant: 'outline', size: 'sm' })}
-      >
-        Register as a patient
-      </Link>
-      <Link
-        to="/register/doctor"
-        onClick={onNavigate}
-        className={buttonVariants({ variant: 'default', size: 'sm' })}
-      >
-        Join as a doctor
-      </Link>
-    </div>
+    <Link to="/login" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+      Sign in
+    </Link>
   );
 }
 
@@ -66,8 +46,6 @@ function PublicNavLinks({ onNavigate, className }: { onNavigate?: () => void; cl
  * "Layout and routing" decision.
  */
 export function PublicLayout() {
-  const [menuOpen, setMenuOpen] = useState(false);
-
   return (
     <div className="flex min-h-screen flex-col">
       <a
@@ -79,34 +57,14 @@ export function PublicLayout() {
 
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 md:px-6">
-          <Link to="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <span
-              className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"
-              aria-hidden="true"
-            >
-              +
-            </span>
-            Telehealth
+          <Link to="/" className="flex items-center gap-2.5 rounded-md text-foreground">
+            <BrandMark className="size-9" />
+            <span className="font-display text-xl font-semibold tracking-tight">Hey Doc</span>
           </Link>
 
-          <PublicNavLinks className="hidden items-center gap-5 md:flex" />
-
-          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="size-9 p-0 md:hidden" aria-label="Open menu">
-                <Menu className="size-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right">
-              <SheetHeader>
-                <SheetTitle>Menu</SheetTitle>
-              </SheetHeader>
-              <PublicNavLinks
-                onNavigate={() => setMenuOpen(false)}
-                className="flex flex-col items-start gap-4"
-              />
-            </SheetContent>
-          </Sheet>
+          <nav aria-label="Primary">
+            <HeaderAction />
+          </nav>
         </div>
       </header>
 
@@ -117,7 +75,10 @@ export function PublicLayout() {
       <footer className="border-t border-border bg-muted/40">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-4 md:px-6">
           <div className="sm:col-span-2 md:col-span-1">
-            <span className="text-base font-semibold">Telehealth</span>
+            <span className="flex items-center gap-2">
+              <BrandMark className="size-7" />
+              <span className="font-display text-lg font-semibold">Hey Doc</span>
+            </span>
             <p className="mt-2 max-w-xs text-sm text-muted-foreground">
               A fictional-prototype telehealth product. Not for real medical use.
             </p>
@@ -152,21 +113,18 @@ export function PublicLayout() {
           <nav aria-label="Account">
             <h2 className="text-sm font-semibold text-foreground">Account</h2>
             <ul className="mt-3 flex flex-col gap-2">
-              <li>
-                <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground">
-                  Sign in
-                </Link>
-              </li>
-              <li>
-                <Link to="/status" className="text-sm text-muted-foreground hover:text-foreground">
-                  System status
-                </Link>
-              </li>
+              {FOOTER_ACCOUNT_LINKS.map((link) => (
+                <li key={link.to}>
+                  <Link to={link.to} className="text-sm text-muted-foreground hover:text-foreground">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </nav>
         </div>
-        <div className={cn('border-t border-border px-4 py-4 text-center text-xs text-muted-foreground md:px-6')}>
-          Fictional prototype — no real patients, doctors, or medical data. © 2026 Telehealth.
+        <div className="border-t border-border px-4 py-4 text-center text-xs text-muted-foreground md:px-6">
+          Fictional prototype — no real patients, doctors, or medical data. © 2026 Hey Doc.
         </div>
       </footer>
     </div>

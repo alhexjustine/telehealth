@@ -1,8 +1,8 @@
 import { withMermaid } from 'vitepress-plugin-mermaid';
 
 export default withMermaid({
-  title: 'Telehealth',
-  description: 'Technical documentation for the telehealth prototype',
+  title: 'Hey Doc',
+  description: 'Technical documentation for the Hey Doc telehealth prototype',
   base: process.env.DOCS_BASE || '/',
   cleanUrls: true,
   themeConfig: {

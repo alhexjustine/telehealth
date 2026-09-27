@@ -4,28 +4,36 @@ import { AA_NORMAL_TEXT_MIN_RATIO, contrastRatio } from './color-contrast';
 // These hex values must match the light-theme `@theme` tokens in `index.css`
 // exactly — that file's comment points back here.
 const tokens = {
-  background: '#ffffff',
-  foreground: '#10192b',
-  muted: '#f1f5f4',
-  mutedForeground: '#4b5a63',
+  background: '#faf9f6',
+  foreground: '#16211d',
+  card: '#ffffff',
+  muted: '#f1f3ef',
+  mutedForeground: '#46554f',
   primary: '#0f6e63',
   primaryForeground: '#ffffff',
-  secondary: '#eaf4f2',
+  secondary: '#e7f2ef',
   secondaryForeground: '#0b4a42',
   destructive: '#b3261e',
   destructiveForeground: '#ffffff',
+  warm: '#f6e8de',
+  warmForeground: '#8a3f17',
 };
 
 describe('primary token contrast (AA, ≥ 4.5:1)', () => {
   it.each([
     ['foreground on background', tokens.foreground, tokens.background],
+    ['foreground on card', tokens.foreground, tokens.card],
     ['primary text on background', tokens.primary, tokens.background],
+    ['primary text on card', tokens.primary, tokens.card],
     ['primary-foreground on primary', tokens.primaryForeground, tokens.primary],
     ['muted-foreground on background', tokens.mutedForeground, tokens.background],
+    ['muted-foreground on card', tokens.mutedForeground, tokens.card],
     ['muted-foreground on muted', tokens.mutedForeground, tokens.muted],
     ['secondary-foreground on secondary', tokens.secondaryForeground, tokens.secondary],
     ['destructive text on background', tokens.destructive, tokens.background],
+    ['destructive text on card', tokens.destructive, tokens.card],
     ['destructive-foreground on destructive', tokens.destructiveForeground, tokens.destructive],
+    ['warm-foreground on warm', tokens.warmForeground, tokens.warm],
   ])('%s meets AA', (_label, fg, bg) => {
     expect(contrastRatio(fg, bg)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT_MIN_RATIO);
   });
@@ -44,6 +52,8 @@ const dark = {
   secondaryForeground: '#99f1e5',
   destructive: '#f87171',
   destructiveForeground: '#1a0606',
+  warm: '#3a2418',
+  warmForeground: '#f4c7a8',
 };
 
 describe('dark theme token contrast (AA, ≥ 4.5:1)', () => {
@@ -53,7 +63,10 @@ describe('dark theme token contrast (AA, ≥ 4.5:1)', () => {
     ['primary-foreground on primary', dark.primaryForeground, dark.primary],
     ['muted-foreground on background', dark.mutedForeground, dark.background],
     ['muted-foreground on card', dark.mutedForeground, dark.card],
+    ['muted-foreground on muted', dark.mutedForeground, dark.muted],
+    ['foreground on card', dark.foreground, dark.card],
     ['secondary-foreground on secondary', dark.secondaryForeground, dark.secondary],
+    ['warm-foreground on warm', dark.warmForeground, dark.warm],
     ['destructive text on card', dark.destructive, dark.card],
     ['destructive-foreground on destructive', dark.destructiveForeground, dark.destructive],
   ])('%s meets AA', (_label, fg, bg) => {

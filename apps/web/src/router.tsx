@@ -78,8 +78,8 @@ export const router = createBrowserRouter([
                   { to: '/patient/doctors', label: 'Find a doctor' },
                   { to: '/patient/find-care', label: 'Find care' },
                   { to: '/patient/appointments', label: 'Appointments' },
-                  { to: '/patient/profile', label: 'Profile' },
                 ]}
+                profilePath="/patient/profile"
               />
             ),
             children: [
@@ -110,9 +110,9 @@ export const router = createBrowserRouter([
                 navItems={[
                   { to: '/doctor', label: 'Home' },
                   { to: '/doctor/appointments', label: 'Appointments' },
-                  { to: '/doctor/profile', label: 'Profile' },
                   { to: '/doctor/schedule', label: 'Schedule' },
                 ]}
+                profilePath="/doctor/profile"
               />
             ),
             children: [

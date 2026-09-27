@@ -14,6 +14,7 @@ import {
 } from '@/lib/doctors/doctor-profile-schema';
 import { useSpecializations } from '@/lib/use-specializations';
 import { QueryState } from '@/components/query-state';
+import { SignOutEverywhereCard } from '@/components/sign-out-everywhere-card';
 
 export function DoctorProfilePage() {
   const profile = useDoctorProfile();
@@ -90,6 +91,7 @@ export function DoctorProfilePage() {
           </>
         )}
       </QueryState>
+      <SignOutEverywhereCard />
     </div>
   );
 }

@@ -29,6 +29,7 @@ import {
   type ScheduleFormValues,
 } from '@/lib/availability/schedule-schema';
 import { localDateTimeToUtcIso, utcIsoToLocalDateTime } from '@/lib/availability/time-off-conversion';
+import { formatSlotTimeOnly, groupSlotsByLocalDate } from '@/lib/discovery/slot-grouping';
 import { QueryState } from '@/components/query-state';
 
 type TimeOffDto =
@@ -443,24 +444,23 @@ function TimeOffSection({
 }
 
 function SlotPreview({ slots, timezone }: { slots: SlotDto[]; timezone: string }) {
-  const grouped = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const slot of slots) {
-      const local = utcIsoToLocalDateTime(slot.start, timezone);
-      const [date, time] = local.split('T') as [string, string];
-      const list = map.get(date);
-      if (list) list.push(time);
-      else map.set(date, [time]);
-    }
-    return [...map.entries()];
-  }, [slots, timezone]);
+  const grouped = useMemo(() => groupSlotsByLocalDate(slots, timezone), [slots, timezone]);
 
   return (
-    <div className="flex flex-col gap-3">
-      {grouped.map(([date, times]) => (
-        <div key={date}>
-          <p className="font-medium">{date}</p>
-          <p className="text-sm text-muted-foreground">{times.join(', ')}</p>
+    <div className="flex flex-col gap-5">
+      {grouped.map((day) => (
+        <div key={day.dateKey} className="flex flex-col gap-2.5">
+          <p className="font-display text-base font-semibold">{day.label}</p>
+          <div className="flex flex-wrap gap-2">
+            {day.slots.map((slot) => (
+              <span
+                key={slot.start}
+                className="rounded-lg bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground"
+              >
+                {formatSlotTimeOnly(slot.start, timezone)}
+              </span>
+            ))}
+          </div>
         </div>
       ))}
     </div>

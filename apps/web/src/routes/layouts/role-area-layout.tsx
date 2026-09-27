@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { Menu } from 'lucide-react';
 import { toast } from 'sonner';
+import { BrandMark } from '@/components/brand-mark';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { NotificationBell } from '@/components/notification-bell';
 import {
@@ -15,12 +16,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
-import { useLogoutAllMutation, useLogoutMutation } from '@/lib/auth/mutations';
+import { useLogoutMutation } from '@/lib/auth/mutations';
 import { RealtimeProvider } from '@/lib/realtime/realtime-provider';
+import { cn } from '@/lib/utils';
 
 export interface RoleNavItem {
   to: string;
   label: string;
+}
+
+// A role's root item (`/patient`) matches only exactly, so Home isn't active on every page; deeper
+// items (`/patient/doctors`) stay active on their nested pages (`/patient/doctors/:id`).
+function isRoleRoot(to: string): boolean {
+  return to.split('/').filter(Boolean).length === 1;
 }
 
 /**
@@ -28,11 +36,10 @@ export interface RoleNavItem {
  * role area. Rendered inside `RequireRoleLayout`, so `useCurrentUser()` is
  * already guaranteed to have a signed-in user of the right role by then.
  */
-export function RoleAreaLayout({ navItems }: { navItems: RoleNavItem[] }) {
+export function RoleAreaLayout({ navItems, profilePath }: { navItems: RoleNavItem[]; profilePath?: string }) {
   const { data: user } = useCurrentUser();
   const navigate = useNavigate();
   const logout = useLogoutMutation();
-  const logoutAll = useLogoutAllMutation();
   const [menuOpen, setMenuOpen] = useState(false);
 
   async function handleLogout() {
@@ -44,30 +51,32 @@ export function RoleAreaLayout({ navItems }: { navItems: RoleNavItem[] }) {
     }
   }
 
-  async function handleLogoutAll() {
-    try {
-      await logoutAll.mutateAsync();
-      await navigate('/login', { replace: true });
-    } catch {
-      toast.error('Could not sign out. Please try again.');
-    }
-  }
-
   return (
     <RealtimeProvider>
       <div className="flex min-h-screen flex-col">
-        <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-6 print:hidden">
-          <div className="flex min-w-0 items-center gap-6">
-            <span className="shrink-0 font-semibold">Telehealth</span>
-            <nav className="hidden items-center gap-6 md:flex">
+        <header className="flex h-16 items-center justify-between gap-3 border-b border-border bg-card px-4 sm:px-6 print:hidden">
+          <div className="flex h-full min-w-0 items-center gap-8">
+            <span className="flex shrink-0 items-center gap-2">
+              <BrandMark className="size-8" />
+              <span className="font-display text-lg font-semibold tracking-tight">Hey Doc</span>
+            </span>
+            <nav aria-label="Main" className="hidden h-full items-stretch gap-6 md:flex">
               {navItems.map((item) => (
-                <Link
+                <NavLink
                   key={item.to}
                   to={item.to}
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  end={isRoleRoot(item.to)}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center border-b-2 pt-0.5 text-sm transition-colors',
+                      isActive
+                        ? 'border-primary font-semibold text-foreground'
+                        : 'border-transparent text-muted-foreground hover:text-foreground',
+                    )
+                  }
                 >
                   {item.label}
-                </Link>
+                </NavLink>
               ))}
             </nav>
           </div>
@@ -84,10 +93,15 @@ export function RoleAreaLayout({ navItems }: { navItems: RoleNavItem[] }) {
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>{user.displayName}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    {profilePath && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link to={profilePath}>Profile</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
                     <DropdownMenuItem onSelect={() => void handleLogout()}>Sign out</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => void handleLogoutAll()}>
-                      Sign out of all devices
-                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
@@ -104,14 +118,20 @@ export function RoleAreaLayout({ navItems }: { navItems: RoleNavItem[] }) {
                 </SheetHeader>
                 <nav className="flex flex-col items-start gap-4">
                   {navItems.map((item) => (
-                    <Link
+                    <NavLink
                       key={item.to}
                       to={item.to}
+                      end={isRoleRoot(item.to)}
                       onClick={() => setMenuOpen(false)}
-                      className="text-sm font-medium text-foreground hover:text-primary"
+                      className={({ isActive }) =>
+                        cn(
+                          'text-sm font-medium hover:text-primary',
+                          isActive ? 'font-semibold text-primary' : 'text-foreground',
+                        )
+                      }
                     >
                       {item.label}
-                    </Link>
+                    </NavLink>
                   ))}
                 </nav>
               </SheetContent>

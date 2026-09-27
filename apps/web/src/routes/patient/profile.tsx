@@ -21,6 +21,7 @@ import {
   type PatientProfileFormValues,
 } from '@/lib/patients/patient-profile-schema';
 import { QueryState } from '@/components/query-state';
+import { SignOutEverywhereCard } from '@/components/sign-out-everywhere-card';
 
 function toFormValues(profile: {
   firstName: string;
@@ -274,6 +275,7 @@ export function PatientProfilePage() {
       </Card>
         )}
       </QueryState>
+      <SignOutEverywhereCard />
     </div>
   );
 }

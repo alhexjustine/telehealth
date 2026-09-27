@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const SITE_NAME = 'Telehealth';
+const SITE_NAME = 'Hey Doc';
 
 /** Sets `document.title` for the current page; restores the previous title on unmount. */
 export function useDocumentTitle(title: string): void {

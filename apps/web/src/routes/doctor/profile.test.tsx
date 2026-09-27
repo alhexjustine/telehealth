@@ -6,6 +6,9 @@ import { DoctorProfilePage } from './profile';
 import { useDoctorProfile, useUpdateDoctorProfile } from '@/lib/doctors/use-doctor-profile';
 import { useSpecializations } from '@/lib/use-specializations';
 
+vi.mock('@/lib/auth/mutations', () => ({
+  useLogoutAllMutation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
 vi.mock('@/lib/doctors/use-doctor-profile', () => ({
   useDoctorProfile: vi.fn(),
   useUpdateDoctorProfile: vi.fn(),

@@ -51,12 +51,21 @@ export interface FaqItem {
 
 export const landingContent = {
   hero: {
-    eyebrow: 'Fictional prototype telehealth',
+    eyebrow: 'Fictional prototype telehealth from Hey Doc',
     headline: 'Find the right doctor, book a visit, and get care — all in one place.',
     subcopy:
       'A calm, straightforward way to connect patients and doctors: search or get matched by symptoms, book a time that works, and meet in a focused consultation workspace with your notes and prescriptions kept in one record.',
     primaryCta: { label: 'Register as a patient', to: '/register/patient' },
     secondaryCta: { label: 'Join as a doctor', to: '/register/doctor' },
+    // Decorative preview card beside the hero; the demo dataset's primary doctor, for consistency.
+    previewCard: {
+      initials: 'MS',
+      name: 'Dr. Maria Santos',
+      specialization: 'General Practice',
+      bio: 'General practitioner focused on everyday health concerns and preventive care.',
+      meta: '30 min consultation',
+      tag: 'Book a time',
+    },
   },
 
   capabilities: {

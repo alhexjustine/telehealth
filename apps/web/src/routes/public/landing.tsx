@@ -88,7 +88,7 @@ export function LandingPage() {
               </Link>
             </div>
           </div>
-          <HeroIllustration className="mx-auto w-full max-w-md" />
+          <HeroIllustration className="mx-auto max-w-lg" />
         </div>
       </section>
 

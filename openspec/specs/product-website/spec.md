@@ -34,18 +34,24 @@ The landing page at `/` SHALL be publicly accessible. It SHALL contain, in this 
 - **THEN** the rest of the landing page still renders, and the specializations section shows a short fallback message instead of an error
 
 ### Requirement: Public navigation and calls to action
-Every public page SHALL have a header with the product name (linking to `/`) and links to Sign
-in, Register as a patient, and Join as a doctor. For a signed-in user, those links SHALL be
-replaced by a single link to that user's role home page. Every public page SHALL have a footer
-with links to the terms page, the privacy page, and the landing page sections.
+Every public page SHALL have a header with the product name and logo (linking to `/`) and a link
+to Sign in. For a signed-in user, the Sign in link SHALL be replaced by a single link to that
+user's role home page. Every public page SHALL have a footer with links to the terms page, the
+privacy page, the landing page sections, Register as a patient, and Join as a doctor, so
+registration stays reachable from every public page, not only from the landing page's calls to
+action.
 
 #### Scenario: Header links for visitors
-- **WHEN** an unauthenticated visitor uses the header links
-- **THEN** they reach `/login`, `/register/patient`, and `/register/doctor` respectively
+- **WHEN** an unauthenticated visitor opens any public page
+- **THEN** the header shows the product name linking to `/` and a Sign in link to `/login`, and no registration links
 
 #### Scenario: Header for a signed-in user
 - **WHEN** a signed-in doctor opens the landing page
-- **THEN** the header shows a "Go to my dashboard" link to the doctor home page instead of the sign-in and registration links
+- **THEN** the header shows a "Go to my dashboard" link to the doctor home page instead of the sign-in link
+
+#### Scenario: Registration links in the footer
+- **WHEN** an unauthenticated visitor uses the footer's registration links
+- **THEN** they reach `/register/patient` and `/register/doctor` respectively
 
 ### Requirement: Trust, safety, and disclaimer messaging
 The landing page, both registration pages, and the sign-in page SHALL show a notice that this is a
@@ -106,8 +112,9 @@ origin other than the application's own.
 - **THEN** every network request goes to the application's own origin
 
 ### Requirement: Responsive and accessible public pages
-Public pages SHALL render without horizontal scrolling at viewport widths from 360 to 1920 pixels,
-with the header collapsing into a keyboard-operable menu below 768 pixels. Public pages SHALL:
+Public pages SHALL render without horizontal scrolling at viewport widths from 360 to 1920 pixels.
+The header's links SHALL stay visible and keyboard-reachable at every width in that range, without
+a collapsed menu. Public pages SHALL:
 - use semantic landmarks (header, nav, main, footer) with one `h1` per page
 - provide a skip-to-content link
 - meet WCAG 2.1 AA color contrast
@@ -116,8 +123,8 @@ with the header collapsing into a keyboard-operable menu below 768 pixels. Publi
 - pass automated accessibility checks with no serious or critical violations
 
 #### Scenario: Mobile menu
-- **WHEN** a visitor on a 375-pixel-wide screen opens the header menu with the keyboard
-- **THEN** the menu opens, its links are reachable with Tab, and Escape closes it and returns focus to the menu button
+- **WHEN** a visitor on a 375-pixel-wide screen tabs through the header
+- **THEN** the product name link and the Sign in link are both visible and receive focus in order, with no menu button and no horizontal scrolling
 
 #### Scenario: Automated accessibility check
 - **WHEN** the automated accessibility check runs against the landing, terms, privacy, and not-found pages

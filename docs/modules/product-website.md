@@ -19,13 +19,18 @@ names all six protections below every time the content changes.
 
 ### Header and navigation
 
-`PublicLayout`'s header shows the product name (linking to `/`), and either Sign in / Register as
-a patient / Join as a doctor (visitor) or a single "Go to my dashboard" link to the signed-in
-user's role home (`roleHomePath`) — the same `useCurrentUser()` query every role area uses. Below
-`768px` the links collapse into a `Sheet` (Radix `Dialog`, styled as a slide-in panel): it gets the
-focus trap, Escape-to-close, and focus-return to the trigger button for free from Radix, which is
-what the "Mobile menu" scenario needs. The footer links to the landing page's own sections, the
-terms and privacy pages, sign-in, and `/status`.
+`PublicLayout`'s header shows the Hey Doc logo and name (linking to `/`), and either a Sign in link
+(visitor) or a single "Go to my dashboard" link to the signed-in user's role home (`roleHomePath`) —
+the same `useCurrentUser()` query every role area uses. The registration calls to action live in
+the landing hero, so the header doesn't repeat them; with one link it fits down to 360px, so there
+is no collapsed menu (the "Mobile menu" scenario checks the links stay visible and focusable at
+375px). The footer links to the landing page's own sections, the terms and privacy pages, sign-in,
+Register as a patient, Join as a doctor, and `/status`, so registration stays one click away on
+pages without a hero.
+
+The logo (`BrandMark`) is a teal speech bubble holding a white heartbeat line, an inline SVG that
+is also the favicon. It is decorative (`aria-hidden`); the "Hey Doc" wordmark beside it is the
+link's accessible name.
 
 ### Landing page sections
 
@@ -69,8 +74,9 @@ links back to `/`, and additionally to the signed-in user's role home when there
 ## Self-contained assets
 
 Every script, stylesheet, font, icon, and image the public pages load is bundled and served by
-this application — `@fontsource-variable/inter` (self-hosted variable font, imported via
-`index.css`) instead of Google Fonts, `lucide-react` icons already bundled with the app, and
+this application — `@fontsource-variable/fraunces` (headings) and
+`@fontsource-variable/public-sans` (body), self-hosted variable fonts imported via `index.css`,
+instead of Google Fonts, `lucide-react` icons already bundled with the app, and
 hand-written inline SVG for the hero illustration and favicon. Two independent guarantees back
 this:
 

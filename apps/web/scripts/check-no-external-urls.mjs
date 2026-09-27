@@ -62,6 +62,9 @@ const ALLOWED_URL_PATTERNS = [
   // recommendation to polyfill URLSearchParams on old browsers).
   { pattern: /^https:\/\/reactrouter\.com\//, reason: 'react-router: dev-warning message text' },
   { pattern: /^https:\/\/github\.com\/ungap\//, reason: 'react-router: dev-warning message text' },
+  // date-fns's protected-token error message ("Use `yyyy` instead of `YYYY` … see: <docs link>"),
+  // bundled with `format`/`parse` for the Find a doctor calendar — message text only, never fetched.
+  { pattern: /^https:\/\/github\.com\/date-fns\/date-fns\/blob\//, reason: 'date-fns: protected-token error message text' },
   // socket.io-client's own error message when talking to an incompatible
   // server version.
   { pattern: /^https:\/\/socket\.io\//, reason: 'socket.io-client: error message text' },

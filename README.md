@@ -1,4 +1,4 @@
-# Telehealth
+# Hey Doc
 
 A prototype telehealth web application: a public product website plus Patient, Doctor, and Admin
 experiences, built as a standalone stack with no external SaaS/BaaS/runtime dependencies. See

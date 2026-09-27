@@ -2,7 +2,7 @@
 
 ## Context
 
-Telehealth is a fictional-prototype telehealth web application: a public product website plus
+Hey Doc is a fictional-prototype telehealth web application: a public product website plus
 Patient, Doctor, and Admin experiences. It runs as a standalone stack — a React SPA, a NestJS
 REST API, and PostgreSQL — with no external SaaS/BaaS/runtime dependencies. Everything a real
 telehealth product would delegate to third parties (auth, doctor matching, notifications,

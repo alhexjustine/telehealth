@@ -1,20 +1,23 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/inter';
+@import '@fontsource-variable/fraunces';
+@import '@fontsource-variable/public-sans';
 
 /*
- * Calm clinical palette: a deep teal primary on a near-white background.
- * Every text/background pair below is checked against WCAG AA (4.5:1) by
+ * Warm clinical palette: a deep teal primary, white cards on a warm
+ * off-white page, and one warm accent for attention states. Every
+ * text/background pair below is checked against WCAG AA (4.5:1) by
  * `src/lib/color-contrast.test.ts`, which reads these exact hex values —
  * change a value there too if you change it here.
  */
 @theme {
-  --font-sans: 'Inter Variable', system-ui, sans-serif;
+  --font-sans: 'Public Sans Variable', system-ui, sans-serif;
+  --font-display: 'Fraunces Variable', Georgia, serif;
 
-  --color-background: #ffffff;
-  --color-foreground: #10192b;
-  --color-muted: #f1f5f4;
-  --color-muted-foreground: #4b5a63;
-  --color-border: #dce3e1;
+  --color-background: #faf9f6;
+  --color-foreground: #16211d;
+  --color-muted: #f1f3ef;
+  --color-muted-foreground: #46554f;
+  --color-border: #e2e6df;
   --color-primary: #0f6e63;
   --color-primary-foreground: #ffffff;
   --color-success: oklch(0.6 0.14 155);
@@ -22,16 +25,20 @@
   --color-destructive: #b3261e;
   --color-destructive-foreground: #ffffff;
   --color-card: #ffffff;
-  --color-card-foreground: #10192b;
+  --color-card-foreground: #16211d;
   --color-popover: #ffffff;
-  --color-popover-foreground: #10192b;
-  --color-secondary: #eaf4f2;
+  --color-popover-foreground: #16211d;
+  --color-secondary: #e7f2ef;
   --color-secondary-foreground: #0b4a42;
-  --color-accent: #eaf4f2;
+  --color-accent: #e7f2ef;
   --color-accent-foreground: #0b4a42;
-  --color-input: #dce3e1;
+  --color-warm: #f6e8de;
+  --color-warm-foreground: #8a3f17;
+  --color-input: #d5dbd3;
   --color-ring: #0f6e63;
   --radius: 0.625rem;
+
+  --shadow-card: 0 1px 2px rgb(22 33 29 / 0.05), 0 10px 30px rgb(22 33 29 / 0.07);
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -91,6 +98,8 @@
     --color-ring: #2dd4bf;
     --color-destructive: #f87171;
     --color-destructive-foreground: #1a0606;
+    --color-warm: #3a2418;
+    --color-warm-foreground: #f4c7a8;
   }
 }
 
@@ -98,6 +107,14 @@ body {
   background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
+}
+
+@layer base {
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
 }
 
 /* Respect the user's motion preference everywhere, not just per-component. */

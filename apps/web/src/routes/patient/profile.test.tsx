@@ -5,6 +5,9 @@ import { MemoryRouter } from 'react-router';
 import { PatientProfilePage } from './profile';
 import { usePatientProfile, useUpdatePatientProfile } from '@/lib/patients/use-patient-profile';
 
+vi.mock('@/lib/auth/mutations', () => ({
+  useLogoutAllMutation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
 vi.mock('@/lib/patients/use-patient-profile', () => ({
   usePatientProfile: vi.fn(),
   useUpdatePatientProfile: vi.fn(),

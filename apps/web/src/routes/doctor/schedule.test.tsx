@@ -107,10 +107,10 @@ describe('DoctorSchedulePage', () => {
     await userEvent.click(saveButton);
 
     await waitFor(() => expect(apiClient.PUT).toHaveBeenCalledTimes(1));
-    // 09:00 UTC is 17:00 in Asia/Manila (UTC+8) — scoped to the "Next 7 days"
+    // 09:00 UTC is 5:00 PM in Asia/Manila (UTC+8) — scoped to the "Next 7 days"
     // preview card, since the range-editor selects also contain "17:00".
     const previewCard = screen.getByTestId('slot-preview-card');
-    await waitFor(() => expect(previewCard).toHaveTextContent('17:00'));
+    await waitFor(() => expect(previewCard).toHaveTextContent('5:00 PM'));
   });
 
   it('Schedule change would orphan a booking: shows the conflicting appointments', async () => {

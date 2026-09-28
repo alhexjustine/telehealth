@@ -80,6 +80,22 @@ Deploy the API first — its `docker-entrypoint.sh` runs `prisma migrate deploy`
 and (if `DEMO_DATA=true`) the demo seed on boot, so the database is ready before the web app's
 health checks start expecting a working `/api/` proxy target.
 
+## Continuous deployment
+
+`.github/workflows/fly-deploy.yml` redeploys both apps automatically once `CI` finishes
+successfully on `main` (`workflow_run`, gated on `conclusion == 'success'`) — it never deploys
+code CI hasn't verified. It needs two **app-scoped** deploy tokens as repo secrets (Settings →
+Secrets and variables → Actions), one per app so a compromised token can't touch the other app:
+
+```bash
+fly tokens create deploy -a <api-app-name> -x 8760h -n github-actions-deploy
+fly tokens create deploy -a <web-app-name> -x 8760h -n github-actions-deploy
+```
+
+Add the two printed values as `FLY_API_TOKEN_API` and `FLY_API_TOKEN_WEB`. `-x 8760h` sets a
+1-year expiry (flyctl's default is 20 years) — plan to rotate before then by re-running the command
+above and updating the secret.
+
 ## Verifying
 
 ```bash

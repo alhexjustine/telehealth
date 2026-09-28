@@ -19,12 +19,14 @@ const VISIBLE_DOCTOR_PROFILE: {
   timezone: string;
   consultationMinutes: number;
   verificationStatus: VerificationStatus;
+  acceptingBookings: boolean;
   user: { status: AccountStatus };
 } = {
   userId: 'doc-1',
   timezone: 'UTC',
   consultationMinutes: 30,
   verificationStatus: VerificationStatus.APPROVED,
+  acceptingBookings: true,
   user: { status: AccountStatus.ACTIVE },
 };
 

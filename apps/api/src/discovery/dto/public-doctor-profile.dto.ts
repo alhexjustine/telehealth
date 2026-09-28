@@ -20,4 +20,7 @@ export class PublicDoctorProfileDto {
   @ApiProperty() consultationMinutes!: number;
   @ApiProperty() timezone!: string;
   @ApiProperty() acceptingBookings!: boolean;
+  @ApiProperty({ nullable: true, type: Number, description: 'Average of visible reviews only, rounded to 1 decimal; absent if there are none' })
+  averageRating!: number | null;
+  @ApiProperty({ description: 'Count of visible reviews only' }) reviewCount!: number;
 }

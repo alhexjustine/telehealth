@@ -20,7 +20,11 @@ const PROFILE = {
   consultationMinutes: 30,
   timezone: 'UTC',
   acceptingBookings: true,
+  averageRating: null,
+  reviewCount: 0,
 };
+
+const NO_REVIEWS = { items: [], total: 0, page: 1, pageSize: 20, averageRating: null, reviewCount: 0 };
 
 function renderPage() {
   const queryClient = new QueryClient();
@@ -59,6 +63,7 @@ describe('PatientDoctorProfilePage', () => {
   it('Slots shown in patient time', async () => {
     vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
       if (path === '/doctors/{doctorId}') return Promise.resolve(ok(PROFILE));
+      if (path === '/doctors/{doctorId}/reviews') return Promise.resolve(ok(NO_REVIEWS));
       if (path === '/doctors/{doctorId}/slots') {
         // 09:00 UTC = 17:00 in Asia/Manila (UTC+8).
         return Promise.resolve(ok([{ start: '2026-10-05T09:00:00.000Z', end: '2026-10-05T09:30:00.000Z' }]));
@@ -75,6 +80,7 @@ describe('PatientDoctorProfilePage', () => {
   it('No availability', async () => {
     vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
       if (path === '/doctors/{doctorId}') return Promise.resolve(ok(PROFILE));
+      if (path === '/doctors/{doctorId}/reviews') return Promise.resolve(ok(NO_REVIEWS));
       if (path === '/doctors/{doctorId}/slots') return Promise.resolve(ok([]));
       throw new Error(`unexpected GET ${String(path)}`);
     }) as never);
@@ -89,6 +95,7 @@ describe('PatientDoctorProfilePage', () => {
   it('Not accepting bookings', async () => {
     vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
       if (path === '/doctors/{doctorId}') return Promise.resolve(ok({ ...PROFILE, acceptingBookings: false }));
+      if (path === '/doctors/{doctorId}/reviews') return Promise.resolve(ok(NO_REVIEWS));
       if (path === '/doctors/{doctorId}/slots') return Promise.resolve(ok([]));
       throw new Error(`unexpected GET ${String(path)}`);
     }) as never);
@@ -97,5 +104,47 @@ describe('PatientDoctorProfilePage', () => {
 
     expect(await screen.findByText(/isn't accepting new bookings right now/i)).toBeInTheDocument();
     expect(screen.queryByText(/no times are available/i)).not.toBeInTheDocument();
+  });
+
+  it('Shows the rating summary and visible reviews', async () => {
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/doctors/{doctorId}') return Promise.resolve(ok({ ...PROFILE, averageRating: 4.5, reviewCount: 2 }));
+      if (path === '/doctors/{doctorId}/reviews') {
+        return Promise.resolve(
+          ok({
+            items: [
+              { id: 'rev-1', rating: 5, comment: 'Excellent care', createdAt: '2026-01-01T00:00:00.000Z' },
+              { id: 'rev-2', rating: 4, comment: null, createdAt: '2026-01-02T00:00:00.000Z' },
+            ],
+            total: 2,
+            page: 1,
+            pageSize: 20,
+            averageRating: 4.5,
+            reviewCount: 2,
+          }),
+        );
+      }
+      if (path === '/doctors/{doctorId}/slots') return Promise.resolve(ok([]));
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    renderPage();
+
+    expect(await screen.findByText('4.5')).toBeInTheDocument();
+    expect(screen.getByText(/2 reviews/)).toBeInTheDocument();
+    expect(await screen.findByText('Excellent care')).toBeInTheDocument();
+  });
+
+  it('Shows "No reviews yet" when there are none', async () => {
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/doctors/{doctorId}') return Promise.resolve(ok(PROFILE));
+      if (path === '/doctors/{doctorId}/reviews') return Promise.resolve(ok(NO_REVIEWS));
+      if (path === '/doctors/{doctorId}/slots') return Promise.resolve(ok([]));
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    renderPage();
+
+    expect(await screen.findAllByText('No reviews yet')).not.toHaveLength(0);
   });
 });

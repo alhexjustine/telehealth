@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { InitialsAvatar } from '@/components/initials-avatar';
+import { RatingSummary } from '@/components/rating-summary';
 import { useSpecializations } from '@/lib/use-specializations';
 import { useDoctorSearch } from '@/lib/discovery/use-doctor-search';
 import {
@@ -20,6 +21,7 @@ import { QueryState } from '@/components/query-state';
 const SORT_OPTIONS = [
   { value: 'next', label: 'Soonest available' },
   { value: 'experience', label: 'Most experienced' },
+  { value: 'rating', label: 'Highest rated' },
 ] as const;
 
 // Long enough that a search isn't fired on every keystroke, short enough to feel live.
@@ -35,7 +37,7 @@ export function FindDoctorPage() {
   const q = searchParams.get('q') ?? '';
   const specialization = searchParams.get('specialization') ?? '';
   const availability = parseAvailabilityRange(searchParams.get('from'), searchParams.get('to'), new Date());
-  const sort = (searchParams.get('sort') as 'next' | 'name' | 'experience' | null) ?? 'next';
+  const sort = (searchParams.get('sort') as 'next' | 'name' | 'experience' | 'rating' | null) ?? 'next';
   const page = Number(searchParams.get('page') ?? '1') || 1;
 
   const [qInput, setQInput] = useState(q);
@@ -205,6 +207,7 @@ export function FindDoctorPage() {
                           {doctor.yearsOfExperience} years of experience
                         </p>
                       )}
+                      <RatingSummary averageRating={doctor.averageRating} reviewCount={doctor.reviewCount} />
                     </div>
                   </div>
                   {!doctor.acceptingBookings ? (

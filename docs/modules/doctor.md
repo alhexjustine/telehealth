@@ -101,6 +101,15 @@ have (or have had) a `BOOKED` or `COMPLETED` appointment with the patient; a doc
 cancelled appointment, or none at all, gets a `404` (see
 [Clinical Access](/architecture/clinical-access)).
 
+## Reviews
+
+Once a patient's consultation is `COMPLETED`, they may leave a 1-5 star rating and an optional
+comment for the doctor (`add-doctor-reviews`) — visible to any signed-in user on the doctor's
+search card and profile, alongside an average computed from non-hidden reviews only. The doctor
+sees the same rating/comment as everyone else, with no separate moderation ability over their own
+reviews; an administrator can hide an abusive or identifying one (see
+[Admin](/modules/admin#review-moderation)).
+
 ## L2 Container View
 
 Reuses the [C4 L2 Container](/architecture/c4-container) diagram's `web` and `api` containers —

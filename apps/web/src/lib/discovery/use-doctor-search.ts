@@ -8,7 +8,7 @@ export interface DoctorSearchParams {
   specialization?: string;
   /** Inclusive local days, `yyyy-MM-dd`: only doctors with a free slot in that range. */
   availability?: { from: string; to: string };
-  sort?: 'next' | 'name' | 'experience';
+  sort?: 'next' | 'name' | 'experience' | 'rating';
   page?: number;
 }
 

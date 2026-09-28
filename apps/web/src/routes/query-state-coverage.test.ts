@@ -54,6 +54,7 @@ const MIGRATED_ROUTE_FILES = [
   'admin/doctors.tsx',
   'admin/doctor-detail.tsx',
   'admin/appointments.tsx',
+  'admin/reviews.tsx',
   'admin/audit.tsx',
   // Shared
   'notifications-page.tsx',

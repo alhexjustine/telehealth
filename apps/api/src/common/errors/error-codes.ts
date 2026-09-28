@@ -46,6 +46,10 @@ export const ErrorCode = {
   INVALID_VERIFICATION_TRANSITION: 'INVALID_VERIFICATION_TRANSITION',
   /** An admin tried to mark an appointment `NOT_HELD` that isn't flagged `NOT_COMPLETED`. */
   NOT_ELIGIBLE_FOR_NOT_HELD: 'NOT_ELIGIBLE_FOR_NOT_HELD',
+  /** A review was submitted for an appointment that isn't the caller's own `COMPLETED` appointment. */
+  REVIEW_NOT_ELIGIBLE: 'REVIEW_NOT_ELIGIBLE',
+  /** An admin tried to hide an already-hidden review, or unhide one that isn't hidden. */
+  REVIEW_HIDE_STATUS_UNCHANGED: 'REVIEW_HIDE_STATUS_UNCHANGED',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

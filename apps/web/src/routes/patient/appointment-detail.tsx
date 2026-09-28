@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppointment } from '@/lib/appointments/use-appointments';
 import { formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
 import { JoinConsultationButton } from '@/components/join-consultation-button';
+import { RateVisitCard } from '@/components/rate-visit-card';
 import { QueryState } from '@/components/query-state';
 
 export function PatientAppointmentDetailPage() {
@@ -73,6 +74,8 @@ export function PatientAppointmentDetailPage() {
                 </CardContent>
               </Card>
             )}
+
+            {data.status === 'COMPLETED' && <RateVisitCard appointmentId={data.id} />}
           </>
         )}
       </QueryState>

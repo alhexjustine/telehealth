@@ -2,7 +2,7 @@ import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsInt, IsISO8601, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
-export const DOCTOR_SORT_OPTIONS = ['next', 'name', 'experience'] as const;
+export const DOCTOR_SORT_OPTIONS = ['next', 'name', 'experience', 'rating'] as const;
 export type DoctorSortOption = (typeof DOCTOR_SORT_OPTIONS)[number];
 
 export const DEFAULT_PAGE_SIZE = 12;

@@ -31,6 +31,7 @@ import { AdminUsersPage } from '@/routes/admin/users';
 import { AdminDoctorsPage } from '@/routes/admin/doctors';
 import { AdminDoctorDetailPage } from '@/routes/admin/doctor-detail';
 import { AdminAppointmentsPage } from '@/routes/admin/appointments';
+import { AdminReviewsPage } from '@/routes/admin/reviews';
 import { AdminAuditPage } from '@/routes/admin/audit';
 import { NotificationsPage } from '@/routes/notifications-page';
 import { ConsultationWorkspacePage } from '@/routes/consultation/workspace';
@@ -147,6 +148,7 @@ export const router = createBrowserRouter([
                   { to: '/admin/users', label: 'Users' },
                   { to: '/admin/doctors', label: 'Doctor reviews' },
                   { to: '/admin/appointments', label: 'Appointments' },
+                  { to: '/admin/reviews', label: 'Reviews' },
                   { to: '/admin/audit', label: 'Audit log' },
                 ]}
               />
@@ -157,6 +159,7 @@ export const router = createBrowserRouter([
               { path: 'doctors', element: <AdminDoctorsPage /> },
               { path: 'doctors/:doctorId', element: <AdminDoctorDetailPage /> },
               { path: 'appointments', element: <AdminAppointmentsPage /> },
+              { path: 'reviews', element: <AdminReviewsPage /> },
               { path: 'audit', element: <AdminAuditPage /> },
               { path: 'notifications', element: <NotificationsPage /> },
               { path: '*', element: <NotFoundPage /> },

@@ -22,9 +22,10 @@ Once signed in, a patient finds a doctor one of two ways:
   updates as the patient types (debounced, no search button), with a specialization filter, an
   "Available on" range calendar (one month at a time with arrows, today through the next 13 days;
   pick a start and end day, or a single day, then Apply — the range of local days is sent as an
-  `availableFrom`/`availableTo` instant range), and sorting by soonest availability or years of
-  experience (the API also accepts a name sort; the page's Sort by control just doesn't offer it).
-  Search, filters, and the picked range live in the URL. Each result shows the doctor's
+  `availableFrom`/`availableTo` instant range), and sorting by soonest availability, years of
+  experience, or highest rating (the API also accepts a name sort; the page's Sort by control just
+  doesn't offer it). Search, filters, and the picked range live in the URL. Each result shows the
+  doctor's average rating and review count (or "No reviews yet") alongside their
   next available slot within 14 days, or, for a doctor who has paused new bookings
   (`acceptingBookings: false` — see [Doctor](/modules/doctor)), a plain "Not accepting bookings"
   notice in its place; that doctor is still listed, just excluded from a range-filtered search since
@@ -154,6 +155,16 @@ summary, findings/assessment/plan, and prescriptions — in a print-friendly lay
 with the role navigation hidden via `print:hidden`, so a printed copy is a clean single column).
 A consultation that is not yet completed, or belongs to another patient, `404`s the same way a
 non-existent one would (see [Clinical Access](/architecture/clinical-access)).
+
+## Rating a doctor
+
+Once a consultation is `COMPLETED`, the appointment detail page offers a "Rate this visit" prompt —
+a 1-5 star rating and an optional comment, editable afterward by resubmitting
+(`add-doctor-reviews`). A doctor's visible reviews and average rating show on their search card and
+profile page; a review an administrator has hidden (see
+[Admin](/modules/admin#review-moderation)) drops out of that average and list immediately. Rating
+is purely informational — it never affects the deterministic specialty-matching algorithm and only
+changes result order when a patient explicitly picks the "Highest rated" sort.
 
 ## L2 Container View
 

@@ -3,10 +3,29 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestApp } from './support/test-app.js';
 import { resetDatabase } from './support/reset-db.js';
-import { registerDoctor, registerPatient } from './support/auth-helpers.js';
+import { createAndSignInAdmin, registerDoctor, registerPatient } from './support/auth-helpers.js';
+import { completeAppointmentDirect, createAppointmentDirect } from './support/appointment-helpers.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { PasswordHasherService } from '../src/auth/password/password-hasher.service.js';
 import { AccountStatus, Role, VerificationStatus } from '../src/generated/prisma/enums.js';
+
+async function addReview(
+  app: INestApplication,
+  patient: Awaited<ReturnType<typeof registerPatient>>,
+  doctorId: string,
+  rating: number,
+): Promise<string> {
+  const appointment = await createAppointmentDirect(app, {
+    patientId: patient.id,
+    doctorId,
+    startsAt: new Date(Date.now() + 60_000),
+  });
+  await completeAppointmentDirect(app, appointment.id);
+  await patient.agent.put(`/api/appointments/${appointment.id}/review`).send({ rating }).expect(200);
+  const prisma = app.get(PrismaService);
+  const review = await prisma.doctorReview.findUniqueOrThrow({ where: { appointmentId: appointment.id } });
+  return review.id;
+}
 
 interface SpecializationRow {
   id: string;
@@ -325,5 +344,73 @@ describe('Doctor search', () => {
     expect(res.body.items).toHaveLength(3);
     expect(res.body.page).toBe(2);
     expect(res.body.pageSize).toBe(12);
+  });
+
+  it('Rating shown when reviews exist', async () => {
+    const doctor = await registerDoctor(app, { specializationIds: [specBySlug('dermatology').id] });
+    await approveDoctor(app, doctor.id);
+    for (const rating of [4, 5, 4]) {
+      await addReview(app, await registerPatient(app), doctor.id, rating);
+    }
+
+    // Generous page size: many earlier tests in this file also register dermatology
+    // doctors with available slots, which sort ahead of this reviews-only doctor
+    // (no availability set) under the default 'next' sort.
+    const patient = await registerPatient(app);
+    const res = await patient.agent.get('/api/doctors').query({ specialization: 'dermatology', pageSize: 50 });
+    expect(res.status).toBe(200);
+    const item = res.body.items.find((i: { id: string }) => i.id === doctor.id);
+    expect(item).toMatchObject({ averageRating: 4.3, reviewCount: 3 });
+  });
+
+  it('No reviews yet (search)', async () => {
+    const doctor = await registerDoctor(app, { specializationIds: [specBySlug('dermatology').id] });
+    await approveDoctor(app, doctor.id);
+
+    const patient = await registerPatient(app);
+    const res = await patient.agent.get('/api/doctors').query({ specialization: 'dermatology', pageSize: 50 });
+    expect(res.status).toBe(200);
+    const item = res.body.items.find((i: { id: string }) => i.id === doctor.id);
+    expect(item).toMatchObject({ averageRating: null, reviewCount: 0 });
+  });
+
+  it('Hidden reviews excluded from search results', async () => {
+    const doctor = await registerDoctor(app, { specializationIds: [specBySlug('dermatology').id] });
+    await approveDoctor(app, doctor.id);
+    const visibleReviewId = await addReview(app, await registerPatient(app), doctor.id, 5);
+    const hiddenReviewId = await addReview(app, await registerPatient(app), doctor.id, 1);
+    void visibleReviewId;
+
+    const admin = await createAndSignInAdmin(app);
+    await admin.agent.post(`/api/admin/reviews/${hiddenReviewId}/hide`).send({ reason: 'Reported content' }).expect(200);
+
+    const patient = await registerPatient(app);
+    const res = await patient.agent.get('/api/doctors').query({ specialization: 'dermatology', pageSize: 50 });
+    expect(res.status).toBe(200);
+    const item = res.body.items.find((i: { id: string }) => i.id === doctor.id);
+    expect(item).toMatchObject({ averageRating: 5, reviewCount: 1 });
+  });
+
+  it('Sort by rating', async () => {
+    // A specialization no other test in this file uses, so results here are exact.
+    const specializationId = specBySlug('psychiatry').id;
+    const high = await registerDoctor(app, { specializationIds: [specializationId] });
+    await approveDoctor(app, high.id);
+    await addReview(app, await registerPatient(app), high.id, 5);
+
+    const low = await registerDoctor(app, { specializationIds: [specializationId] });
+    await approveDoctor(app, low.id);
+    await addReview(app, await registerPatient(app), low.id, 2);
+
+    const noReviews = await registerDoctor(app, { specializationIds: [specializationId] });
+    await approveDoctor(app, noReviews.id);
+
+    const patient = await registerPatient(app);
+    const res = await patient.agent.get('/api/doctors').query({ specialization: 'psychiatry', sort: 'rating' });
+
+    expect(res.status).toBe(200);
+    const ids = res.body.items.map((i: { id: string }) => i.id);
+    expect(ids.indexOf(high.id)).toBeLessThan(ids.indexOf(low.id));
+    expect(ids.indexOf(low.id)).toBeLessThan(ids.indexOf(noReviews.id));
   });
 });

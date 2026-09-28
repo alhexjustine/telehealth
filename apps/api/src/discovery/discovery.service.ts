@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { NextSlotService, type DoctorSlotInput } from '../availability/next-slot.service.js';
 import type { Slot } from '../availability/slot-generator.js';
 import { visibleDoctorWhere, isVisibleDoctor } from '../doctors/doctor-visibility.js';
+import { ReviewsService } from '../reviews/reviews.service.js';
+import { NO_REVIEWS, type ReviewAggregate } from '../reviews/review-aggregate.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import {
   DEFAULT_PAGE_SIZE,
@@ -27,6 +29,7 @@ export class DiscoveryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly nextSlotService: NextSlotService,
+    private readonly reviewsService: ReviewsService,
   ) {}
 
   async search(query: SearchDoctorsQueryDto): Promise<DoctorSearchResponseDto> {
@@ -74,14 +77,22 @@ export class DiscoveryService {
       );
     }
 
-    candidates.sort(comparatorFor(sort));
+    const aggregates = await this.reviewsService.getAggregatesForDoctors(candidates.map((c) => c.profile.userId));
+    candidates.sort(comparatorFor(sort, aggregates));
 
     const total = candidates.length;
     const start = (page - 1) * pageSize;
     const pageItems = candidates.slice(start, start + pageSize);
 
     return {
-      items: pageItems.map((candidate) => toSearchResultDto(candidate.profile, candidate.slots, availabilityRange)),
+      items: pageItems.map((candidate) =>
+        toSearchResultDto(
+          candidate.profile,
+          candidate.slots,
+          aggregates.get(candidate.profile.userId) ?? NO_REVIEWS,
+          availabilityRange,
+        ),
+      ),
       total,
       page,
       pageSize,
@@ -106,6 +117,8 @@ export class DiscoveryService {
       throw new NotFoundException('Doctor not found');
     }
 
+    const aggregate = await this.reviewsService.getAggregateForDoctor(doctorId);
+
     return {
       id: profile.userId,
       displayName: `${profile.firstName} ${profile.lastName}`,
@@ -120,6 +133,8 @@ export class DiscoveryService {
       consultationMinutes: profile.consultationMinutes,
       timezone: profile.timezone,
       acceptingBookings: profile.acceptingBookings,
+      averageRating: aggregate.averageRating,
+      reviewCount: aggregate.reviewCount,
     };
   }
 
@@ -173,6 +188,7 @@ function toSlotInput(profile: DoctorWithSpecializations): DoctorSlotInput {
 function toSearchResultDto(
   profile: DoctorWithSpecializations,
   slots: Slot[],
+  aggregate: ReviewAggregate,
   availabilityRange?: { from: Date; to: Date },
 ): DoctorSearchResultDto {
   // When the patient picked an availability range, show the doctor's next slot inside that range
@@ -193,6 +209,8 @@ function toSearchResultDto(
     consultationMinutes: profile.consultationMinutes,
     acceptingBookings: profile.acceptingBookings,
     nextAvailableSlot: relevantSlots[0] ? relevantSlots[0].start.toISOString() : null,
+    averageRating: aggregate.averageRating,
+    reviewCount: aggregate.reviewCount,
   };
 }
 
@@ -207,6 +225,7 @@ function displayName(profile: { firstName: string; lastName: string }): string {
 
 function comparatorFor(
   sort: DoctorSortOption,
+  aggregates: Map<string, ReviewAggregate>,
 ): (a: { profile: DoctorWithSpecializations; slots: Slot[] }, b: { profile: DoctorWithSpecializations; slots: Slot[] }) => number {
   switch (sort) {
     case 'name':
@@ -215,6 +234,15 @@ function comparatorFor(
       return (a, b) => {
         const experienceDiff = (b.profile.yearsOfExperience ?? -1) - (a.profile.yearsOfExperience ?? -1);
         return experienceDiff !== 0 ? experienceDiff : displayName(a.profile).localeCompare(displayName(b.profile));
+      };
+    case 'rating':
+      // Opt-in only (design.md: "never blended into the default sort or into
+      // specialty matching") — highest average first, doctors with no
+      // reviews last, ties broken by display name.
+      return (a, b) => {
+        const aRating = aggregates.get(a.profile.userId)?.averageRating ?? Number.NEGATIVE_INFINITY;
+        const bRating = aggregates.get(b.profile.userId)?.averageRating ?? Number.NEGATIVE_INFINITY;
+        return bRating !== aRating ? bRating - aRating : displayName(a.profile).localeCompare(displayName(b.profile));
       };
     case 'next':
     default:

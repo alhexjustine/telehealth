@@ -3,9 +3,28 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestApp } from './support/test-app.js';
 import { resetDatabase } from './support/reset-db.js';
-import { registerDoctor, registerPatient } from './support/auth-helpers.js';
+import { createAndSignInAdmin, registerDoctor, registerPatient } from './support/auth-helpers.js';
+import { completeAppointmentDirect, createAppointmentDirect } from './support/appointment-helpers.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { AccountStatus, VerificationStatus } from '../src/generated/prisma/enums.js';
+
+async function addReview(
+  app: INestApplication,
+  patient: Awaited<ReturnType<typeof registerPatient>>,
+  doctorId: string,
+  rating: number,
+): Promise<string> {
+  const appointment = await createAppointmentDirect(app, {
+    patientId: patient.id,
+    doctorId,
+    startsAt: new Date(Date.now() + 60_000),
+  });
+  await completeAppointmentDirect(app, appointment.id);
+  await patient.agent.put(`/api/appointments/${appointment.id}/review`).send({ rating }).expect(200);
+  const prisma = app.get(PrismaService);
+  const review = await prisma.doctorReview.findUniqueOrThrow({ where: { appointmentId: appointment.id } });
+  return review.id;
+}
 
 async function approveDoctor(app: INestApplication, doctorId: string): Promise<void> {
   const prisma = app.get(PrismaService);
@@ -107,5 +126,20 @@ describe('Doctor public profile', () => {
     await approveDoctor(app, doctor.id);
     const res = await request(app.getHttpServer()).get(`/api/doctors/${doctor.id}`);
     expect(res.status).toBe(401);
+  });
+
+  it('Profile rating reflects only visible reviews', async () => {
+    const doctor = await registerDoctor(app);
+    await approveDoctor(app, doctor.id);
+    await addReview(app, await registerPatient(app), doctor.id, 5);
+    const hiddenReviewId = await addReview(app, await registerPatient(app), doctor.id, 1);
+
+    const admin = await createAndSignInAdmin(app);
+    await admin.agent.post(`/api/admin/reviews/${hiddenReviewId}/hide`).send({ reason: 'Reported content' }).expect(200);
+
+    const patient = await registerPatient(app);
+    const res = await patient.agent.get(`/api/doctors/${doctor.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ averageRating: 5, reviewCount: 1 });
   });
 });

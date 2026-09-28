@@ -7,6 +7,7 @@ export const AuditEntityType = {
   USER: 'User',
   DOCTOR_PROFILE: 'DoctorProfile',
   APPOINTMENT: 'Appointment',
+  DOCTOR_REVIEW: 'DoctorReview',
 } as const;
 
 export type AuditEntityType = (typeof AuditEntityType)[keyof typeof AuditEntityType];

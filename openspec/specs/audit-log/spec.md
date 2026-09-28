@@ -15,6 +15,8 @@ database transaction as the action:
 - doctor profile edit
 - appointment cancellation
 - marking an appointment not held
+- hiding a review
+- unhiding a review
 - administrator sign-in
 Each entry SHALL record:
 - the acting administrator, the action, and the affected record's type and ID
@@ -38,6 +40,14 @@ fails, no entry MUST be written.
 #### Scenario: Admin sign-in audited
 - **WHEN** an administrator signs in
 - **THEN** an audit entry with action `ADMIN_SIGNED_IN` is written with the client IP address
+
+#### Scenario: Review hidden audited
+- **WHEN** an administrator hides a review with a reason
+- **THEN** exactly one audit entry exists with action `REVIEW_HIDDEN`, the review's ID, the reason, and the request ID, and it contains no review comment text
+
+#### Scenario: Review unhidden audited
+- **WHEN** an administrator unhides a review with a reason
+- **THEN** exactly one audit entry exists with action `REVIEW_UNHIDDEN`, the review's ID, the reason, and the request ID
 
 ### Requirement: Immutable log
 Audit entries MUST NOT be modifiable or removable through the API or through ordinary database

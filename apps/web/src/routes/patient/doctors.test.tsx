@@ -26,6 +26,8 @@ function doctorResult(
     specializations: unknown[];
     acceptingBookings: boolean;
     nextAvailableSlot: string | null;
+    averageRating: number | null;
+    reviewCount: number;
   }> = {},
 ) {
   return {
@@ -37,6 +39,8 @@ function doctorResult(
     consultationMinutes: 30,
     acceptingBookings: true,
     nextAvailableSlot: '2026-10-05T09:00:00.000Z',
+    averageRating: null,
+    reviewCount: 0,
     ...overrides,
   };
 }
@@ -192,6 +196,61 @@ describe('FindDoctorPage', () => {
 
     expect(await screen.findByText('Not accepting bookings')).toBeInTheDocument();
     expect(screen.queryByText('Next available')).not.toBeInTheDocument();
+  });
+
+  it('Card shows rating', async () => {
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/doctors') {
+        return Promise.resolve(
+          ok({ items: [doctorResult({ averageRating: 4.7, reviewCount: 12 })], total: 1, page: 1, pageSize: 12 }),
+        );
+      }
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    renderPage();
+
+    await screen.findByText('Dr. Grace Hopper');
+    expect(screen.getByText('4.7')).toBeInTheDocument();
+    expect(screen.getByText(/12 reviews/)).toBeInTheDocument();
+  });
+
+  it('Card shows no-reviews state', async () => {
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/doctors') {
+        return Promise.resolve(
+          ok({ items: [doctorResult({ averageRating: null, reviewCount: 0 })], total: 1, page: 1, pageSize: 12 }),
+        );
+      }
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    renderPage();
+
+    await screen.findByText('Dr. Grace Hopper');
+    expect(screen.getByText('No reviews yet')).toBeInTheDocument();
+  });
+
+  it('Sorts by highest rated', async () => {
+    let lastQuery: Record<string, unknown> | undefined;
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown, options?: { params?: { query?: Record<string, unknown> } }) => {
+      if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/doctors') {
+        lastQuery = options?.params?.query;
+        return Promise.resolve(ok({ items: [doctorResult()], total: 1, page: 1, pageSize: 12 }));
+      }
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    const router = renderPage();
+    await screen.findByText('Dr. Grace Hopper');
+
+    await userEvent.selectOptions(screen.getByLabelText(/sort by/i), 'Highest rated');
+
+    await waitFor(() => expect(router.state.location.search).toContain('sort=rating'));
+    await waitFor(() => expect(lastQuery?.sort).toBe('rating'));
   });
 
   it('No results', async () => {

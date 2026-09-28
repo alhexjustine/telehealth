@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { InitialsAvatar } from '@/components/initials-avatar';
+import { RatingSummary } from '@/components/rating-summary';
 import { usePublicDoctorProfile } from '@/lib/discovery/use-doctor-search';
 import { useDoctorSlots } from '@/lib/availability/use-availability';
+import { useDoctorReviews } from '@/lib/reviews/use-reviews';
 import { groupSlotsByLocalDate, formatSlotTimeOnly, formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
 import { QueryState } from '@/components/query-state';
 
@@ -17,6 +19,7 @@ export function PatientDoctorProfilePage() {
   const [searchParams] = useSearchParams();
   const symptomsParam = searchParams.get('symptoms') ?? '';
   const profile = usePublicDoctorProfile(doctorId);
+  const reviews = useDoctorReviews(doctorId);
 
   const range = useMemo(() => {
     const from = new Date();
@@ -64,6 +67,7 @@ export function PatientDoctorProfilePage() {
                       : 'Experience not listed'}{' '}
                     · {profileData.consultationMinutes}-minute consultations
                   </p>
+                  <RatingSummary averageRating={profileData.averageRating} reviewCount={profileData.reviewCount} />
                   {profileData.bio && <p className="text-sm">{profileData.bio}</p>}
                 </div>
               </CardContent>
@@ -152,6 +156,36 @@ export function PatientDoctorProfilePage() {
                     </CardContent>
                   </Card>
                 )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Reviews</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <QueryState
+                  query={reviews}
+                  label="reviews"
+                  isEmpty={(data) => data.items.length === 0}
+                  empty={<p className="text-muted-foreground">No reviews yet.</p>}
+                >
+                  {(data) => (
+                    <div className="flex flex-col gap-3">
+                      {data.items.map((review) => (
+                        <div key={review.id} className="border-b border-border pb-3 last:border-0 last:pb-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{review.rating} / 5</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(review.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          {review.comment && <p className="mt-1 text-sm">{review.comment}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </QueryState>
               </CardContent>
             </Card>
           </>

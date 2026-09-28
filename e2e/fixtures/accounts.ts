@@ -82,6 +82,54 @@ export async function registerPatient(page: Page, registration: PatientRegistrat
   await page.waitForURL((url) => url.pathname === '/patient', { timeout: 15_000 });
 }
 
+const MONTH_ABBREVIATIONS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+/**
+ * Drives `BirthDateSelect` (a popover year-grid → month-grid → day-grid picker,
+ * not a fillable input) to a specific date, given a `label` matching its
+ * `aria-label`. Assumes the field has no value yet, which is the only case
+ * this fixture drives — an unset value opens the popover on the year step, a
+ * set one opens on the day step showing its own month/year instead.
+ */
+async function selectBirthDate(page: Page, label: string, isoDate: string): Promise<void> {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  if (!match) throw new Error(`selectBirthDate: expected an YYYY-MM-DD date, got "${isoDate}"`);
+  const [, yearStr, monthStr, dayStr] = match;
+  const year = Number(yearStr);
+  const targetDecadeStart = Math.floor(year / 10) * 10;
+  const monthAbbr = MONTH_ABBREVIATIONS[Number(monthStr) - 1];
+  const day = Number(dayStr);
+
+  await page.getByLabel(label, { exact: true }).click();
+  const decadeHeading = page.getByText(/^\d{4} – \d{4}$/);
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const text = (await decadeHeading.textContent()) ?? '';
+    const start = Number(text.split(' – ')[0]);
+    if (start === targetDecadeStart) break;
+    const pageButton = page.getByRole('button', {
+      name: start > targetDecadeStart ? `${label} previous years` : `${label} next years`,
+    });
+    await pageButton.click();
+  }
+  await page.getByRole('button', { name: yearStr, exact: true }).click();
+  await page.getByRole('button', { name: monthAbbr, exact: true }).click();
+  await page.getByRole('button', { name: String(day), exact: true }).click();
+}
+
 export interface PatientProfileFields {
   birthDate?: string;
   weightKg?: string;
@@ -93,7 +141,7 @@ export interface PatientProfileFields {
 export async function completePatientProfile(page: Page, fields: PatientProfileFields = {}): Promise<void> {
   await page.goto('/patient/profile');
   await expect(page.getByRole('heading', { name: 'Personal details' })).toBeVisible({ timeout: 15_000 });
-  await page.getByLabel('Birthday').fill(fields.birthDate ?? '1990-05-15');
+  await selectBirthDate(page, 'Birthday', fields.birthDate ?? '1990-05-15');
   await page.getByLabel('Weight (kg)').fill(fields.weightKg ?? '70');
   await page.getByLabel('Height (cm)').fill(fields.heightCm ?? '175');
   await page.getByLabel('Phone number').fill(fields.phone ?? '+15555550123');

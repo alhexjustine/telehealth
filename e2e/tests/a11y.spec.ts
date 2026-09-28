@@ -95,7 +95,11 @@ test.describe('No serious or critical accessibility violations', () => {
     // interactive controls (note editor, prescriptions table, action
     // buttons), so it's the more thorough accessibility surface to check.
     await openConsultationAndAutoJoin(doctorPage, booked.id);
-    await expect(doctorPage.getByRole('heading', { name: 'Consultation notes' })).toBeVisible({ timeout: 15_000 });
+    // The workspace's note/prescription/message editors live under tabs (their `bare` variant
+    // suppresses each section's own heading since the tab trigger already labels it — see
+    // apps/web/src/routes/consultation/workspace.tsx), so "Session timeline" is the stable
+    // heading to wait on instead of a section-specific one.
+    await expect(doctorPage.getByRole('heading', { name: 'Session timeline' })).toBeVisible({ timeout: 15_000 });
 
     await adminPage.goto('/admin');
     await expect(adminPage.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15_000 });

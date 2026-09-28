@@ -138,9 +138,14 @@ test('Journey passes', async ({ browser }) => {
     });
 
     await test.step('Doctor writes a clinical note', async () => {
-      await doctorPage.getByLabel('Findings').fill('Mild tension, no red-flag symptoms observed.');
-      await doctorPage.getByLabel('Assessment').fill('Likely tension-type headache.');
-      await doctorPage.getByLabel('Plan').fill('Hydration, rest, follow up if symptoms persist beyond a week.');
+      // Exact matches: the active tabpanel's own accessible name ("Findings & plan", from the
+      // "Findings & plan" tab trigger via aria-labelledby) otherwise substring-matches both
+      // "Findings" and "Plan" too, making those two locators ambiguous.
+      await doctorPage.getByLabel('Findings', { exact: true }).fill('Mild tension, no red-flag symptoms observed.');
+      await doctorPage.getByLabel('Assessment', { exact: true }).fill('Likely tension-type headache.');
+      await doctorPage
+        .getByLabel('Plan', { exact: true })
+        .fill('Hydration, rest, follow up if symptoms persist beyond a week.');
 
       const notePutResponse = doctorPage.waitForResponse(
         (response) => /\/api\/consultations\/.+\/note$/.test(response.url()) && response.request().method() === 'PUT',
@@ -153,6 +158,7 @@ test('Journey passes', async ({ browser }) => {
     });
 
     await test.step('Doctor writes a prescription', async () => {
+      await doctorPage.getByRole('tab', { name: 'Prescriptions' }).click();
       await doctorPage.getByRole('button', { name: 'Add' }).click();
       const dialog = doctorPage.getByRole('dialog');
       await expect(dialog).toBeVisible({ timeout: 15_000 });

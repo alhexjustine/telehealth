@@ -26,37 +26,39 @@ enum AccountStatus {
 }
 
 model User {
-  id            String        @id @default(uuid()) @db.Uuid
-  email         String        @unique
-  passwordHash  String        @map("password_hash")
-  role          Role
-  status        AccountStatus @default(ACTIVE)
-  statusReason  String?       @map("status_reason")
-  lastLoginAt   DateTime?     @map("last_login_at") @db.Timestamptz(3)
-  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id           String        @id @default(uuid()) @db.Uuid
+  email        String        @unique
+  passwordHash String        @map("password_hash")
+  role         Role
+  status       AccountStatus @default(ACTIVE)
+  statusReason String?       @map("status_reason")
+  lastLoginAt  DateTime?     @map("last_login_at") @db.Timestamptz(3)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  sessions             Session[]
-  patientProfile       PatientProfile?
-  doctorProfile        DoctorProfile?
+  sessions              Session[]
+  patientProfile        PatientProfile?
+  doctorProfile         DoctorProfile?
   cancelledAppointments Appointment[]
-  notifications        Notification[]
-  auditLogs            AuditLog[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
   hiddenReviews         DoctorReview[]
+  requestedRefills      PrescriptionRefillRequest[] @relation("RefillRequestedBy")
+  decidedRefills        PrescriptionRefillRequest[] @relation("RefillDecidedBy")
 
   @@map("users")
 }
 
 model Session {
-  id          String    @id @default(uuid()) @db.Uuid
-  userId      String    @map("user_id") @db.Uuid
-  tokenHash   String    @unique @map("token_hash")
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  lastUsedAt  DateTime  @default(now()) @map("last_used_at") @db.Timestamptz(3)
-  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
-  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(3)
-  userAgent   String?   @map("user_agent")
-  ip          String?
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastUsedAt DateTime  @default(now()) @map("last_used_at") @db.Timestamptz(3)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+  userAgent  String?   @map("user_agent")
+  ip         String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -73,21 +75,21 @@ enum VerificationStatus {
 }
 
 model PatientProfile {
-  userId                 String    @id @map("user_id") @db.Uuid
-  firstName              String    @map("first_name")
-  lastName               String    @map("last_name")
-  birthDate              DateTime? @map("birth_date") @db.Date
-  weightKg               Decimal?  @map("weight_kg") @db.Decimal(5, 2)
-  heightCm               Decimal?  @map("height_cm") @db.Decimal(5, 2)
-  phone                  String?
-  emergencyContactName   String?   @map("emergency_contact_name")
-  emergencyContactPhone  String?   @map("emergency_contact_phone")
-  medicalConditions      String?   @map("medical_conditions")
-  allergies              String?
-  currentMedications     String?   @map("current_medications")
-  updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  userId                String    @id @map("user_id") @db.Uuid
+  firstName             String    @map("first_name")
+  lastName              String    @map("last_name")
+  birthDate             DateTime? @map("birth_date") @db.Date
+  weightKg              Decimal?  @map("weight_kg") @db.Decimal(5, 2)
+  heightCm              Decimal?  @map("height_cm") @db.Decimal(5, 2)
+  phone                 String?
+  emergencyContactName  String?   @map("emergency_contact_name")
+  emergencyContactPhone String?   @map("emergency_contact_phone")
+  medicalConditions     String?   @map("medical_conditions")
+  allergies             String?
+  currentMedications    String?   @map("current_medications")
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   appointments Appointment[]
   reviews      DoctorReview[]
 
@@ -95,25 +97,25 @@ model PatientProfile {
 }
 
 model DoctorProfile {
-  userId               String              @id @map("user_id") @db.Uuid
-  firstName            String              @map("first_name")
-  lastName             String              @map("last_name")
-  bio                  String?
-  yearsOfExperience    Int?                @map("years_of_experience")
-  licenseNumber        String              @unique @map("license_number")
-  consultationMinutes  Int                 @default(30) @map("consultation_minutes")
-  acceptingBookings    Boolean             @default(true) @map("accepting_bookings")
-  verificationStatus   VerificationStatus  @default(PENDING) @map("verification_status")
-  reviewNote           String?             @map("review_note")
-  timezone             String              @default("UTC")
-  updatedAt            DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  userId              String             @id @map("user_id") @db.Uuid
+  firstName           String             @map("first_name")
+  lastName            String             @map("last_name")
+  bio                 String?
+  yearsOfExperience   Int?               @map("years_of_experience")
+  licenseNumber       String             @unique @map("license_number")
+  consultationMinutes Int                @default(30) @map("consultation_minutes")
+  acceptingBookings   Boolean            @default(true) @map("accepting_bookings")
+  verificationStatus  VerificationStatus @default(PENDING) @map("verification_status")
+  reviewNote          String?            @map("review_note")
+  timezone            String             @default("UTC")
+  updatedAt           DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  specializations         DoctorSpecialization[]
-  availabilityRules       AvailabilityRule[]
-  availabilityExceptions  AvailabilityException[]
-  appointments            Appointment[]
-  reviews                 DoctorReview[]
+  user                   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specializations        DoctorSpecialization[]
+  availabilityRules      AvailabilityRule[]
+  availabilityExceptions AvailabilityException[]
+  appointments           Appointment[]
+  reviews                DoctorReview[]
 
   @@map("doctor_profiles")
 }
@@ -153,9 +155,9 @@ model AvailabilityException {
 }
 
 model Specialization {
-  id          String  @id @default(uuid()) @db.Uuid
-  slug        String  @unique
-  name        String  @unique
+  id          String @id @default(uuid()) @db.Uuid
+  slug        String @unique
+  name        String @unique
   description String
 
   doctors  DoctorSpecialization[]
@@ -168,12 +170,12 @@ model Specialization {
 /// by a data migration like the specialization catalog. Read-only: nothing in
 /// the app writes to this table.
 model Symptom {
-  id        String  @id @default(uuid()) @db.Uuid
-  slug      String  @unique
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique
   name      String
   category  String
   keywords  String[]
-  isRedFlag Boolean @default(false) @map("is_red_flag")
+  isRedFlag Boolean  @default(false) @map("is_red_flag")
 
   specializations SymptomSpecialization[]
   appointments    AppointmentSymptom[]
@@ -245,13 +247,13 @@ model Appointment {
   createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  patient         PatientProfile       @relation(fields: [patientId], references: [userId], onDelete: Cascade)
-  doctor          DoctorProfile        @relation(fields: [doctorId], references: [userId], onDelete: Cascade)
-  cancelledBy     User?                @relation(fields: [cancelledById], references: [id], onDelete: SetNull)
-  rescheduledFrom Appointment?         @relation("AppointmentReschedule", fields: [rescheduledFromId], references: [id], onDelete: SetNull)
-  rescheduledTo   Appointment?         @relation("AppointmentReschedule")
-  symptoms        AppointmentSymptom[]
-  notifications   Notification[]
+  patient             PatientProfile       @relation(fields: [patientId], references: [userId], onDelete: Cascade)
+  doctor              DoctorProfile        @relation(fields: [doctorId], references: [userId], onDelete: Cascade)
+  cancelledBy         User?                @relation(fields: [cancelledById], references: [id], onDelete: SetNull)
+  rescheduledFrom     Appointment?         @relation("AppointmentReschedule", fields: [rescheduledFromId], references: [id], onDelete: SetNull)
+  rescheduledTo       Appointment?         @relation("AppointmentReschedule")
+  symptoms            AppointmentSymptom[]
+  notifications       Notification[]
   consultationSession ConsultationSession?
   consultationNote    ConsultationNote?
   prescriptions       Prescription[]
@@ -298,6 +300,12 @@ enum NotificationType {
   /// participant's account being deactivated (`add-admin-console`); the
   /// counterpart of the cancelling admin action, not the acting admin.
   PLATFORM_APPOINTMENT_CANCELLED
+  /// Sent to the treating doctor when a patient requests a prescription
+  /// refill (`add-prescription-refills`); links to the doctor's refill queue.
+  REFILL_REQUESTED
+  /// Sent to the requesting account when a doctor approves or denies a
+  /// refill request (`add-prescription-refills`); links back to the record.
+  REFILL_DECIDED
 
   @@map("notification_type")
 }
@@ -391,10 +399,45 @@ model Prescription {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointment    Appointment                 @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  refillRequests PrescriptionRefillRequest[]
 
   @@index([appointmentId])
   @@map("prescriptions")
+}
+
+enum RefillRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+
+  @@map("refill_request_status")
+}
+
+/// A patient's request to renew a past, completed consultation's
+/// prescription, decided by the treating doctor (`add-prescription-refills`).
+/// Never mutates the locked `Prescription`/`ConsultationNote` it points
+/// to — this row itself, once decided, *is* the "this was renewed" record
+/// (see design.md's "Approving does not reopen the record").
+model PrescriptionRefillRequest {
+  id             String              @id @default(uuid()) @db.Uuid
+  prescriptionId String              @map("prescription_id") @db.Uuid
+  requestedById  String              @map("requested_by_id") @db.Uuid
+  patientNote    String?             @db.VarChar(500)
+  status         RefillRequestStatus @default(PENDING)
+  doctorNote     String?             @db.VarChar(500)
+  decidedById    String?             @map("decided_by_id") @db.Uuid
+  decidedAt      DateTime?           @map("decided_at") @db.Timestamptz(3)
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  requestedBy  User         @relation("RefillRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
+  decidedBy    User?        @relation("RefillDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([prescriptionId])
+  @@index([status])
+  @@map("prescription_refill_requests")
 }
 
 /// One patient account's rating/comment on a doctor for one completed
@@ -410,17 +453,17 @@ model Prescription {
 /// (Prisma's schema language can't express it) added by this model's
 /// migration.
 model DoctorReview {
-  id           String    @id @default(uuid()) @db.Uuid
-  appointmentId String   @unique @map("appointment_id") @db.Uuid
-  doctorId     String    @map("doctor_id") @db.Uuid
-  patientId    String    @map("patient_id") @db.Uuid
-  rating       Int
-  comment      String?   @db.VarChar(1000)
-  hiddenAt     DateTime? @map("hidden_at") @db.Timestamptz(3)
-  hiddenById   String?   @map("hidden_by_id") @db.Uuid
-  hiddenReason String?   @map("hidden_reason") @db.VarChar(500)
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id            String    @id @default(uuid()) @db.Uuid
+  appointmentId String    @unique @map("appointment_id") @db.Uuid
+  doctorId      String    @map("doctor_id") @db.Uuid
+  patientId     String    @map("patient_id") @db.Uuid
+  rating        Int
+  comment       String?   @db.VarChar(1000)
+  hiddenAt      DateTime? @map("hidden_at") @db.Timestamptz(3)
+  hiddenById    String?   @map("hidden_by_id") @db.Uuid
+  hiddenReason  String?   @map("hidden_reason") @db.VarChar(500)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   appointment Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   doctor      DoctorProfile  @relation(fields: [doctorId], references: [userId], onDelete: Cascade)

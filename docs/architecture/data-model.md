@@ -23,6 +23,10 @@ Each table belongs to one of three capabilities documented per module:
 - **Consultations & records** (`consultation_sessions`, `consultation_notes`, `prescriptions`) —
   the workspace state machine, and the doctor's notes and prescriptions, locked once the session
   is `COMPLETED`; see [Clinical Access](/architecture/clinical-access).
+- **Prescription refills** (`prescription_refill_requests`) — a patient's request to renew a past
+  prescription and the treating doctor's decision, without reopening the locked record it points
+  to; see the [Patient](/modules/patient#requesting-a-prescription-refill) and
+  [Doctor](/modules/doctor#refill-requests) module pages.
 - **Audit log** (`audit_logs`) — one append-only entry per administrator action and admin
   sign-in; see the [Admin](/modules/admin#audit-log) module page.
 
@@ -81,6 +85,13 @@ Each table belongs to one of three capabilities documented per module:
   transaction that first takes `SELECT ... FOR UPDATE` on the `consultation_sessions` row
   (`apps/api/src/consultations/session-lock.ts`), so a concurrent completion can never race past a
   note or prescription edit, or vice versa — see [Clinical Access](/architecture/clinical-access).
+- `prescription_refill_requests` never mutates the `prescriptions` row it points to, or the
+  appointment's `consultation_notes`: deciding a request (`status`, `doctor_note`, `decided_at`,
+  `decided_by_id`) is recorded on the request itself, which *is* the "this was renewed" record —
+  see [Patient](/modules/patient#requesting-a-prescription-refill). At most one `PENDING` request
+  per prescription is enforced at the application level (a count-then-create inside one
+  transaction), not by a database constraint — unlike appointment overlap, there's no concurrent
+  double-booking race to close here.
 - `appointments.status` gained `NOT_HELD` (a past `BOOKED` appointment an administrator resolved
   instead of leaving flagged forever) alongside a new `resolution_reason` column, kept separate
   from `cancellation_reason` since the appointment was never cancelled — see

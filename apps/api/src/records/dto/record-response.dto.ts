@@ -1,7 +1,27 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AppointmentStatus } from '../../generated/prisma/enums.js';
+import { AppointmentStatus, RefillRequestStatus } from '../../generated/prisma/enums.js';
 import { AppointmentDoctorSummaryDto } from '../../appointments/dto/appointment-response.dto.js';
 import { ConsultationNoteDto, PrescriptionResponseDto } from '../../consultations/dto/consultation-response.dto.js';
+
+/**
+ * A prescription's refill-request history as shown inline on the record
+ * detail page (`add-prescription-refills`) — deliberately slimmer than the
+ * `refills` module's own `RefillRequestResponseDto`, since this one is
+ * already nested under a specific prescription on a specific record and
+ * doesn't need to repeat who/what it's for.
+ */
+export class RefillRequestDto {
+  @ApiProperty() id!: string;
+  @ApiProperty({ enum: RefillRequestStatus }) status!: RefillRequestStatus;
+  @ApiProperty({ nullable: true, type: String }) patientNote!: string | null;
+  @ApiProperty({ nullable: true, type: String }) doctorNote!: string | null;
+  @ApiProperty({ type: String, format: 'date-time', nullable: true }) decidedAt!: string | null;
+  @ApiProperty({ type: String, format: 'date-time' }) createdAt!: string;
+}
+
+export class RecordPrescriptionDto extends PrescriptionResponseDto {
+  @ApiProperty({ type: [RefillRequestDto], description: 'Newest first' }) refillRequests!: RefillRequestDto[];
+}
 
 export class RecordListItemDto {
   @ApiProperty() appointmentId!: string;
@@ -22,7 +42,7 @@ export class RecordDetailResponseDto {
   @ApiProperty({ type: String, format: 'date-time' }) startsAt!: string;
   @ApiProperty({ type: AppointmentDoctorSummaryDto }) doctor!: AppointmentDoctorSummaryDto;
   @ApiProperty({ type: ConsultationNoteDto, nullable: true }) note!: ConsultationNoteDto | null;
-  @ApiProperty({ type: [PrescriptionResponseDto] }) prescriptions!: PrescriptionResponseDto[];
+  @ApiProperty({ type: [RecordPrescriptionDto] }) prescriptions!: RecordPrescriptionDto[];
 }
 
 export class DoctorPatientAppointmentDto {

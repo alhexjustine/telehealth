@@ -1,7 +1,12 @@
+import { useState } from 'react';
 import { useParams } from 'react-router';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { usePatientRecord } from '@/lib/records/use-records';
+import { Textarea } from '@/components/ui/textarea';
+import { usePatientRecord, type RecordPrescriptionDto } from '@/lib/records/use-records';
+import { useRequestRefill } from '@/lib/refills/use-refills';
 import { formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
 import { QueryState } from '@/components/query-state';
 
@@ -72,7 +77,7 @@ export function PatientRecordDetailPage() {
               <CardContent className="flex flex-col gap-3 text-sm">
                 {data.prescriptions.length === 0 && <p className="text-muted-foreground">No prescriptions.</p>}
                 {data.prescriptions.map((prescription) => (
-                  <div key={prescription.id} className="border-b border-border pb-2 last:border-0">
+                  <div key={prescription.id} className="border-b border-border pb-3 last:border-0">
                     <p className="font-medium">
                       {prescription.medication} — {prescription.dosage}
                     </p>
@@ -82,6 +87,9 @@ export function PatientRecordDetailPage() {
                     {prescription.instructions && (
                       <p className="text-muted-foreground">{prescription.instructions}</p>
                     )}
+                    {appointmentId && (
+                      <PrescriptionRefill appointmentId={appointmentId} prescription={prescription} />
+                    )}
                   </div>
                 ))}
               </CardContent>
@@ -89,6 +97,74 @@ export function PatientRecordDetailPage() {
           </>
         )}
       </QueryState>
+    </div>
+  );
+}
+
+const REFILL_STATUS_LABEL: Record<string, string> = {
+  PENDING: 'Refill requested',
+  APPROVED: 'Refill approved',
+  DENIED: 'Refill denied',
+};
+
+/** The "Request refill" action and status for one prescription (`add-prescription-refills`). */
+function PrescriptionRefill({
+  appointmentId,
+  prescription,
+}: {
+  appointmentId: string;
+  prescription: RecordPrescriptionDto;
+}) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [note, setNote] = useState('');
+  const requestRefill = useRequestRefill(appointmentId, prescription.id);
+  const latest = prescription.refillRequests[0];
+  const isPending = latest?.status === 'PENDING';
+
+  async function submit() {
+    try {
+      await requestRefill.mutateAsync(note.trim() || undefined);
+      toast.success('Refill requested');
+      setIsAdding(false);
+      setNote('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not request a refill');
+    }
+  }
+
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      {latest && (
+        <div className="flex items-center gap-2 text-xs">
+          <Badge variant="secondary">{REFILL_STATUS_LABEL[latest.status] ?? latest.status}</Badge>
+          {latest.doctorNote && <span className="text-muted-foreground">{latest.doctorNote}</span>}
+        </div>
+      )}
+
+      {!isPending && !isAdding && (
+        <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => setIsAdding(true)}>
+          Request refill
+        </Button>
+      )}
+
+      {isAdding && (
+        <div className="flex flex-col gap-2">
+          <Textarea
+            rows={2}
+            placeholder="Optional note for the doctor (e.g. still have symptoms)"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setIsAdding(false)}>
+              Cancel
+            </Button>
+            <Button type="button" size="sm" disabled={requestRefill.isPending} onClick={() => void submit()}>
+              {requestRefill.isPending ? 'Requesting…' : 'Submit request'}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

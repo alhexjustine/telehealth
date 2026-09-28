@@ -50,6 +50,10 @@ export const ErrorCode = {
   REVIEW_NOT_ELIGIBLE: 'REVIEW_NOT_ELIGIBLE',
   /** An admin tried to hide an already-hidden review, or unhide one that isn't hidden. */
   REVIEW_HIDE_STATUS_UNCHANGED: 'REVIEW_HIDE_STATUS_UNCHANGED',
+  /** A prescription already has a refill request with status `PENDING`. */
+  REFILL_REQUEST_ALREADY_PENDING: 'REFILL_REQUEST_ALREADY_PENDING',
+  /** A doctor tried to approve/deny a refill request that isn't `PENDING`. */
+  REFILL_REQUEST_NOT_PENDING: 'REFILL_REQUEST_NOT_PENDING',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

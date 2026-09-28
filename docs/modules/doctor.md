@@ -110,6 +110,17 @@ sees the same rating/comment as everyone else, with no separate moderation abili
 reviews; an administrator can hide an abusive or identifying one (see
 [Admin](/modules/admin#review-moderation)).
 
+## Refill requests
+
+`/doctor/refill-requests` lists the signed-in doctor's own `PENDING` prescription refill requests —
+patient/dependent name, medication, the patient's note, and the consultation date — with approve
+and deny actions, each taking an optional note (`add-prescription-refills`). Deciding a request
+never reopens the original, locked consultation note or edits the prescription itself; it only
+records the decision on the request itself, which the patient sees inline on their own record. A
+doctor only ever sees requests from their own appointments, but eligibility to decide one reuses
+the same continuity-of-care check `/doctor/patients/:patientId` uses, not a stricter "must be this
+exact appointment's doctor" rule.
+
 ## L2 Container View
 
 Reuses the [C4 L2 Container](/architecture/c4-container) diagram's `web` and `api` containers —
@@ -124,8 +135,9 @@ flowchart LR
   D -->|"bell, notifications page"| W
   D -->|"join, start, write notes/prescriptions, complete"| W
   D -->|"view a patient's record"| W
+  D -->|"list / approve / deny refill requests"| W
   P((Patient)) -->|"view an approved doctor's slots"| W
-  W -->|"REST/JSON, session cookie"| A["API: Auth, Doctors, Specializations, Availability, Appointments, Notifications, Consultations, Records"]
+  W -->|"REST/JSON, session cookie"| A["API: Auth, Doctors, Specializations, Availability, Appointments, Notifications, Consultations, Records, Refills"]
   W -->|"socket.io, session cookie"| RT[Realtime Gateway]
   A -->|"SQL"| DB[(PostgreSQL)]
   RT -->|"SQL (unread count)"| DB

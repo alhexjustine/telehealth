@@ -48,6 +48,7 @@ const MIGRATED_ROUTE_FILES = [
   'doctor/appointments.tsx',
   'doctor/appointment-detail.tsx',
   'doctor/patient-record.tsx',
+  'doctor/refill-requests.tsx',
   // Admin
   'admin/dashboard.tsx',
   'admin/users.tsx',

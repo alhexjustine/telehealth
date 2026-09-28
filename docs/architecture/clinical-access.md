@@ -71,6 +71,17 @@ is visible to every doctor who has ever treated them, not restricted per-episode
 patient consent step to opt out of this, and access logging of clinical reads is noted as future
 work (see design.md's Non-Goals).
 
+### Prescription refill requests reuse this policy, not a new one
+
+`add-prescription-refills` introduces no new access-control abstraction: requesting a refill is
+gated by the exact same `canPatientReadRecord` check a record read already uses (if a patient can
+read the record, they can request a refill on a prescription in it), and deciding one is gated by
+the same `hasTreatingRelationship` check `GET /patients/{patientId}/record` uses — including its
+"any doctor with a treating relationship to this patient/dependent pair may act on it" shape, not
+a stricter "must be this exact appointment's doctor" rule. Listing a doctor's own queue is
+narrower, filtering directly to appointments where that doctor is the appointment's own `doctorId`
+— a doctor never sees another doctor's queue, even one they could technically decide.
+
 ## API surface
 
 | Method | Path | Access |
@@ -85,6 +96,9 @@ work (see design.md's Non-Goals).
 | GET | `/records` | Patient (own, completed only) |
 | GET | `/records/{appointmentId}` | Patient (own, completed only) |
 | GET | `/patients/{patientId}/record` | Doctor (treating relationship) |
+| POST | `/records/{appointmentId}/prescriptions/{prescriptionId}/refill-requests` | Patient (own, completed record) |
+| GET | `/doctors/me/refill-requests` | Doctor (own appointments only) |
+| POST | `/doctors/me/refill-requests/{id}/approve` \| `/deny` | Doctor (treating relationship) |
 
 The workspace GET includes the patient's age/conditions/allergies/medications only when the
 caller is the doctor, and the current note/prescriptions for the doctor always, or for the patient

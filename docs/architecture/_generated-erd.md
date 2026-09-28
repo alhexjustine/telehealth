@@ -47,6 +47,7 @@ erDiagram
     int years_of_experience
     string license_number UK
     int consultation_minutes
+    boolean accepting_bookings
     verification_status verification_status
     string review_note
     string timezone
@@ -148,6 +149,31 @@ erDiagram
     datetime created_at
     datetime updated_at
   }
+  prescription_refill_requests {
+    string id PK
+    string prescription_id FK
+    string requested_by_id
+    string patientNote
+    refill_request_status status
+    string doctorNote
+    string decided_by_id
+    datetime decided_at
+    datetime created_at
+    datetime updated_at
+  }
+  doctor_reviews {
+    string id PK
+    string appointment_id FK,UK
+    string doctor_id FK
+    string patient_id FK
+    int rating
+    string comment
+    datetime hidden_at
+    string hidden_by_id FK
+    string hidden_reason
+    datetime created_at
+    datetime updated_at
+  }
   audit_logs {
     string id PK
     string actor_id FK
@@ -179,5 +205,10 @@ erDiagram
   appointments ||--o| consultation_sessions : "appointment"
   appointments ||--o| consultation_notes : "appointment"
   appointments ||--o{ prescriptions : "appointment"
+  prescriptions ||--o{ prescription_refill_requests : "prescription"
+  appointments ||--o{ doctor_reviews : "appointment"
+  doctor_profiles ||--o{ doctor_reviews : "doctor"
+  patient_profiles ||--o{ doctor_reviews : "patient"
+  users ||--o{ doctor_reviews : "hiddenBy"
   users ||--o{ audit_logs : "actor"
 ```

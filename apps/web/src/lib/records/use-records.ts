@@ -1,6 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
+import type { ApiPaths } from 'api-client';
 import { apiClient } from '@/lib/api-client';
 import { unwrap } from '@/lib/api-error';
+
+export type RecordPrescriptionDto =
+  ApiPaths['/records/{appointmentId}']['get']['responses'][200]['content']['application/json']['prescriptions'][number];
 
 const DEFAULT_PAGE_SIZE = 20;
 

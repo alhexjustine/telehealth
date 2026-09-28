@@ -142,3 +142,27 @@ export async function completeAppointmentDirect(
     }),
   ]);
 }
+
+/**
+ * Inserts a prescription directly via Prisma, bypassing the doctor-only
+ * `POST /consultations/:appointmentId/prescriptions` route (which requires an
+ * active `JOINED`/`IN_PROGRESS` session) — for tests that need a prescription
+ * on an already-`completeAppointmentDirect`-completed appointment.
+ */
+export async function addPrescriptionDirect(
+  app: INestApplication,
+  appointmentId: string,
+  overrides: Partial<{ medication: string; dosage: string; frequency: string; duration: string }> = {},
+): Promise<{ id: string }> {
+  const prisma = app.get(PrismaService);
+  const prescription = await prisma.prescription.create({
+    data: {
+      appointmentId,
+      medication: overrides.medication ?? 'Amoxicillin',
+      dosage: overrides.dosage ?? '500mg',
+      frequency: overrides.frequency ?? 'Twice daily',
+      duration: overrides.duration ?? '7 days',
+    },
+  });
+  return { id: prescription.id };
+}

@@ -26,6 +26,7 @@ import { DoctorSchedulePage } from '@/routes/doctor/schedule';
 import { DoctorAppointmentsPage } from '@/routes/doctor/appointments';
 import { DoctorAppointmentDetailPage } from '@/routes/doctor/appointment-detail';
 import { DoctorPatientRecordPage } from '@/routes/doctor/patient-record';
+import { DoctorRefillRequestsPage } from '@/routes/doctor/refill-requests';
 import { AdminDashboardPage } from '@/routes/admin/dashboard';
 import { AdminUsersPage } from '@/routes/admin/users';
 import { AdminDoctorsPage } from '@/routes/admin/doctors';
@@ -112,6 +113,7 @@ export const router = createBrowserRouter([
                   { to: '/doctor', label: 'Home' },
                   { to: '/doctor/appointments', label: 'Appointments' },
                   { to: '/doctor/schedule', label: 'Schedule' },
+                  { to: '/doctor/refill-requests', label: 'Refill requests' },
                 ]}
                 profilePath="/doctor/profile"
               />
@@ -123,6 +125,7 @@ export const router = createBrowserRouter([
               { path: 'appointments', element: <DoctorAppointmentsPage /> },
               { path: 'appointments/:id', element: <DoctorAppointmentDetailPage /> },
               { path: 'patients/:patientId', element: <DoctorPatientRecordPage /> },
+              { path: 'refill-requests', element: <DoctorRefillRequestsPage /> },
               { path: 'notifications', element: <NotificationsPage /> },
               { path: '*', element: <NotFoundPage /> },
             ],

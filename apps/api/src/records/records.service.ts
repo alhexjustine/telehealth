@@ -1,7 +1,7 @@
 import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
-import { AppointmentStatus } from '../generated/prisma/enums.js';
+import { AppointmentStatus, RefillRequestStatus } from '../generated/prisma/enums.js';
 import { ageAt } from '../matching/age.js';
 import { DomainError } from '../common/errors/domain-error.js';
 import { ErrorCode } from '../common/errors/error-codes.js';
@@ -21,6 +21,8 @@ import type {
   RecordDetailResponseDto,
   RecordListItemDto,
   RecordListResponseDto,
+  RecordPrescriptionDto,
+  RefillRequestDto,
 } from './dto/record-response.dto.js';
 import { MAX_PRESCRIPTIONS_PER_CONSULTATION } from './records.constants.js';
 
@@ -158,7 +160,13 @@ export class RecordsService {
   async getPatientRecord(actor: ClinicalActor, appointmentId: string): Promise<RecordDetailResponseDto> {
     const appointment = await this.prisma.appointment.findUnique({
       where: { id: appointmentId },
-      include: { ...WITH_DOCTOR_AND_NOTE, prescriptions: { orderBy: { createdAt: 'asc' } } },
+      include: {
+        ...WITH_DOCTOR_AND_NOTE,
+        prescriptions: {
+          orderBy: { createdAt: 'asc' },
+          include: { refillRequests: { orderBy: { createdAt: 'desc' } } },
+        },
+      },
     });
     if (!appointment) {
       throw new NotFoundException('Record not found');
@@ -177,7 +185,7 @@ export class RecordsService {
         })),
       },
       note: appointment.consultationNote ? toNoteDto(appointment.consultationNote) : null,
-      prescriptions: appointment.prescriptions.map(toPrescriptionDto),
+      prescriptions: appointment.prescriptions.map(toRecordPrescriptionDto),
     };
   }
 
@@ -235,6 +243,49 @@ async function assertPrescriptionBelongs(
   if (!prescription || prescription.appointmentId !== appointmentId) {
     throw new NotFoundException('Prescription not found');
   }
+}
+
+function toRecordPrescriptionDto(prescription: {
+  id: string;
+  appointmentId: string;
+  medication: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  instructions: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  refillRequests: {
+    id: string;
+    status: RefillRequestStatus;
+    patientNote: string | null;
+    doctorNote: string | null;
+    decidedAt: Date | null;
+    createdAt: Date;
+  }[];
+}): RecordPrescriptionDto {
+  return {
+    ...toPrescriptionDto(prescription),
+    refillRequests: prescription.refillRequests.map(toRefillRequestDto),
+  };
+}
+
+function toRefillRequestDto(refillRequest: {
+  id: string;
+  status: RefillRequestStatus;
+  patientNote: string | null;
+  doctorNote: string | null;
+  decidedAt: Date | null;
+  createdAt: Date;
+}): RefillRequestDto {
+  return {
+    id: refillRequest.id,
+    status: refillRequest.status,
+    patientNote: refillRequest.patientNote,
+    doctorNote: refillRequest.doctorNote,
+    decidedAt: refillRequest.decidedAt ? refillRequest.decidedAt.toISOString() : null,
+    createdAt: refillRequest.createdAt.toISOString(),
+  };
 }
 
 function toRecordListItem(appointment: AppointmentWithDoctorAndNote): RecordListItemDto {

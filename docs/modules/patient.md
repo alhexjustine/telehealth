@@ -156,6 +156,16 @@ with the role navigation hidden via `print:hidden`, so a printed copy is a clean
 A consultation that is not yet completed, or belongs to another patient, `404`s the same way a
 non-existent one would (see [Clinical Access](/architecture/clinical-access)).
 
+## Requesting a prescription refill
+
+From `/patient/records/:appointmentId`, each prescription on a completed consultation gets a
+"Request refill" action (hidden while a request is already `PENDING`) with an optional note to the
+doctor; the request's status and the doctor's note, if any, show inline next to that prescription
+(`add-prescription-refills`). Approving or denying never reopens the original, locked consultation
+note or edits the prescription itself — the refill request's own status/note *is* the "this was
+renewed" record. A refill can be requested for a dependent's record too, scoped the same way the
+rest of that dependent's history is.
+
 ## Rating a doctor
 
 Once a consultation is `COMPLETED`, the appointment detail page offers a "Rate this visit" prompt —
@@ -183,7 +193,8 @@ flowchart LR
   P -->|"bell, notifications page"| W
   P -->|"join, view live state and presence"| W
   P -->|"list / view own completed records"| W
-  W -->|"REST/JSON, session cookie"| A["API: Auth, Patients, Discovery, Matching, Appointments, Notifications, Consultations, Records"]
+  P -->|"request a prescription refill"| W
+  W -->|"REST/JSON, session cookie"| A["API: Auth, Patients, Discovery, Matching, Appointments, Notifications, Consultations, Records, Refills"]
   W -->|"socket.io, session cookie"| RT[Realtime Gateway]
   A -->|"SQL"| D[(PostgreSQL)]
   RT -->|"SQL (unread count)"| D

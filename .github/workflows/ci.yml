@@ -27,7 +27,12 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://telehealth:telehealth@localhost:5432/telehealth_test?schema=public
-      NODE_ENV: test
+      # Deliberately not NODE_ENV=test here: apps/api/test/setup-env.ts already defaults it to
+      # "test" for the e2e/unit test steps (Jest/Vitest also default it themselves), and setting
+      # it job-wide instead leaked into the "Build" step below — Vite only forces a production
+      # bundle when NODE_ENV isn't already set in the shell, so `vite build` shipped React's and
+      # TanStack Query's development code (full console-warning URLs and all), which then failed
+      # "Check the web build has no external references".
       APP_ORIGINS: http://localhost:8080,http://localhost:5173
       COOKIE_SECURE: 'false'
       SESSION_IDLE_MINUTES: '120'

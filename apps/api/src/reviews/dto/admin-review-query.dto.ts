@@ -1,6 +1,6 @@
 import { Transform, Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 
 /**
  * A boolean query param must read `obj` here, not `value`: with the global
@@ -24,6 +24,12 @@ export class AdminReviewListQueryDto {
   @IsOptional()
   @IsUUID('4')
   doctorId?: string;
+
+  @ApiPropertyOptional({ description: "Matches the doctor's first or last name, case-insensitive" })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  doctorName?: string;
 
   @ApiPropertyOptional({ description: 'Filter by hidden status; omit for both' })
   @IsOptional()

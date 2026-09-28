@@ -140,17 +140,22 @@ double-booked across their own and a dependent's visits either.
 
 A patient can favorite/unfavorite an approved, active doctor from a search result card or their
 profile (a toggleable heart) — a purely organizational bookmark with **no effect** on search
-ranking, sorting, or the deterministic specialty-matching algorithm (`add-doctor-favorites`).
-`/patient/favorites` ("My favorites" in the nav) lists them with the same live summary a search
-result card shows (specializations, experience, accepting-bookings state, next available slot,
-rating), so a favorited doctor who is later suspended, rejected, or deactivated is silently dropped
-from the list rather than shown as broken. A patient can favorite at most 50 doctors at once.
+ranking, sorting, or the deterministic specialty-matching algorithm (`add-doctor-favorites`). **Find
+a doctor** has a "Favorites only" filter, combinable with its other filters (search text,
+specialization, sort), that narrows the list to just favorited doctors using the same live summary
+an ordinary search result shows (specializations, experience, accepting-bookings state, next
+available slot, rating) — computed client-side from the favorites list rather than a server query,
+so a favorited doctor who is later suspended, rejected, or deactivated is silently dropped rather
+than shown as broken, and the "Available on" date filter doesn't apply in this mode. A patient can
+favorite at most 50 doctors at once.
 
-Both the favorites list and the appointments list (upcoming and past) offer a "Book" / "Book again"
-shortcut straight into that doctor's profile, preselecting the same attendee (the account holder or
-the specific dependent) the appointment was originally for — skipping **Find a doctor**'s
-search/filter/guided-matching step entirely. This is a pure URL prefill (`?dependent=<id>`) read by
-the doctor profile and booking confirmation pages, not a new endpoint; the confirmation page
+The appointments list (upcoming and past) offers a "Book again" shortcut straight into that
+doctor's profile, preselecting the same attendee (the account holder or the specific dependent)
+the appointment was originally for — skipping **Find a doctor**'s search/filter/guided-matching
+step entirely (favoriting a doctor doesn't prefill an attendee this way; a favorited doctor's card
+still just links to their profile like any other search result). This is a pure URL prefill
+(`?dependent=<id>`) read by the doctor profile and booking confirmation pages, not a new endpoint;
+the confirmation page
 validates the ID against the patient's own *current* dependents before preselecting it, falling
 back to "Myself" if it no longer matches (e.g. the dependent was since removed) — the booking call
 itself still re-validates ownership server-side regardless.

@@ -15,7 +15,6 @@ import { RegisterDoctorPage } from '@/routes/auth/register-doctor';
 import { PatientHomePage } from '@/routes/patient/home';
 import { PatientProfilePage } from '@/routes/patient/profile';
 import { PatientDependentsPage } from '@/routes/patient/dependents';
-import { PatientFavoritesPage } from '@/routes/patient/favorites';
 import { FindDoctorPage } from '@/routes/patient/doctors';
 import { PatientDoctorProfilePage } from '@/routes/patient/doctor-profile';
 import { FindCarePage } from '@/routes/patient/find-care';
@@ -29,6 +28,7 @@ import { DoctorAppointmentsPage } from '@/routes/doctor/appointments';
 import { DoctorAppointmentDetailPage } from '@/routes/doctor/appointment-detail';
 import { DoctorPatientRecordPage } from '@/routes/doctor/patient-record';
 import { DoctorRefillRequestsPage } from '@/routes/doctor/refill-requests';
+import { DoctorReviewsPage } from '@/routes/doctor/reviews';
 import { AdminDashboardPage } from '@/routes/admin/dashboard';
 import { AdminUsersPage } from '@/routes/admin/users';
 import { AdminDoctorsPage } from '@/routes/admin/doctors';
@@ -81,7 +81,6 @@ export const router = createBrowserRouter([
                   { to: '/patient', label: 'Home' },
                   { to: '/patient/doctors', label: 'Find a doctor' },
                   { to: '/patient/find-care', label: 'Find care' },
-                  { to: '/patient/favorites', label: 'Favorites' },
                   { to: '/patient/appointments', label: 'Appointments' },
                 ]}
                 profilePath="/patient/profile"
@@ -92,7 +91,6 @@ export const router = createBrowserRouter([
               { path: 'profile', element: <PatientProfilePage /> },
               { path: 'dependents', element: <PatientDependentsPage /> },
               { path: 'doctors', element: <FindDoctorPage /> },
-              { path: 'favorites', element: <PatientFavoritesPage /> },
               { path: 'doctors/:doctorId', element: <PatientDoctorProfilePage /> },
               { path: 'doctors/:doctorId/book', element: <BookAppointmentPage /> },
               { path: 'find-care', element: <FindCarePage /> },
@@ -119,6 +117,7 @@ export const router = createBrowserRouter([
                   { to: '/doctor/appointments', label: 'Appointments' },
                   { to: '/doctor/schedule', label: 'Schedule' },
                   { to: '/doctor/refill-requests', label: 'Refill requests' },
+                  { to: '/doctor/reviews', label: 'Reviews' },
                 ]}
                 profilePath="/doctor/profile"
               />
@@ -131,6 +130,7 @@ export const router = createBrowserRouter([
               { path: 'appointments/:id', element: <DoctorAppointmentDetailPage /> },
               { path: 'patients/:patientId', element: <DoctorPatientRecordPage /> },
               { path: 'refill-requests', element: <DoctorRefillRequestsPage /> },
+              { path: 'reviews', element: <DoctorReviewsPage /> },
               { path: 'notifications', element: <NotificationsPage /> },
               { path: '*', element: <NotFoundPage /> },
             ],

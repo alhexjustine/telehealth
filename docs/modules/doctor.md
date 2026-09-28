@@ -136,10 +136,10 @@ each person's history is scoped independently, even though they share one accoun
 
 Once a patient's consultation is `COMPLETED`, they may leave a 1-5 star rating and an optional
 comment for the doctor (`add-doctor-reviews`) — visible to any signed-in user on the doctor's
-search card and profile, alongside an average computed from non-hidden reviews only. The doctor
-sees the same rating/comment as everyone else, with no separate moderation ability over their own
-reviews; an administrator can hide an abusive or identifying one (see
-[Admin](/modules/admin#review-moderation)).
+search card and profile, alongside an average computed from non-hidden reviews only. `/doctor/reviews`
+lets the doctor browse their own reviews the same way, with no separate moderation ability over
+them; the reviewing patient is never identified, to the doctor or to anyone else — an administrator
+can still hide an abusive or identifying one (see [Admin](/modules/admin#review-moderation)).
 
 ## Refill requests
 

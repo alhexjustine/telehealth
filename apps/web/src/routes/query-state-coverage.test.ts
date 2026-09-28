@@ -42,7 +42,6 @@ const MIGRATED_ROUTE_FILES = [
   'patient/find-care.tsx',
   'patient/book-appointment.tsx',
   'patient/dependents.tsx',
-  'patient/favorites.tsx',
   // Doctor
   'doctor/home.tsx',
   'doctor/profile.tsx',
@@ -51,6 +50,7 @@ const MIGRATED_ROUTE_FILES = [
   'doctor/appointment-detail.tsx',
   'doctor/patient-record.tsx',
   'doctor/refill-requests.tsx',
+  'doctor/reviews.tsx',
   // Admin
   'admin/dashboard.tsx',
   'admin/users.tsx',

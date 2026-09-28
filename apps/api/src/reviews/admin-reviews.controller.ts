@@ -18,7 +18,7 @@ export class AdminReviewsController {
   constructor(private readonly adminReviewsService: AdminReviewsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lists reviews, including hidden ones, filtered by doctor and hidden status' })
+  @ApiOperation({ summary: 'Lists reviews, including hidden ones, filtered by doctor (id or name) and hidden status' })
   @ApiOkResponse({ type: AdminReviewListResponseDto })
   async list(@Query() query: AdminReviewListQueryDto): Promise<AdminReviewListResponseDto> {
     return this.adminReviewsService.list(query);

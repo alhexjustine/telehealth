@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,7 @@ import {
 } from '@/lib/discovery/availability-date';
 import { AvailabilityDatePicker } from '@/components/availability-date-picker';
 import { formatSlotDateTime } from '@/lib/format-slot-time';
-import { QueryState } from '@/components/query-state';
+import { QueryState, type QueryStateResult } from '@/components/query-state';
 import { useFavorites } from '@/lib/favorites/use-favorites';
 
 const SORT_OPTIONS = [
@@ -25,6 +25,23 @@ const SORT_OPTIONS = [
   { value: 'experience', label: 'Most experienced' },
   { value: 'rating', label: 'Highest rated' },
 ] as const;
+
+type SearchDoctor = NonNullable<ReturnType<typeof useDoctorSearch>['data']>['items'][number];
+
+/**
+ * Client-side sort for the favorites-only view: favorites come back from the
+ * server ordered by `favoritedAt`, not by any of `SORT_OPTIONS` — the
+ * favorites list has no query params (see `add-doctor-favorites`'s design.md,
+ * which deliberately keeps favorite state out of the discovery query), so
+ * "Sort by" is replicated here instead of re-querying.
+ */
+function compareBySort(sort: string, a: SearchDoctor, b: SearchDoctor): number {
+  if (sort === 'rating') return (b.averageRating ?? -1) - (a.averageRating ?? -1);
+  if (sort === 'experience') return (b.yearsOfExperience ?? -1) - (a.yearsOfExperience ?? -1);
+  const aNext = a.nextAvailableSlot ? new Date(a.nextAvailableSlot).getTime() : Infinity;
+  const bNext = b.nextAvailableSlot ? new Date(b.nextAvailableSlot).getTime() : Infinity;
+  return aNext - bNext;
+}
 
 // Long enough that a search isn't fired on every keystroke, short enough to feel live.
 const SEARCH_DEBOUNCE_MS = 300;
@@ -41,6 +58,7 @@ export function FindDoctorPage() {
   const availability = parseAvailabilityRange(searchParams.get('from'), searchParams.get('to'), new Date());
   const sort = (searchParams.get('sort') as 'next' | 'name' | 'experience' | 'rating' | null) ?? 'next';
   const page = Number(searchParams.get('page') ?? '1') || 1;
+  const favoritesOnly = searchParams.get('favoritesOnly') === 'true';
 
   const [qInput, setQInput] = useState(q);
 
@@ -53,6 +71,24 @@ export function FindDoctorPage() {
     sort,
     page,
   });
+  const favorites = useFavorites();
+
+  // `specialization` is a slug (the <select>'s option values, from the full
+  // catalog); a favorite's own summary only carries {id, name} per doctor,
+  // so the slug is resolved to an id here before matching.
+  const specializationId = specializations.data?.find((s) => s.slug === specialization)?.id;
+  const favoriteMatches = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return (favorites.data?.items ?? [])
+      .filter((doctor) => !specializationId || doctor.specializations.some((s) => s.id === specializationId))
+      .filter(
+        (doctor) =>
+          !term ||
+          doctor.displayName.toLowerCase().includes(term) ||
+          doctor.specializations.some((s) => s.name.toLowerCase().includes(term)),
+      )
+      .sort((a, b) => compareBySort(sort, a, b));
+  }, [favorites.data, specializationId, q, sort]);
 
   function updateParam(key: string, value: string) {
     const next = new URLSearchParams(searchParams);
@@ -104,8 +140,18 @@ export function FindDoctorPage() {
   const pageSize = search.data?.pageSize ?? 12;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  const favorites = useFavorites();
   const favoritedIds = new Set(favorites.data?.items.map((item) => item.id) ?? []);
+
+  // Normalizes whichever source is active into one shape so the QueryState
+  // below, and the list rendering after it, don't need to branch per mode.
+  const activeQuery = favoritesOnly ? favorites : search;
+  const items: SearchDoctor[] = favoritesOnly ? favoriteMatches : (search.data?.items ?? []);
+  const viewQuery: QueryStateResult<{ items: SearchDoctor[] }> = {
+    status: activeQuery.status,
+    data: activeQuery.data === undefined ? undefined : { items },
+    error: activeQuery.error,
+    refetch: activeQuery.refetch,
+  };
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 py-2">
@@ -168,20 +214,43 @@ export function FindDoctorPage() {
               ))}
             </select>
           </div>
+
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="doctor-search-favorites-only">Favorites</Label>
+            <div className="flex h-11 items-center gap-2 text-sm">
+              <input
+                id="doctor-search-favorites-only"
+                type="checkbox"
+                checked={favoritesOnly}
+                onChange={(e) => updateParam('favoritesOnly', e.target.checked ? 'true' : '')}
+                className="size-4 rounded border-input"
+              />
+              <span>Favorites only</span>
+            </div>
+          </div>
         </CardContent>
       </Card>
+      {favoritesOnly && (
+        <p className="-mt-4 text-xs text-muted-foreground">
+          Showing your favorited doctors; the &quot;Available on&quot; filter doesn&apos;t apply here.
+        </p>
+      )}
 
       <QueryState
-        query={search}
+        query={viewQuery}
         label="doctors"
         isEmpty={(data) => data.items.length === 0}
         empty={
           <Card>
             <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-              <p className="text-muted-foreground">No doctors match your search.</p>
-              <Link to="/patient/find-care" className="text-primary underline-offset-4 hover:underline">
-                Not sure what you need? Try guided symptom matching.
-              </Link>
+              <p className="text-muted-foreground">
+                {favoritesOnly ? 'No favorite doctors match your filters.' : 'No doctors match your search.'}
+              </p>
+              {!favoritesOnly && (
+                <Link to="/patient/find-care" className="text-primary underline-offset-4 hover:underline">
+                  Not sure what you need? Try guided symptom matching.
+                </Link>
+              )}
             </CardContent>
           </Card>
         }
@@ -240,7 +309,7 @@ export function FindDoctorPage() {
             </Link>
           ))}
 
-          {totalPages > 1 && (
+          {!favoritesOnly && totalPages > 1 && (
             <div className="flex items-center justify-center gap-3">
               <Button
                 type="button"

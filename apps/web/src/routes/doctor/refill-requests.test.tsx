@@ -54,6 +54,10 @@ describe('DoctorRefillRequestsPage', () => {
 
     expect(screen.getByText(/ada lovelace/i)).toBeInTheDocument();
     expect(screen.getByText(/still symptomatic/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /view patient record/i })).toHaveAttribute(
+      'href',
+      '/doctor/patients/pat-1',
+    );
 
     await userEvent.click(screen.getByRole('button', { name: /^approve$/i }));
     await userEvent.type(screen.getByPlaceholderText(/optional note/i), 'Renewed for another 30 days');
@@ -101,5 +105,72 @@ describe('DoctorRefillRequestsPage', () => {
     renderPage();
 
     expect(screen.getByText(/no pending refill requests/i)).toBeInTheDocument();
+  });
+
+  it('Links to the dependent-scoped patient record when the request is for a dependent', () => {
+    vi.mocked(useDoctorRefillRequests).mockReturnValue({
+      data: {
+        items: [
+          refillRequest({
+            dependent: { id: 'dep-1', displayName: 'Jamie Lovelace', relationship: 'CHILD' },
+          }),
+        ],
+        total: 1,
+        page: 1,
+        pageSize: 20,
+      },
+      status: 'success',
+      error: null,
+      isPending: false,
+      refetch: vi.fn(),
+    } as never);
+    vi.mocked(useApproveRefill).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+    vi.mocked(useDenyRefill).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+
+    renderPage();
+
+    expect(screen.getByRole('link', { name: /view patient record/i })).toHaveAttribute(
+      'href',
+      '/doctor/patients/pat-1?dependentId=dep-1',
+    );
+  });
+
+  it('Switch to the Approved tab shows decided requests without action buttons', async () => {
+    vi.mocked(useDoctorRefillRequests).mockImplementation(((status?: string) => {
+      if (status === 'APPROVED') {
+        return {
+          data: {
+            items: [
+              refillRequest({
+                id: 'refill-2',
+                status: 'APPROVED',
+                patientNote: null,
+                doctorNote: 'Renewed for another 30 days',
+                decidedAt: '2026-01-03T00:00:00.000Z',
+              }),
+            ],
+            total: 1,
+            page: 1,
+            pageSize: 20,
+          },
+          status: 'success',
+          error: null,
+          isPending: false,
+          refetch: vi.fn(),
+        };
+      }
+      return { data: { items: [], total: 0, page: 1, pageSize: 20 }, status: 'success', error: null, isPending: false, refetch: vi.fn() };
+    }) as never);
+    vi.mocked(useApproveRefill).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+    vi.mocked(useDenyRefill).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+
+    renderPage();
+
+    await userEvent.click(screen.getByRole('tab', { name: /^approved$/i }));
+
+    expect(await screen.findByText(/ada lovelace/i)).toBeInTheDocument();
+    expect(screen.getByText(/renewed for another 30 days/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^approve$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^deny$/i })).not.toBeInTheDocument();
   });
 });

@@ -287,6 +287,101 @@ describe('FindDoctorPage', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /remove from favorites/i })).toBeInTheDocument());
   });
 
+  it('Favorites only shows just the favorited doctors and ignores server pagination', async () => {
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/patients/me/favorites') {
+        return Promise.resolve(
+          ok({ items: [doctorResult({ id: 'doc-2', displayName: 'Dr. Cardio', specializations: [{ id: 'cardio-id', name: 'Cardiology' }] })] }),
+        );
+      }
+      if (path === '/doctors') {
+        return Promise.resolve(
+          ok({ items: [doctorResult(), doctorResult({ id: 'doc-2', displayName: 'Dr. Cardio' })], total: 2, page: 1, pageSize: 12 }),
+        );
+      }
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    const router = renderPage();
+
+    await screen.findByText('Dr. Grace Hopper');
+    expect(screen.getByText('Dr. Cardio')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /favorites/i }));
+
+    await waitFor(() => expect(router.state.location.search).toContain('favoritesOnly=true'));
+    await waitFor(() => expect(screen.queryByText('Dr. Grace Hopper')).not.toBeInTheDocument());
+    expect(screen.getByText('Dr. Cardio')).toBeInTheDocument();
+  });
+
+  it('Favorites only respects the specialization filter', async () => {
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/patients/me/favorites') {
+        return Promise.resolve(
+          ok({
+            items: [
+              doctorResult({ specializations: [{ id: 'derm-id', name: 'Dermatology' }] }),
+              doctorResult({ id: 'doc-2', displayName: 'Dr. Cardio', specializations: [{ id: 'cardio-id', name: 'Cardiology' }] }),
+            ],
+          }),
+        );
+      }
+      if (path === '/doctors') return Promise.resolve(ok({ items: [], total: 0, page: 1, pageSize: 12 }));
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    renderPage('/patient/doctors?favoritesOnly=true');
+
+    await screen.findByText('Dr. Grace Hopper');
+    expect(screen.getByText('Dr. Cardio')).toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText(/specialization/i), 'cardiology');
+
+    await waitFor(() => expect(screen.queryByText('Dr. Grace Hopper')).not.toBeInTheDocument());
+    expect(screen.getByText('Dr. Cardio')).toBeInTheDocument();
+  });
+
+  it('Unfavorite while filtering to favorites', async () => {
+    let favorites = [doctorResult()];
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: favorites }));
+      if (path === '/doctors') return Promise.resolve(ok({ items: [], total: 0, page: 1, pageSize: 12 }));
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+    vi.mocked(apiClient.DELETE).mockImplementation((() => {
+      favorites = [];
+      return Promise.resolve({ data: undefined, error: undefined, response: { ok: true, status: 204 } as Response });
+    }) as never);
+
+    renderPage('/patient/doctors?favoritesOnly=true');
+
+    await screen.findByText('Dr. Grace Hopper');
+    await userEvent.click(screen.getByRole('button', { name: /remove from favorites/i }));
+
+    await waitFor(() => expect(apiClient.DELETE).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByText('Dr. Grace Hopper')).not.toBeInTheDocument());
+  });
+
+  it('Book from a favorited doctor\'s card', async () => {
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [doctorResult()] }));
+      if (path === '/doctors') return Promise.resolve(ok({ items: [], total: 0, page: 1, pageSize: 12 }));
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    renderPage('/patient/doctors?favoritesOnly=true');
+
+    await screen.findByText('Dr. Grace Hopper');
+    expect(screen.getByRole('link', { name: /dr\. grace hopper/i })).toHaveAttribute(
+      'href',
+      '/patient/doctors/doc-1',
+    );
+  });
+
   it('No results', async () => {
     vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
       if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));

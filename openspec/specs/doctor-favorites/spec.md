@@ -90,19 +90,19 @@ toggle state in the web app.
 - **THEN** the search results are unchanged in order, inclusion, and content
 
 ### Requirement: Favorites in the web app
-The patient area SHALL include a "My favorites" page listing favorited doctors as cards (matching
-the Find a doctor page's card layout) with a "Book" shortcut into that doctor's profile. The
-doctor's discovery card and profile page SHALL each show a toggleable favorite control reflecting
-current favorite state.
+The Find a doctor page SHALL include a "Favorites only" filter that, combined with the page's other
+filters (search text, specialization, sort), narrows the list to just the patient's favorited
+doctors, rendered as the same cards an ordinary search returns. The doctor's discovery card and
+profile page SHALL each show a toggleable favorite control reflecting current favorite state.
 
 #### Scenario: Favorite from a search result card
 - **WHEN** a patient toggles the favorite control on a doctor's card in Find a doctor
-- **THEN** the control reflects the new state immediately and the doctor appears in My favorites
+- **THEN** the control reflects the new state immediately and the doctor appears when Favorites only is enabled
 
-#### Scenario: Unfavorite from My favorites
-- **WHEN** a patient unfavorites a doctor from the My favorites page
-- **THEN** that doctor's card is removed from the page
+#### Scenario: Unfavorite while filtering to favorites
+- **WHEN** a patient unfavorites a doctor while Favorites only is enabled
+- **THEN** that doctor's card is removed from the filtered list
 
-#### Scenario: Book from My favorites skips search
-- **WHEN** a patient selects "Book" on a favorited doctor's card
-- **THEN** they land directly on that doctor's profile page with its slot picker, without visiting Find a doctor
+#### Scenario: Book from a favorited doctor's card
+- **WHEN** a patient selects a favorited doctor's card while Favorites only is enabled
+- **THEN** they land directly on that doctor's profile page with its slot picker

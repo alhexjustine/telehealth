@@ -126,6 +126,26 @@ describe('Review moderation', () => {
     expect(onlyVisible.body.items.map((r: { id: string }) => r.id)).toEqual([visibleForA]);
   });
 
+  it('Lists reviews filtered by doctor name, case-insensitive and matching first or last name', async () => {
+    // Distinctive names: `registerDoctor`'s default fixture name is "Grace Hopper", reused by
+    // every other doctor created without an override across this suite's shared test database.
+    const admin = await createAndSignInAdmin(app);
+    const doctorA = await registerBookableDoctor(app, { firstName: 'Zoraida', lastName: 'Quisenberry' });
+    const doctorB = await registerBookableDoctor(app, { firstName: 'Ximena', lastName: 'Okonkwo' });
+    const { reviewId: forA } = await createReview(app, doctorA, 5);
+    const { reviewId: forB } = await createReview(app, doctorB, 4);
+
+    const byFirstName = await admin.agent.get('/api/admin/reviews').query({ doctorName: 'zoraida' });
+    expect(byFirstName.status).toBe(200);
+    expect(byFirstName.body.items.map((r: { id: string }) => r.id)).toEqual([forA]);
+
+    const byLastName = await admin.agent.get('/api/admin/reviews').query({ doctorName: 'OKONKWO' });
+    expect(byLastName.body.items.map((r: { id: string }) => r.id)).toEqual([forB]);
+
+    const noMatch = await admin.agent.get('/api/admin/reviews').query({ doctorName: 'nobody-matches-this' });
+    expect(noMatch.body.items).toEqual([]);
+  });
+
   it('Non-admin denied', async () => {
     const doctor = await registerBookableDoctor(app);
     const { reviewId, patient } = await createReview(app, doctor);

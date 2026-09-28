@@ -32,6 +32,7 @@ const selectClassName =
 
 export function AdminReviewsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [doctorNameInput, setDoctorNameInput] = useState(searchParams.get('doctorName') ?? '');
   const [doctorIdInput, setDoctorIdInput] = useState(searchParams.get('doctorId') ?? '');
   const [dialogTarget, setDialogTarget] = useState<{ review: AdminReviewItem; action: ModerationAction } | undefined>(
     undefined,
@@ -39,6 +40,7 @@ export function AdminReviewsPage() {
 
   const hiddenParam = searchParams.get('hidden');
   const query: AdminReviewListQuery = {
+    doctorName: searchParams.get('doctorName') || undefined,
     doctorId: searchParams.get('doctorId') || undefined,
     hidden: hiddenParam === 'true' ? true : hiddenParam === 'false' ? false : undefined,
     page: Number(searchParams.get('page') ?? '1') || 1,
@@ -63,6 +65,24 @@ export function AdminReviewsPage() {
 
       <Card>
         <CardContent className="flex flex-wrap items-end gap-4 pt-6">
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="admin-reviews-doctor-name">Doctor name</Label>
+            <div className="flex gap-2">
+              <Input
+                id="admin-reviews-doctor-name"
+                placeholder="Doctor name"
+                value={doctorNameInput}
+                onChange={(e) => setDoctorNameInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') updateParam('doctorName', doctorNameInput);
+                }}
+                className="w-72"
+              />
+              <Button type="button" variant="outline" onClick={() => updateParam('doctorName', doctorNameInput)}>
+                Filter
+              </Button>
+            </div>
+          </div>
           <div className="flex flex-col gap-1">
             <Label htmlFor="admin-reviews-doctor-id">Doctor ID</Label>
             <div className="flex gap-2">
@@ -114,8 +134,7 @@ export function AdminReviewsPage() {
                       {review.hidden && <Badge variant="destructive">Hidden</Badge>}
                     </div>
                     <p className="text-sm">
-                      For <span className="font-medium">{review.doctorDisplayName}</span> by{' '}
-                      <span className="font-medium">{review.patientDisplayName}</span>
+                      For <span className="font-medium">{review.doctorDisplayName}</span> · anonymous patient
                     </p>
                     {review.comment && <p className="text-sm">{review.comment}</p>}
                     {review.hidden && review.hiddenReason && (

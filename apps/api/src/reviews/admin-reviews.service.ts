@@ -12,7 +12,6 @@ import type { AdminReviewDto, AdminReviewListResponseDto } from './dto/admin-rev
 
 const WITH_NAMES = {
   doctor: { select: { firstName: true, lastName: true } },
-  patient: { select: { firstName: true, lastName: true } },
 } satisfies Prisma.DoctorReviewInclude;
 
 type ReviewWithNames = Prisma.DoctorReviewGetPayload<{ include: typeof WITH_NAMES }>;
@@ -27,8 +26,19 @@ export class AdminReviewsService {
   async list(query: AdminReviewListQueryDto): Promise<AdminReviewListResponseDto> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
+    const doctorName = query.doctorName?.trim();
     const where: Prisma.DoctorReviewWhereInput = {
       ...(query.doctorId ? { doctorId: query.doctorId } : {}),
+      ...(doctorName
+        ? {
+            doctor: {
+              OR: [
+                { firstName: { contains: doctorName, mode: 'insensitive' } },
+                { lastName: { contains: doctorName, mode: 'insensitive' } },
+              ],
+            },
+          }
+        : {}),
       ...(query.hidden === undefined ? {} : query.hidden ? { hiddenAt: { not: null } } : { hiddenAt: null }),
     };
 
@@ -107,7 +117,6 @@ function toAdminReviewDto(review: ReviewWithNames): AdminReviewDto {
     doctorId: review.doctorId,
     doctorDisplayName: `${review.doctor.firstName} ${review.doctor.lastName}`,
     patientId: review.patientId,
-    patientDisplayName: `${review.patient.firstName} ${review.patient.lastName}`,
     rating: review.rating,
     comment: review.comment,
     hidden: review.hiddenAt !== null,

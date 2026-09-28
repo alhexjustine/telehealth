@@ -18,7 +18,6 @@ function review(overrides: Partial<Record<string, unknown>> = {}) {
     doctorId: 'doc-1',
     doctorDisplayName: 'Dr. Grace Hopper',
     patientId: 'pat-1',
-    patientDisplayName: 'Ada Lovelace',
     rating: 4,
     comment: 'Very thorough',
     hidden: false,
@@ -52,7 +51,7 @@ describe('AdminReviewsPage', () => {
     renderPage();
 
     expect(screen.getByText(/dr\. grace hopper/i)).toBeInTheDocument();
-    expect(screen.getByText(/ada lovelace/i)).toBeInTheDocument();
+    expect(screen.getByText(/anonymous patient/i)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: /^hide$/i }));
     expect(screen.getByText(/hide this review/i)).toBeInTheDocument();
@@ -95,5 +94,45 @@ describe('AdminReviewsPage', () => {
       id: 'rev-1',
       body: { reason: 'Reviewed, no policy violation' },
     });
+  });
+
+  it('Filters by doctor name', async () => {
+    vi.mocked(useAdminReviews).mockReturnValue({
+      data: { items: [review()], total: 1, page: 1, pageSize: 20 },
+      status: 'success',
+      error: null,
+      isPending: false,
+      refetch: vi.fn(),
+    } as never);
+    vi.mocked(useHideReview).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+    vi.mocked(useUnhideReview).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText(/doctor name/i), 'Hopper');
+    await userEvent.click(screen.getAllByRole('button', { name: /^filter$/i })[0]!);
+
+    const lastCall = vi.mocked(useAdminReviews).mock.calls.at(-1)?.[0];
+    expect(lastCall).toMatchObject({ doctorName: 'Hopper' });
+  });
+
+  it('Filters by doctor ID', async () => {
+    vi.mocked(useAdminReviews).mockReturnValue({
+      data: { items: [review()], total: 1, page: 1, pageSize: 20 },
+      status: 'success',
+      error: null,
+      isPending: false,
+      refetch: vi.fn(),
+    } as never);
+    vi.mocked(useHideReview).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+    vi.mocked(useUnhideReview).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText(/doctor id/i), 'doc-1');
+    await userEvent.click(screen.getAllByRole('button', { name: /^filter$/i })[1]!);
+
+    const lastCall = vi.mocked(useAdminReviews).mock.calls.at(-1)?.[0];
+    expect(lastCall).toMatchObject({ doctorId: 'doc-1' });
   });
 });

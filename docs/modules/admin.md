@@ -149,11 +149,13 @@ badges and cancel/mark-not-held actions (each behind a required-reason dialog); 
 ## Review moderation
 
 `/admin/reviews` lists every patient review of a doctor, including hidden ones, filterable by
-doctor and hidden status (`add-doctor-reviews`) — the only place the reviewing account's identity
-is shown, since the public view never does. Hiding or unhiding a review requires a reason (5-500
-characters, same as an account status change) and takes effect on the public average/list
-immediately; both actions are audited (`REVIEW_HIDDEN`/`REVIEW_UNHIDDEN`), and neither exposes or
-records the review's comment text beyond what was already public before hiding.
+doctor (by name or id) and hidden status (`add-doctor-reviews`). The reviewing patient stays
+anonymous here too, exactly as in the public view — only the reviewing account's opaque id is
+retained (for spotting repeat-offender patterns during moderation), never a name. Hiding or
+unhiding a review requires a reason (5-500 characters, same as an account status change) and takes
+effect on the public average/list immediately; both actions are audited
+(`REVIEW_HIDDEN`/`REVIEW_UNHIDDEN`), and neither exposes or records the review's comment text
+beyond what was already public before hiding.
 
 ## Operational dashboard
 

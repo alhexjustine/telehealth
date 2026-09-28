@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
@@ -23,9 +25,14 @@ import { QueryState } from '@/components/query-state';
 
 type Decision = 'approve' | 'deny';
 
+const TABS = [
+  { status: 'PENDING', label: 'Pending', empty: 'No pending refill requests.' },
+  { status: 'APPROVED', label: 'Approved', empty: 'No approved refill requests.' },
+  { status: 'DENIED', label: 'Denied', empty: 'No denied refill requests.' },
+] as const;
+
 export function DoctorRefillRequestsPage() {
-  const requests = useDoctorRefillRequests('PENDING');
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const [status, setStatus] = useState<(typeof TABS)[number]['status']>('PENDING');
   const approveRefill = useApproveRefill();
   const denyRefill = useDenyRefill();
   const [deciding, setDeciding] = useState<{ request: RefillRequestDto; decision: Decision } | undefined>(undefined);
@@ -47,50 +54,26 @@ export function DoctorRefillRequestsPage() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
       <h1 className="text-2xl font-semibold">Refill requests</h1>
-      <p className="text-sm text-muted-foreground">Pending prescription refill requests from your patients.</p>
+      <p className="text-sm text-muted-foreground">Prescription refill requests from your patients.</p>
 
-      <QueryState
-        query={requests}
-        label="refill requests"
-        isEmpty={(data) => data.items.length === 0}
-        empty={<p className="text-muted-foreground">No pending refill requests.</p>}
-      >
-        {(data) => (
-          <div className="flex flex-col gap-3">
-            {data.items.map((request) => (
-              <Card key={request.id}>
-                <CardContent className="flex flex-col gap-2 pt-6">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium">
-                      {request.dependent
-                        ? `${request.dependent.displayName} (${relationshipLabel(request.dependent.relationship)})`
-                        : request.patient.displayName}
-                    </p>
-                    <Badge variant="secondary">{request.medication}</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Consultation on {formatSlotDateAndTime(request.appointmentStartsAt, timezone)}
-                  </p>
-                  {request.patientNote && <p className="text-sm">{request.patientNote}</p>}
-                  <div className="mt-1 flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDeciding({ request, decision: 'deny' })}
-                    >
-                      Deny
-                    </Button>
-                    <Button type="button" size="sm" onClick={() => setDeciding({ request, decision: 'approve' })}>
-                      Approve
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </QueryState>
+      <Tabs value={status} onValueChange={(value) => setStatus(value as (typeof TABS)[number]['status'])}>
+        <TabsList>
+          {TABS.map((tab) => (
+            <TabsTrigger key={tab.status} value={tab.status}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {TABS.map((tab) => (
+          <TabsContent key={tab.status} value={tab.status}>
+            <RefillRequestList
+              status={tab.status}
+              emptyMessage={tab.empty}
+              onDecide={(request, decision) => setDeciding({ request, decision })}
+            />
+          </TabsContent>
+        ))}
+      </Tabs>
 
       <DecideRefillDialog
         deciding={deciding}
@@ -104,6 +87,79 @@ export function DoctorRefillRequestsPage() {
         isPending={approveRefill.isPending || denyRefill.isPending}
       />
     </div>
+  );
+}
+
+function RefillRequestList({
+  status,
+  emptyMessage,
+  onDecide,
+}: {
+  status: (typeof TABS)[number]['status'];
+  emptyMessage: string;
+  onDecide: (request: RefillRequestDto, decision: Decision) => void;
+}) {
+  const requests = useDoctorRefillRequests(status);
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  return (
+    <QueryState
+      query={requests}
+      label="refill requests"
+      isEmpty={(data) => data.items.length === 0}
+      empty={<p className="text-muted-foreground">{emptyMessage}</p>}
+    >
+      {(data) => (
+        <div className="flex flex-col gap-3">
+          {data.items.map((request) => (
+            <Card key={request.id}>
+              <CardContent className="flex flex-col gap-2 pt-6">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium">
+                    {request.dependent
+                      ? `${request.dependent.displayName} (${relationshipLabel(request.dependent.relationship)})`
+                      : request.patient.displayName}
+                  </p>
+                  <Badge variant="secondary">{request.medication}</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Consultation on {formatSlotDateAndTime(request.appointmentStartsAt, timezone)}
+                </p>
+                <Link
+                  to={
+                    request.dependent
+                      ? `/doctor/patients/${request.patient.id}?dependentId=${request.dependent.id}`
+                      : `/doctor/patients/${request.patient.id}`
+                  }
+                  className="text-sm text-primary underline-offset-4 hover:underline"
+                >
+                  View patient record
+                </Link>
+                {request.patientNote && <p className="text-sm">{request.patientNote}</p>}
+                {request.status === 'PENDING' ? (
+                  <div className="mt-1 flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => onDecide(request, 'deny')}>
+                      Deny
+                    </Button>
+                    <Button type="button" size="sm" onClick={() => onDecide(request, 'approve')}>
+                      Approve
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="mt-1 flex flex-col gap-1 text-sm text-muted-foreground">
+                    <span>
+                      {request.status === 'APPROVED' ? 'Approved' : 'Denied'}
+                      {request.decidedAt ? ` on ${formatSlotDateAndTime(request.decidedAt, timezone)}` : null}
+                    </span>
+                    {request.doctorNote && <span>{request.doctorNote}</span>}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </QueryState>
   );
 }
 

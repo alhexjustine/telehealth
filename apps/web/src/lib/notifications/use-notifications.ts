@@ -7,8 +7,8 @@ import { useRealtimeConnected } from '@/lib/realtime/realtime-provider';
 const NOTIFICATIONS_LIST_KEY = ['notifications', 'list'] as const;
 export const UNREAD_COUNT_KEY = ['notifications', 'unread-count'] as const;
 
-function notificationsListKey(unreadOnly: boolean, page: number) {
-  return [...NOTIFICATIONS_LIST_KEY, unreadOnly, page] as const;
+function notificationsListKey(unreadOnly: boolean, page: number, pageSize: number) {
+  return [...NOTIFICATIONS_LIST_KEY, unreadOnly, page, pageSize] as const;
 }
 
 function invalidateNotificationQueries(queryClient: ReturnType<typeof useQueryClient>) {
@@ -18,7 +18,7 @@ function invalidateNotificationQueries(queryClient: ReturnType<typeof useQueryCl
 
 export function useNotifications(unreadOnly: boolean, page = 1, pageSize = 20) {
   return useQuery({
-    queryKey: notificationsListKey(unreadOnly, page),
+    queryKey: notificationsListKey(unreadOnly, page, pageSize),
     queryFn: async () =>
       unwrap(await apiClient.GET('/notifications', { params: { query: { unreadOnly, page, pageSize } } })),
   });

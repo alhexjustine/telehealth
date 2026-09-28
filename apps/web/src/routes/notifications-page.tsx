@@ -13,7 +13,7 @@ import { QueryState } from '@/components/query-state';
 type NotificationDto =
   ApiPaths['/notifications']['get']['responses'][200]['content']['application/json']['items'][number];
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 5;
 
 /**
  * `/{role}/notifications`: every notification, newest first, with an unread

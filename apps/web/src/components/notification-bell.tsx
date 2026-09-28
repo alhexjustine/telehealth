@@ -25,7 +25,7 @@ import {
 type NotificationDto =
   ApiPaths['/notifications']['get']['responses'][200]['content']['application/json']['items'][number];
 
-const DROPDOWN_ITEM_COUNT = 10;
+const DROPDOWN_ITEM_COUNT = 5;
 
 function startsAtLabel(data: NotificationDto['data']): string | undefined {
   if (!data || typeof data !== 'object' || !('startsAt' in data)) return undefined;

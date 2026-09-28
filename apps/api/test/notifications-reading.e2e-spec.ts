@@ -50,6 +50,19 @@ describe('Reading notifications', () => {
     expect(titles).toEqual(['Unread two', 'Unread one']); // newest first
   });
 
+  it('An explicit unreadOnly=false still returns read notifications too', async () => {
+    const patient = await registerPatient(app);
+    await createNotification(patient.id, { title: 'Unread one' });
+    await createNotification(patient.id, { title: 'Already read', readAt: new Date() });
+
+    // The web app always sends this explicitly (never omits the param) — a
+    // regression test for `unreadOnly` query-string "false" being coerced to
+    // the boolean `true` (see the DTO's `@Transform` comment).
+    const res = await patient.agent.get('/api/notifications').query({ unreadOnly: false }).expect(200);
+
+    expect(res.body.items).toHaveLength(2);
+  });
+
   it('Mark one read', async () => {
     const patient = await registerPatient(app);
     const notification = await createNotification(patient.id);

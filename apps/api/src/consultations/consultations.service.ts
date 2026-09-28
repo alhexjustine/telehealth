@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Env } from '../config/env.schema.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { AppointmentStatus, NotificationType, Role, SessionState } from '../generated/prisma/enums.js';
@@ -13,6 +15,7 @@ import {
   AppointmentPatientSummaryDto,
 } from '../appointments/dto/appointment-response.dto.js';
 import { ClinicalAccessPolicy, type ClinicalActor } from './clinical-access-policy.js';
+import { consultationRoomId } from './consultation-room.js';
 import { SCHEDULED_SESSION_STATE, transition, type ConsultationAction } from './consultation-state.js';
 import { toNoteDto, toPrescriptionDto, toSessionDto } from './consultation-mapper.js';
 import { lockSession } from './session-lock.js';
@@ -33,6 +36,7 @@ export class ConsultationsService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly realtimeGateway: RealtimeGateway,
+    private readonly configService: ConfigService<Env, true>,
   ) {}
 
   async getWorkspace(actor: ClinicalActor, appointmentId: string): Promise<ConsultationWorkspaceResponseDto> {
@@ -59,6 +63,7 @@ export class ConsultationsService {
       endsAt: appointment.endsAt.toISOString(),
       reason: appointment.reason,
       status: appointment.status,
+      roomId: consultationRoomId(appointment.id, this.configService.get('JITSI_ROOM_SECRET', { infer: true })),
       doctor: doctorSummary(appointment),
       patient: patientSummary(appointment),
       dependent: dependentSummary(appointment),
@@ -111,6 +116,7 @@ export class ConsultationsService {
           appointment: { startsAt: appointment.startsAt, endsAt: appointment.endsAt, status: appointment.status },
           session,
           hasPatientSummary,
+          skipJoinWindowCheck: this.configService.get('JOIN_WINDOW_DISABLED', { infer: true }),
         });
 
         await tx.consultationSession.update({

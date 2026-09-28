@@ -15,4 +15,9 @@ export class CurrentUserResponseDto {
   profileComplete?: boolean;
   @ApiProperty({ enum: VerificationStatus, required: false, description: 'Present only for DOCTOR' })
   verificationStatus?: VerificationStatus;
+  @ApiProperty({
+    description:
+      'Testing-only: true when JOIN_WINDOW_DISABLED skips the consultation join-window check server-side.',
+  })
+  joinWindowDisabled!: boolean;
 }

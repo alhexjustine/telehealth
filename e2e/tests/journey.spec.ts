@@ -119,7 +119,7 @@ test('Journey passes', async ({ browser }) => {
     // a clinical note and a prescription, and completes it.
     await test.step('Both participants join the consultation workspace', async () => {
       await openConsultationAndAutoJoin(patientPage, finalAppointmentId);
-      await expect(patientPage.getByText('Waiting for the doctor…')).toBeVisible({ timeout: 15_000 });
+      await expect(patientPage.getByText('Waiting for the doctor to join…')).toBeVisible({ timeout: 15_000 });
 
       await openConsultationAndAutoJoin(doctorPage, finalAppointmentId);
       await expect(doctorPage.getByRole('button', { name: 'Start consultation' })).toBeEnabled({

@@ -186,16 +186,22 @@ then, once the doctor completes it, the patient summary and prescriptions right 
 workspace. See [Clinical Access](/architecture/clinical-access) for the full state machine and who
 can see what.
 
+While `JOINED` or `IN_PROGRESS`, the workspace also embeds a live video call with the doctor, via
+Jitsi's public `meet.jit.si` server against a per-appointment room name the API derives (not
+guessable from the appointment ID). This is a deliberate, documented exception to the
+standalone-runtime rule made for prototype purposes — see the README's "Known deviations."
+
 ## Messaging
 
 Each `BOOKED` or `COMPLETED` appointment has its own text message thread with the doctor, shown as
-a "Messages" card on both the appointment detail page and the consultation workspace itself
-(`add-consultation-messaging`). Sending is only offered while the appointment is `BOOKED`; a
-completed appointment's thread stays visible read-only, and a cancelled or not-held appointment
-shows no thread at all. Messages are stored in Postgres and delivered live over the same realtime
-socket the workspace uses, and each one raises a "New message" in-app notification for the
-recipient — no external chat/SaaS provider, and administrators only ever see a message count and
-last-message time (never the content), the same non-disclosure posture as clinical notes.
+a "Messages" card on both the appointment detail page and the consultation workspace itself (next
+to the video call) — the same thread either way (`add-consultation-messaging`). Sending is only
+offered while the appointment is `BOOKED`; a completed appointment's thread stays visible
+read-only, and a cancelled or not-held appointment shows no thread at all. Messages are stored in
+Postgres and delivered live over the same realtime socket the workspace uses, and each one raises
+a "New message" in-app notification for the recipient — no external chat/SaaS provider, and
+administrators only ever see a message count and last-message time (never the content), the same
+non-disclosure posture as clinical notes.
 
 ## Medical records
 

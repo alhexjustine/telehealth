@@ -1,9 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { JoinConsultationButton } from './join-consultation-button';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
 
-function renderButton(props: Partial<Parameters<typeof JoinConsultationButton>[0]> = {}) {
+vi.mock('@/lib/auth/use-current-user', () => ({ useCurrentUser: vi.fn() }));
+
+function renderButton(
+  props: Partial<Parameters<typeof JoinConsultationButton>[0]> = {},
+  joinWindowDisabled = false,
+) {
+  vi.mocked(useCurrentUser).mockReturnValue({ data: { joinWindowDisabled } } as never);
   render(
     <MemoryRouter>
       <JoinConsultationButton
@@ -35,5 +42,16 @@ describe('JoinConsultationButton', () => {
   it('is hidden once the appointment is no longer BOOKED', () => {
     renderButton({ status: 'CANCELLED' });
     expect(screen.queryByRole('link', { name: /join consultation/i })).not.toBeInTheDocument();
+  });
+
+  it('appears outside the window when joinWindowDisabled (testing-only escape hatch)', () => {
+    renderButton(
+      {
+        startsAt: new Date(Date.now() + 40 * 60_000).toISOString(),
+        endsAt: new Date(Date.now() + 70 * 60_000).toISOString(),
+      },
+      true,
+    );
+    expect(screen.getByRole('link', { name: /join consultation/i })).toBeInTheDocument();
   });
 });

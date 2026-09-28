@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { buttonVariants } from '@/components/ui/button';
 import { isJoinable } from '@/lib/consultations/consultation-window';
+import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { cn } from '@/lib/utils';
 
 interface JoinConsultationButtonProps {
@@ -26,7 +27,8 @@ export function JoinConsultationButton({
   size = 'sm',
   className,
 }: JoinConsultationButtonProps) {
-  if (!isJoinable({ status, startsAt, endsAt })) {
+  const { data: user } = useCurrentUser();
+  if (!isJoinable({ status, startsAt, endsAt, skipWindowCheck: user?.joinWindowDisabled })) {
     return null;
   }
   return (

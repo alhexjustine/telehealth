@@ -158,7 +158,9 @@ export class AuthService {
     await this.sessionService.revokeAllSessionsExcept(user.id, currentUser.sessionId);
   }
 
-  async me(currentUser: AuthUser): Promise<CurrentUserResponseDto> {
+  // `joinWindowDisabled` is populated by the controller (it needs ConfigService, which this
+  // service isn't otherwise wired for), not by this method.
+  async me(currentUser: AuthUser): Promise<Omit<CurrentUserResponseDto, 'joinWindowDisabled'>> {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: currentUser.id },
       include: { patientProfile: true, doctorProfile: true },

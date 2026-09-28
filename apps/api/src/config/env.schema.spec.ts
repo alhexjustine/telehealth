@@ -1,6 +1,11 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { validateEnv } from './env.schema.js';
 
+const VALID_BASE = {
+  DATABASE_URL: 'postgresql://localhost:5432/db',
+  JITSI_ROOM_SECRET: 'test-only-jitsi-secret',
+};
+
 describe('validateEnv', () => {
   it('Missing database URL', () => {
     const exit = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
@@ -15,8 +20,21 @@ describe('validateEnv', () => {
     errorLog.mockRestore();
   });
 
+  it('Missing Jitsi room secret', () => {
+    const exit = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const errorLog = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    validateEnv({ DATABASE_URL: 'postgresql://localhost:5432/db' });
+
+    expect(exit).toHaveBeenCalledWith(1);
+    expect(errorLog).toHaveBeenCalledWith(expect.stringContaining('JITSI_ROOM_SECRET'));
+
+    exit.mockRestore();
+    errorLog.mockRestore();
+  });
+
   it('accepts a valid configuration and fills in defaults', () => {
-    const config = validateEnv({ DATABASE_URL: 'postgresql://localhost:5432/db' });
+    const config = validateEnv(VALID_BASE);
 
     expect(config.DATABASE_URL).toBe('postgresql://localhost:5432/db');
     expect(config.PORT).toBe(3000);
@@ -34,17 +52,14 @@ describe('validateEnv', () => {
   });
 
   it('coerces REMINDERS_ENABLED from a string', () => {
-    const config = validateEnv({
-      DATABASE_URL: 'postgresql://localhost:5432/db',
-      REMINDERS_ENABLED: 'false',
-    });
+    const config = validateEnv({ ...VALID_BASE, REMINDERS_ENABLED: 'false' });
 
     expect(config.REMINDERS_ENABLED).toBe(false);
   });
 
   it('parses a comma-separated APP_ORIGINS list', () => {
     const config = validateEnv({
-      DATABASE_URL: 'postgresql://localhost:5432/db',
+      ...VALID_BASE,
       APP_ORIGINS: 'https://a.example, https://b.example',
     });
 
@@ -52,41 +67,56 @@ describe('validateEnv', () => {
   });
 
   it('coerces COOKIE_SECURE from a string', () => {
-    const config = validateEnv({
-      DATABASE_URL: 'postgresql://localhost:5432/db',
-      COOKIE_SECURE: 'true',
-    });
+    const config = validateEnv({ ...VALID_BASE, COOKIE_SECURE: 'true' });
 
     expect(config.COOKIE_SECURE).toBe(true);
   });
 
   it('only treats an explicit "true" as enabling DEMO_DATA', () => {
-    const disabled = validateEnv({ DATABASE_URL: 'postgresql://localhost:5432/db' });
+    const disabled = validateEnv(VALID_BASE);
     expect(disabled.DEMO_DATA).toBe(false);
 
-    const explicit = validateEnv({ DATABASE_URL: 'postgresql://localhost:5432/db', DEMO_DATA: 'true' });
+    const explicit = validateEnv({ ...VALID_BASE, DEMO_DATA: 'true' });
     expect(explicit.DEMO_DATA).toBe(true);
   });
 
   it('only treats an explicit "true" as enabling THROTTLE_DISABLED', () => {
-    const unset = validateEnv({ DATABASE_URL: 'postgresql://localhost:5432/db' });
+    const unset = validateEnv(VALID_BASE);
     expect(unset.THROTTLE_DISABLED).toBe(false);
 
-    const explicit = validateEnv({
-      DATABASE_URL: 'postgresql://localhost:5432/db',
-      THROTTLE_DISABLED: 'true',
-    });
+    const explicit = validateEnv({ ...VALID_BASE, THROTTLE_DISABLED: 'true' });
     expect(explicit.THROTTLE_DISABLED).toBe(true);
+  });
+
+  it('only treats an explicit "true" as enabling JOIN_WINDOW_DISABLED', () => {
+    const unset = validateEnv(VALID_BASE);
+    expect(unset.JOIN_WINDOW_DISABLED).toBe(false);
+
+    const explicit = validateEnv({ ...VALID_BASE, JOIN_WINDOW_DISABLED: 'true' });
+    expect(explicit.JOIN_WINDOW_DISABLED).toBe(true);
   });
 
   it('accepts optional admin credentials', () => {
     const config = validateEnv({
-      DATABASE_URL: 'postgresql://localhost:5432/db',
+      ...VALID_BASE,
       ADMIN_EMAIL: 'admin@telehealth.local',
       ADMIN_PASSWORD: 'ChangeMe-Admin-2026',
     });
 
     expect(config.ADMIN_EMAIL).toBe('admin@telehealth.local');
     expect(config.ADMIN_PASSWORD).toBe('ChangeMe-Admin-2026');
+  });
+
+  it('rejects an empty JITSI_ROOM_SECRET', () => {
+    const exit = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    const errorLog = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    validateEnv({ ...VALID_BASE, JITSI_ROOM_SECRET: '' });
+
+    expect(exit).toHaveBeenCalledWith(1);
+    expect(errorLog).toHaveBeenCalledWith(expect.stringContaining('JITSI_ROOM_SECRET'));
+
+    exit.mockRestore();
+    errorLog.mockRestore();
   });
 });

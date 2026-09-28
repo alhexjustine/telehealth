@@ -35,6 +35,13 @@ services:
       # Loads the fictional demo dataset on first startup so the app is explorable immediately.
       # Set to false in `.env` to start from an empty database instead.
       DEMO_DATA: ${DEMO_DATA:-true}
+      # Testing-only: set to true in `.env` to skip the consultation join-window check
+      # ([-15m, +30m] around the appointment), so any booked appointment can be entered
+      # immediately. Never set true for anything beyond local manual testing.
+      JOIN_WINDOW_DISABLED: ${JOIN_WINDOW_DISABLED:-false}
+      # Derives each appointment's Jitsi video-call room name; this is a local-only default,
+      # change it for anything beyond local use (see README.md).
+      JITSI_ROOM_SECRET: ${JITSI_ROOM_SECRET:-dev-only-change-me}
     depends_on:
       postgres:
         condition: service_healthy

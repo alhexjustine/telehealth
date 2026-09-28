@@ -11,6 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 process.env.DATABASE_URL ??= 'postgresql://openapi:openapi@localhost:5432/openapi';
 // No cron should outlive this one-shot script (see `REMINDERS_ENABLED` in env.schema.ts).
 process.env.REMINDERS_ENABLED ??= 'false';
+process.env.JITSI_ROOM_SECRET ??= 'openapi-generation-placeholder-secret';
 
 async function main(): Promise<void> {
   const { AppModule } = await import('../src/app.module.js');

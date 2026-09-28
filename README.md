@@ -79,9 +79,21 @@ Override them via `.env` at the repo root (Docker) or `apps/api/.env` (native `p
 | `SESSION_ABSOLUTE_HOURS`    | `12`                                                  | ...or this long after sign-in, whichever comes first                              |
 | `ADMIN_EMAIL`/`ADMIN_PASSWORD` | `admin@telehealth.local` / `ChangeMe-Admin-2026` | The pre-provisioned administrator; **change these for anything beyond local dev.** Unset both to skip provisioning |
 | `DEMO_DATA`                 | `true` (Docker Compose only; `false` otherwise)       | Loads the fictional demo dataset after migrations and admin provisioning. See the [Demo guide](docs/guide/demo.md) |
+| `JITSI_ROOM_SECRET`          | `dev-only-change-me`                                  | Derives each appointment's video-call room name. **Change this for anything beyond local dev.** See [Known deviations](#known-deviations) |
 
 See `docs/architecture/auth.md` (published on the docs site as "Authentication &
 Authorization") for the session model and protections these settings control.
+
+## Known deviations
+
+This project's [standalone-runtime rule](CLAUDE.md) (no external SaaS/BaaS for any core
+feature) has one deliberate, documented exception: **the consultation workspace's video call
+uses Jitsi's public `meet.jit.si` server**, embedded client-side. This is a prototype-only
+choice — real (if fictional) patient/doctor audio and video transits a third-party server with
+no uptime guarantee, which would be unacceptable in a real deployment. Every other feature
+(auth, matching, notifications, records, scheduling) remains fully self-contained in this
+stack. See the `consultation-session` spec's "Video" requirement (`openspec/specs/`) and the
+`add-consultation-video` change for the full rationale.
 
 ### Running a single test
 

@@ -40,6 +40,12 @@ describe('isJoinable', () => {
     expect(isJoinable({ status: 'CANCELLED', startsAt, endsAt, now: minutesFromStart(-10) })).toBe(false);
     expect(isJoinable({ status: 'COMPLETED', startsAt, endsAt, now: minutesFromStart(-10) })).toBe(false);
   });
+
+  it('skipWindowCheck bypasses the window (testing-only escape hatch)', () => {
+    expect(
+      isJoinable({ status: 'BOOKED', startsAt, endsAt, now: minutesFromStart(-20), skipWindowCheck: true }),
+    ).toBe(true);
+  });
 });
 
 describe('joinWindowOpensAt', () => {

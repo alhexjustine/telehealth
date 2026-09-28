@@ -106,7 +106,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Returns the signed-in user' })
   @ApiOkResponse({ type: CurrentUserResponseDto })
   async me(@CurrentUser() user: AuthUser): Promise<CurrentUserResponseDto> {
-    return this.authService.me(user);
+    const result = await this.authService.me(user);
+    return { ...result, joinWindowDisabled: this.configService.get('JOIN_WINDOW_DISABLED', { infer: true }) };
   }
 
   private sessionMeta(req: Request): SessionMeta {

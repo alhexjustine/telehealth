@@ -58,6 +58,8 @@ export class ConsultationWorkspaceResponseDto {
     description: "The appointment's own status (distinct from the session state below) — used by the web app to gate the messages thread the same way the API does.",
   })
   status!: AppointmentStatus;
+  @ApiProperty({ description: "The appointment's video-call room name; not derivable from the appointment ID alone." })
+  roomId!: string;
   @ApiProperty({ type: AppointmentDoctorSummaryDto }) doctor!: AppointmentDoctorSummaryDto;
   @ApiProperty({
     type: AppointmentPatientSummaryDto,

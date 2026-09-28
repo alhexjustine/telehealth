@@ -91,6 +91,12 @@ any further edit, and notifies the patient live. See
 [Clinical Access](/architecture/clinical-access) for the full state machine, every guard and
 rejection code, and who else can read a completed note (continuity of care).
 
+While the session is `JOINED` or `IN_PROGRESS`, the workspace also shows a live video call between
+the doctor and patient, embedded via Jitsi's public `meet.jit.si` server against a per-appointment
+room name the API derives (an HMAC of the appointment ID, so it can't be found by guessing
+appointment IDs). This is a deliberate, documented exception to the standalone-runtime rule made
+for prototype purposes — see the README's "Known deviations."
+
 When the appointment was booked for one of the patient's dependents (`add-dependent-booking`), the
 workspace's identity and medical summary reflect that dependent — name, age, conditions,
 allergies, medications — not the account holder's; a relationship badge (Child/Parent/Spouse/
@@ -101,13 +107,14 @@ is still who is actually signed in and doing all of it.
 
 Each `BOOKED` or `COMPLETED` appointment has its own text message thread with the patient, shown
 as a "Messages" card on both the appointment detail page and the consultation workspace itself
-(alongside the notes/prescriptions editors) — the same thread either way
+(next to the video call and the notes/prescriptions editors) — the same thread either way
 (`add-consultation-messaging`). Sending is only offered while the appointment is `BOOKED`; a
-completed appointment's thread stays visible read-only, and a cancelled or not-held appointment
-shows no thread at all. Messages are stored in Postgres and delivered live over the same realtime
-socket the workspace uses, and each one raises a "New message" in-app notification for the
-recipient — no external chat/SaaS provider, and administrators only ever see a message count and
-last-message time (never the content), the same non-disclosure posture as clinical notes.
+completed appointment's thread stays visible
+read-only, and a cancelled or not-held appointment shows no thread at all. Messages are stored in
+Postgres and delivered live over the same realtime socket the workspace uses, and each one raises
+a "New message" in-app notification for the recipient — no external chat/SaaS provider, and
+administrators only ever see a message count and last-message time (never the content), the same
+non-disclosure posture as clinical notes.
 
 ## Patient records
 

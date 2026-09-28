@@ -104,6 +104,19 @@ describe('Workspace access', () => {
     expect(adminRes.status).toBe(403);
   });
 
+  it('Workspace response includes the video room identifier', async () => {
+    const doctor = await registerBookableDoctor(app);
+    const patient = await registerBookablePatient(app);
+    const startsAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const appointment = await createAppointmentDirect(app, { patientId: patient.id, doctorId: doctor.id, startsAt });
+
+    const res = await patient.agent.get(`/api/consultations/${appointment.id}`);
+    expect(res.status).toBe(200);
+    expect(typeof res.body.roomId).toBe('string');
+    expect(res.body.roomId.length).toBeGreaterThan(0);
+    expect(res.body.roomId).not.toBe(appointment.id);
+  });
+
   it('Cancelled appointment', async () => {
     const doctor = await registerBookableDoctor(app);
     const patient = await registerBookablePatient(app);

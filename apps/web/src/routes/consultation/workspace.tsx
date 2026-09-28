@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { AppointmentMessagesCard } from '@/components/appointment-messages-card';
+import { ConsultationVideoCall } from '@/components/consultation-video-call';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RealtimeProvider } from '@/lib/realtime/realtime-provider';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
@@ -61,7 +62,14 @@ function ConsultationWorkspaceContent() {
   const hasAutoJoined = useRef(false);
 
   const data = workspace.data;
-  const joinable = data ? isJoinable({ status: 'BOOKED', startsAt: data.startsAt, endsAt: data.endsAt }) : false;
+  const joinable = data
+    ? isJoinable({
+        status: 'BOOKED',
+        startsAt: data.startsAt,
+        endsAt: data.endsAt,
+        skipWindowCheck: user?.joinWindowDisabled,
+      })
+    : false;
   const alreadyJoined = user?.role === 'DOCTOR' ? data?.session.doctorJoinedAt !== null : data?.session.patientJoinedAt !== null;
 
   // Auto-join once, on mount, while inside the window (idempotent
@@ -95,14 +103,24 @@ function ConsultationWorkspaceContent() {
               <ArrowLeft className="size-4" /> Back
             </Link>
             <span className="font-semibold">Consultation workspace</span>
-            <Badge variant="outline" className="ml-auto">
+            <Badge
+              variant={workspaceData.session.state === 'IN_PROGRESS' ? 'default' : 'outline'}
+              className="ml-auto"
+            >
               {workspaceData.session.state.replace('_', ' ')}
             </Badge>
           </header>
 
-          <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6 lg:flex-row">
-            <div className="flex flex-1 flex-col gap-4">
+          <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 p-6 lg:flex-row">
+            <div className="flex flex-col gap-4 lg:flex-[3]">
               <AppointmentContextCard data={workspaceData} timezone={timezone} />
+              {workspaceData.session.state === 'IN_PROGRESS' && user && (
+                <ConsultationVideoCall
+                  roomId={workspaceData.roomId}
+                  displayName={user.displayName}
+                  email={user.email}
+                />
+              )}
               <StateTimeline session={workspaceData.session} timezone={timezone} />
               <PresenceCard presence={presence} />
               {!joinable && workspaceData.session.state === 'SCHEDULED' && (
@@ -110,7 +128,7 @@ function ConsultationWorkspaceContent() {
               )}
             </div>
 
-            <div className="flex flex-1 flex-col gap-4">
+            <div className="flex flex-col gap-4 lg:flex-[2]">
               {isDoctor ? (
                 <DoctorPanel
                   appointmentId={appointmentId}
@@ -266,12 +284,17 @@ function PatientPanel({ data, timezone }: { data: WorkspaceDto; timezone: string
     );
   }
 
+  const waitingMessage =
+    data.session.state === 'IN_PROGRESS'
+      ? 'The consultation is in progress.'
+      : data.session.doctorJoinedAt
+        ? 'The doctor has joined — waiting for them to start the consultation.'
+        : 'Waiting for the doctor to join…';
+
   return (
     <>
       <Card>
-        <CardContent className="pt-6 text-sm text-muted-foreground">
-          {data.session.state === 'IN_PROGRESS' ? 'The consultation is in progress.' : 'Waiting for the doctor…'}
-        </CardContent>
+        <CardContent className="pt-6 text-sm text-muted-foreground">{waitingMessage}</CardContent>
         <CardContent className="pt-0 text-xs text-muted-foreground">{formatSlotDateAndTime(data.startsAt, timezone)}</CardContent>
       </Card>
       <AppointmentMessagesCard
@@ -318,6 +341,13 @@ function DoctorPanel({
   const canStart = data.session.state === 'JOINED' && patientJoined;
   const canComplete = data.session.state === 'IN_PROGRESS' && summaryDraft.trim().length > 0;
   const editable = data.session.state === 'JOINED' || data.session.state === 'IN_PROGRESS';
+
+  const startDisabledReason =
+    data.session.state === 'JOINED' && !patientJoined ? 'Waiting for the patient to join.' : null;
+  const completeDisabledReason =
+    data.session.state === 'IN_PROGRESS' && summaryDraft.trim().length === 0
+      ? 'Write a patient summary above to enable this.'
+      : null;
 
   async function handleStart() {
     try {
@@ -384,20 +414,22 @@ function DoctorPanel({
           <Button
             type="button"
             disabled={!canStart || start.isPending}
-            title={canStart ? undefined : 'The patient must join before the consultation can start'}
+            title={startDisabledReason ?? undefined}
             onClick={() => void handleStart()}
           >
             {start.isPending ? 'Starting…' : 'Start consultation'}
           </Button>
+          {startDisabledReason && <p className="text-xs text-muted-foreground">{startDisabledReason}</p>}
           <Button
             type="button"
             variant="outline"
             disabled={!canComplete}
-            title={canComplete ? undefined : 'Write a patient summary before completing'}
+            title={completeDisabledReason ?? undefined}
             onClick={() => setConfirmComplete(true)}
           >
             Complete consultation
           </Button>
+          {completeDisabledReason && <p className="text-xs text-muted-foreground">{completeDisabledReason}</p>}
         </CardContent>
       </Card>
 
@@ -504,14 +536,16 @@ function NoteEditor({
         <Textarea id="note-plan" rows={2} disabled={!editable} value={plan} onChange={(e) => setPlan(e.target.value)} />
       </div>
       <div className="flex flex-col gap-1">
-        <Label htmlFor="note-summary">Patient summary</Label>
+        <Label htmlFor="note-summary">
+          Patient summary <span className="text-destructive">*</span>
+        </Label>
         <Textarea
           id="note-summary"
           rows={3}
           disabled={!editable}
           value={patientSummary}
           onChange={(e) => setPatientSummary(e.target.value)}
-          placeholder="Required before completing the consultation"
+          placeholder="Diagnosis, care instructions, and next steps for the patient."
         />
       </div>
     </div>

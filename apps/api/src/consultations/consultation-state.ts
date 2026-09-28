@@ -36,6 +36,8 @@ export interface TransitionParams {
   session: ConsultationSessionState;
   /** Required for `complete`: whether the consultation note currently has a non-blank patient summary. */
   hasPatientSummary?: boolean;
+  /** Testing-only: when true, `join` skips the `[-15m, +30m]` window check (see `JOIN_WINDOW_DISABLED`). */
+  skipJoinWindowCheck?: boolean;
 }
 
 /**
@@ -56,14 +58,20 @@ export function transition(params: TransitionParams): ConsultationSessionState {
   }
 }
 
-function join({ actorRole, now, appointment, session }: TransitionParams): ConsultationSessionState {
+function join({
+  actorRole,
+  now,
+  appointment,
+  session,
+  skipJoinWindowCheck,
+}: TransitionParams): ConsultationSessionState {
   if (appointment.status !== AppointmentStatus.BOOKED) {
     throw new DomainError(HttpStatus.CONFLICT, ErrorCode.APPOINTMENT_NOT_ACTIVE, 'This appointment is not active.');
   }
 
   const windowStart = appointment.startsAt.getTime() - JOIN_OPENS_BEFORE_MINUTES * 60_000;
   const windowEnd = appointment.endsAt.getTime() + JOIN_CLOSES_AFTER_MINUTES * 60_000;
-  if (now.getTime() < windowStart || now.getTime() > windowEnd) {
+  if (!skipJoinWindowCheck && (now.getTime() < windowStart || now.getTime() > windowEnd)) {
     throw new DomainError(
       HttpStatus.CONFLICT,
       ErrorCode.OUTSIDE_JOIN_WINDOW,

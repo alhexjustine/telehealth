@@ -39,6 +39,20 @@ erDiagram
     string current_medications
     datetime updated_at
   }
+  dependents {
+    string id PK
+    string patient_id FK
+    string first_name
+    string last_name
+    datetime birth_date
+    dependent_relationship relationship
+    string medical_conditions
+    string allergies
+    string current_medications
+    datetime removed_at
+    datetime created_at
+    datetime updated_at
+  }
   doctor_profiles {
     string user_id PK,FK
     string first_name
@@ -95,6 +109,7 @@ erDiagram
     string id PK
     string patient_id FK
     string doctor_id FK
+    string dependent_id FK
     datetime starts_at
     datetime ends_at
     string reason
@@ -161,6 +176,13 @@ erDiagram
     datetime created_at
     datetime updated_at
   }
+  messages {
+    string id PK
+    string appointment_id FK
+    string sender_id FK
+    string body
+    datetime created_at
+  }
   doctor_reviews {
     string id PK
     string appointment_id FK,UK
@@ -173,6 +195,12 @@ erDiagram
     string hidden_reason
     datetime created_at
     datetime updated_at
+  }
+  doctor_favorites {
+    string id PK
+    string patient_id FK
+    string doctor_id FK
+    datetime created_at
   }
   audit_logs {
     string id PK
@@ -190,6 +218,7 @@ erDiagram
   }
   users ||--o{ sessions : "user"
   users ||--o| patient_profiles : "user"
+  patient_profiles ||--o{ dependents : "patient"
   users ||--o| doctor_profiles : "user"
   doctor_profiles ||--o{ availability_rules : "doctor"
   doctor_profiles ||--o{ availability_exceptions : "doctor"
@@ -199,6 +228,7 @@ erDiagram
   specializations ||--o{ doctor_specializations : "specialization"
   patient_profiles ||--o{ appointments : "patient"
   doctor_profiles ||--o{ appointments : "doctor"
+  dependents ||--o{ appointments : "dependent"
   users ||--o{ appointments : "cancelledBy"
   appointments ||--o{ appointment_symptoms : "appointment"
   symptoms ||--o{ appointment_symptoms : "symptom"
@@ -206,9 +236,13 @@ erDiagram
   appointments ||--o| consultation_notes : "appointment"
   appointments ||--o{ prescriptions : "appointment"
   prescriptions ||--o{ prescription_refill_requests : "prescription"
+  appointments ||--o{ messages : "appointment"
+  users ||--o{ messages : "sender"
   appointments ||--o{ doctor_reviews : "appointment"
   doctor_profiles ||--o{ doctor_reviews : "doctor"
   patient_profiles ||--o{ doctor_reviews : "patient"
   users ||--o{ doctor_reviews : "hiddenBy"
+  patient_profiles ||--o{ doctor_favorites : "patient"
+  doctor_profiles ||--o{ doctor_favorites : "doctor"
   users ||--o{ audit_logs : "actor"
 ```

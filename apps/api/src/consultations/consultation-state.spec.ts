@@ -118,6 +118,18 @@ describe('transition', () => {
       ).toThrow(DomainError);
     });
 
+    it('skipJoinWindowCheck bypasses the window (testing-only escape hatch)', () => {
+      const result = transition({
+        action: 'join',
+        actorRole: Role.PATIENT,
+        now: minutesFromStart(-20), // well outside the window; would otherwise throw
+        appointment: bookedAppointment,
+        session: SCHEDULED_SESSION_STATE,
+        skipJoinWindowCheck: true,
+      });
+      expect(result.state).toBe(SessionState.JOINED);
+    });
+
     it('Rejoin', () => {
       const firstJoin = minutesFromStart(-10);
       const alreadyJoined: ConsultationSessionState = {

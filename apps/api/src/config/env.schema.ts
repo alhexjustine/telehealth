@@ -45,6 +45,22 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  // Local/manual-testing-only escape hatch: skips the consultation join-window check
+  // ([-15m before start, +30m after end]) so a doctor/patient can enter the workspace
+  // immediately after booking instead of waiting for the window. Honored only when
+  // exactly "true" (same explicit-opt-in shape as the other booleans here). Unlike
+  // THROTTLE_DISABLED, this one IS wired into docker-compose.yml/.env.example (defaulted
+  // to "false") since it's meant for a person manually testing the running stack, not just
+  // an automated e2e run — never set it true beyond local manual testing.
+  JOIN_WINDOW_DISABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  // Secret used to derive each appointment's Jitsi video-call room name (an HMAC of the
+  // appointment ID), so the room can't be found by guessing/enumerating appointment IDs. No
+  // default here — every environment that boots the app must set its own value (see
+  // docker-compose.yml, apps/api/.env.example, and test/setup-env.ts for where it's supplied).
+  JITSI_ROOM_SECRET: z.string().min(1, 'JITSI_ROOM_SECRET is required'),
 });
 
 export type Env = z.infer<typeof envSchema>;

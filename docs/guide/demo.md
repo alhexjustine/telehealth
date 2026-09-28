@@ -74,6 +74,10 @@ touching anything else. Sign in as the demo doctor and demo patient in two brows
 for the appointment to enter its join window, and walk through joining, starting, writing a note
 and a prescription, and completing the session.
 
+Once joined, both sides see a live video call embedded in the workspace. It's built on Jitsi's
+public `meet.jit.si` server — a deliberate, prototype-only exception to the standalone-runtime
+rule (see the README's "Known deviations"), not something to rely on for a real deployment.
+
 ## Removing the demo dataset
 
 ```bash

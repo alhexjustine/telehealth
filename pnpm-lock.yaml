@@ -342,6 +342,9 @@ importers:
       '@hookform/resolvers':
         specifier: 5.9.1
         version: 5.9.1(@sinclair/typebox@0.34.52)(@standard-schema/spec@1.1.0)(ajv@8.20.0)(class-transformer@0.5.1)(class-validator@0.15.1)(effect@3.20.0)(react-hook-form@7.88.0(react@19.3.0))(valibot@1.4.2(typescript@5.9.3))(zod@4.6.5)
+      '@jitsi/react-sdk':
+        specifier: ^1.4.4
+        version: 1.4.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@tanstack/react-query':
         specifier: 5.103.2
         version: 5.103.2(react@19.3.0)
@@ -1636,6 +1639,12 @@ packages:
   '@jest/types@30.5.1':
     resolution: {integrity: sha512-LvVYn83nnXPl+Rg98nvcFgjx6nRMTArhSn6RAX/w3ELn54S8A42TYZvsCMdGUqTM8S0wyXbtlQdU6Hi6dykj9g==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
+  '@jitsi/react-sdk@1.4.4':
+    resolution: {integrity: sha512-VV5sy94zmGYByz8ebsOinwvzK/Srekbg+dECHBqGloeyPYpwlOLe6WiqmCCJ2l+wv2CT++xIznkZwcnh2YX2ug==}
+    peerDependencies:
+      react: 16 || 17 || 18 || 19
+      react-dom: 16 || 17 || 18 || 19
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -9007,6 +9016,11 @@ snapshots:
       '@types/node': 24.10.1
       '@types/yargs': 17.0.35
       chalk: 4.1.2
+
+  '@jitsi/react-sdk@1.4.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

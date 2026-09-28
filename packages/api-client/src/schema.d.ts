@@ -209,6 +209,43 @@ export interface paths {
         patch: operations["PatientsController_updateProfile"];
         trace?: never;
     };
+    "/patients/me/dependents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the signed-in patient's own active dependents */
+        get: operations["DependentsController_list"];
+        put?: never;
+        /** Adds a dependent to the signed-in patient's account */
+        post: operations["DependentsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patients/me/dependents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns one of the signed-in patient's own dependents */
+        get: operations["DependentsController_get"];
+        put?: never;
+        post?: never;
+        /** Removes one of the signed-in patient's own dependents (soft-remove; history is kept) */
+        delete: operations["DependentsController_remove"];
+        options?: never;
+        head?: never;
+        /** Updates one of the signed-in patient's own dependents */
+        patch: operations["DependentsController_update"];
+        trace?: never;
+    };
     "/doctors/me/profile": {
         parameters: {
             query?: never;
@@ -324,6 +361,92 @@ export interface paths {
         get: operations["DiscoveryController_getProfile"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/appointments/{appointmentId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the caller's own review of this appointment, or 404 if none */
+        get: operations["ReviewsController_getOwn"];
+        /** Creates or replaces the caller's own rating/comment for a completed appointment */
+        put: operations["ReviewsController_submit"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/doctors/{doctorId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists a doctor's visible reviews, newest first, with the aggregate rating */
+        get: operations["DoctorReviewsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists reviews, including hidden ones, filtered by doctor (id or name) and hidden status */
+        get: operations["AdminReviewsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/reviews/{id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hides a review with a required reason */
+        post: operations["AdminReviewsController_hide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/reviews/{id}/unhide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unhides a previously hidden review with a required reason */
+        post: operations["AdminReviewsController_unhide"];
         delete?: never;
         options?: never;
         head?: never;
@@ -628,7 +751,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lists the signed-in patient's completed consultations, newest first */
+        /** Lists completed consultations for the signed-in patient's account and dependents, newest first, optionally filtered to one person */
         get: operations["RecordsController_list"];
         put?: never;
         post?: never;
@@ -662,11 +785,132 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** A patient's record, for a doctor with a booked or completed appointment with them */
+        /** A patient's (or, with dependentId, one of their dependents') record, for a doctor with a booked or completed appointment with that same person */
         get: operations["RecordsController_doctorViewPatient"];
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/appointments/{appointmentId}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The appointment's message thread, oldest first; participants only while BOOKED or COMPLETED */
+        get: operations["MessagesController_list"];
+        put?: never;
+        /** Sends a message on a BOOKED appointment; participants only */
+        post: operations["MessagesController_send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/records/{appointmentId}/prescriptions/{prescriptionId}/refill-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Requests a refill of a prescription from one of the caller's own completed consultation records */
+        post: operations["RefillsController_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/doctors/me/refill-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the signed-in doctor's own refill requests, optionally filtered by status */
+        get: operations["DoctorRefillsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/doctors/me/refill-requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approves a pending refill request */
+        post: operations["DoctorRefillsController_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/doctors/me/refill-requests/{id}/deny": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Denies a pending refill request */
+        post: operations["DoctorRefillsController_deny"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patients/me/favorites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the signed-in patient's favorited doctors, with live discovery summaries */
+        get: operations["FavoritesController_list"];
+        put?: never;
+        /** Favorites a doctor for the signed-in patient (idempotent: 200 if already favorited) */
+        post: operations["FavoritesController_favorite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/patients/me/favorites/{doctorId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unfavorites a doctor for the signed-in patient (idempotent no-op if not favorited) */
+        delete: operations["FavoritesController_unfavorite"];
         options?: never;
         head?: never;
         patch?: never;
@@ -912,6 +1156,8 @@ export interface components {
              * @enum {string}
              */
             verificationStatus?: "PENDING" | "APPROVED" | "REJECTED";
+            /** @description Testing-only: true when JOIN_WINDOW_DISABLED skips the consultation join-window check server-side. */
+            joinWindowDisabled: boolean;
         };
         SpecializationResponseDto: {
             id: string;
@@ -924,7 +1170,7 @@ export interface components {
             actorId: string;
             actorEmail: string;
             /** @enum {string} */
-            action: "USER_STATUS_CHANGED" | "DOCTOR_APPROVED" | "DOCTOR_REJECTED" | "DOCTOR_PROFILE_UPDATED" | "APPOINTMENT_CANCELLED" | "APPOINTMENT_MARKED_NOT_HELD" | "ADMIN_SIGNED_IN";
+            action: "USER_STATUS_CHANGED" | "DOCTOR_APPROVED" | "DOCTOR_REJECTED" | "DOCTOR_PROFILE_UPDATED" | "APPOINTMENT_CANCELLED" | "APPOINTMENT_MARKED_NOT_HELD" | "ADMIN_SIGNED_IN" | "REVIEW_HIDDEN" | "REVIEW_UNHIDDEN";
             entityType: string;
             entityId: string | null;
             reason: string | null;
@@ -970,6 +1216,59 @@ export interface components {
             phone?: string;
             emergencyContactName?: string;
             emergencyContactPhone?: string;
+            medicalConditions?: string;
+            allergies?: string;
+            currentMedications?: string;
+        };
+        CreateDependentDto: {
+            firstName: string;
+            lastName: string;
+            /** @example 2018-06-15 */
+            birthDate: string;
+            /** @enum {string} */
+            relationship: "CHILD" | "PARENT" | "SPOUSE" | "OTHER";
+            medicalConditions?: string;
+            allergies?: string;
+            currentMedications?: string;
+        };
+        DependentResponseDto: {
+            id: string;
+            firstName: string;
+            lastName: string;
+            /** Format: date */
+            birthDate: string;
+            /** @enum {string} */
+            relationship: "CHILD" | "PARENT" | "SPOUSE" | "OTHER";
+            medicalConditions: string | null;
+            allergies: string | null;
+            currentMedications: string | null;
+        };
+        ErrorResponseDto: {
+            statusCode: number;
+            error: string;
+            message: string;
+            requestId: string;
+            /** @description Stable machine-readable code for a business-rule violation, e.g. SLOT_UNAVAILABLE. */
+            code?: string;
+            /** @description Extra structured detail for some codes, e.g. the appointments a schedule change would orphan. */
+            details?: {
+                [key: string]: unknown;
+            };
+            /** @description Field-indexed validation errors, when the request failed validation. */
+            errors?: {
+                [key: string]: unknown;
+            }[];
+        };
+        DependentListResponseDto: {
+            items: components["schemas"]["DependentResponseDto"][];
+        };
+        UpdateDependentDto: {
+            firstName?: string;
+            lastName?: string;
+            /** @example 2018-06-15 */
+            birthDate?: string;
+            /** @enum {string} */
+            relationship?: "CHILD" | "PARENT" | "SPOUSE" | "OTHER";
             medicalConditions?: string;
             allergies?: string;
             currentMedications?: string;
@@ -1061,6 +1360,10 @@ export interface components {
             acceptingBookings: boolean;
             /** Format: date-time */
             nextAvailableSlot: string | null;
+            /** @description Average of visible reviews only, rounded to 1 decimal; absent if there are none */
+            averageRating: number | null;
+            /** @description Count of visible reviews only */
+            reviewCount: number;
         };
         DoctorSearchResponseDto: {
             items: components["schemas"]["DoctorSearchResultDto"][];
@@ -1083,6 +1386,61 @@ export interface components {
             consultationMinutes: number;
             timezone: string;
             acceptingBookings: boolean;
+            /** @description Average of visible reviews only, rounded to 1 decimal; absent if there are none */
+            averageRating: number | null;
+            /** @description Count of visible reviews only */
+            reviewCount: number;
+        };
+        SubmitReviewDto: {
+            rating: number;
+            comment?: string;
+        };
+        OwnReviewResponseDto: {
+            appointmentId: string;
+            rating: number;
+            comment: string | null;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PublicReviewDto: {
+            id: string;
+            rating: number;
+            comment: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        DoctorReviewListResponseDto: {
+            items: components["schemas"]["PublicReviewDto"][];
+            total: number;
+            page: number;
+            pageSize: number;
+            /** @description Average of visible reviews only, rounded to 1 decimal; absent (not zero) if there are none */
+            averageRating: number | null;
+            /** @description Count of visible reviews only */
+            reviewCount: number;
+        };
+        AdminReviewDto: {
+            id: string;
+            appointmentId: string;
+            doctorId: string;
+            doctorDisplayName: string;
+            /** @description Opaque id of the reviewing account; never a name */
+            patientId: string;
+            rating: number;
+            comment: string | null;
+            hidden: boolean;
+            hiddenReason: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AdminReviewListResponseDto: {
+            items: components["schemas"]["AdminReviewDto"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        ModerateReviewDto: {
+            reason: string;
         };
         SymptomSummaryDto: {
             id: string;
@@ -1146,6 +1504,8 @@ export interface components {
         };
         CreateAppointmentDto: {
             doctorId: string;
+            /** @description One of the caller's own dependents this appointment is for; omit to book for themselves */
+            dependentId?: string;
             /**
              * Format: date-time
              * @description The slot start, as returned by the slots endpoint
@@ -1165,6 +1525,12 @@ export interface components {
             displayName: string;
             age: number | null;
         };
+        AppointmentDependentSummaryDto: {
+            id: string;
+            displayName: string;
+            /** @enum {string} */
+            relationship: "CHILD" | "PARENT" | "SPOUSE" | "OTHER";
+        };
         AppointmentSymptomSummaryDto: {
             id: string;
             name: string;
@@ -1180,6 +1546,8 @@ export interface components {
             reason: string;
             doctor: components["schemas"]["AppointmentDoctorSummaryDto"];
             patient: components["schemas"]["AppointmentPatientSummaryDto"];
+            /** @description Who the appointment is actually for, if not the account holder ('patient') themselves */
+            dependent: components["schemas"]["AppointmentDependentSummaryDto"] | null;
             symptoms: components["schemas"]["AppointmentSymptomSummaryDto"][];
             /** Format: date-time */
             cancelledAt: string | null;
@@ -1188,22 +1556,6 @@ export interface components {
             cancelledByRole: "PATIENT" | "DOCTOR" | null;
             /** @description The appointment this one replaced, if any */
             rescheduledFromId?: string | null;
-        };
-        ErrorResponseDto: {
-            statusCode: number;
-            error: string;
-            message: string;
-            requestId: string;
-            /** @description Stable machine-readable code for a business-rule violation, e.g. SLOT_UNAVAILABLE. */
-            code?: string;
-            /** @description Extra structured detail for some codes, e.g. the appointments a schedule change would orphan. */
-            details?: {
-                [key: string]: unknown;
-            };
-            /** @description Field-indexed validation errors, when the request failed validation. */
-            errors?: {
-                [key: string]: unknown;
-            }[];
         };
         AppointmentListResponseDto: {
             items: components["schemas"]["AppointmentResponseDto"][];
@@ -1234,6 +1586,8 @@ export interface components {
             reason: string;
             doctor: components["schemas"]["AppointmentDoctorSummaryDto"];
             patient: components["schemas"]["AppointmentPatientSummaryDto"];
+            /** @description Who the appointment is actually for, if not the account holder ('patient') themselves */
+            dependent: components["schemas"]["AppointmentDependentSummaryDto"] | null;
             symptoms: components["schemas"]["AppointmentSymptomSummaryDto"][];
             /** Format: date-time */
             cancelledAt: string | null;
@@ -1260,7 +1614,7 @@ export interface components {
         NotificationResponseDto: {
             id: string;
             /** @enum {string} */
-            type: "APPOINTMENT_BOOKED" | "BOOKING_CONFIRMED" | "APPOINTMENT_RESCHEDULED" | "RESCHEDULE_CONFIRMED" | "APPOINTMENT_CANCELLED" | "REMINDER_24H" | "REMINDER_1H" | "CONSULTATION_SUMMARY_AVAILABLE" | "PROFILE_APPROVED" | "PROFILE_REJECTED" | "PLATFORM_APPOINTMENT_CANCELLED";
+            type: "APPOINTMENT_BOOKED" | "BOOKING_CONFIRMED" | "APPOINTMENT_RESCHEDULED" | "RESCHEDULE_CONFIRMED" | "APPOINTMENT_CANCELLED" | "REMINDER_24H" | "REMINDER_1H" | "CONSULTATION_SUMMARY_AVAILABLE" | "PROFILE_APPROVED" | "PROFILE_REJECTED" | "PLATFORM_APPOINTMENT_CANCELLED" | "NEW_MESSAGE" | "REFILL_REQUESTED" | "REFILL_DECIDED";
             title: string;
             body: string;
             /** @description Structured event data (startsAt, previousStartsAt, counterpartName, reason) for the viewer to format. */
@@ -1330,8 +1684,18 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             reason: string;
+            /**
+             * @description The appointment's own status (distinct from the session state below) — used by the web app to gate the messages thread the same way the API does.
+             * @enum {string}
+             */
+            status: "BOOKED" | "CANCELLED" | "COMPLETED" | "NOT_HELD";
+            /** @description The appointment's video-call room name; not derivable from the appointment ID alone. */
+            roomId: string;
             doctor: components["schemas"]["AppointmentDoctorSummaryDto"];
+            /** @description Whoever the appointment is with — the dependent's identity when `dependent` is set, not the account holder's */
             patient: components["schemas"]["AppointmentPatientSummaryDto"];
+            /** @description Set when the appointment is for one of the account holder's dependents */
+            dependent: components["schemas"]["AppointmentDependentSummaryDto"] | null;
             symptoms: components["schemas"]["AppointmentSymptomSummaryDto"][];
             session: components["schemas"]["ConsultationSessionStateDto"];
             patientMedicalSummary?: components["schemas"]["ConsultationPatientSummaryDto"] | null;
@@ -1363,6 +1727,8 @@ export interface components {
             /** Format: date-time */
             startsAt: string;
             doctor: components["schemas"]["AppointmentDoctorSummaryDto"];
+            /** @description Who this consultation was for, if not the account holder ('patient') themselves */
+            dependent: components["schemas"]["AppointmentDependentSummaryDto"] | null;
             patientSummary: string | null;
         };
         RecordListResponseDto: {
@@ -1371,13 +1737,39 @@ export interface components {
             page: number;
             pageSize: number;
         };
+        RefillRequestDto: {
+            id: string;
+            /** @enum {string} */
+            status: "PENDING" | "APPROVED" | "DENIED";
+            patientNote: string | null;
+            doctorNote: string | null;
+            /** Format: date-time */
+            decidedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        RecordPrescriptionDto: {
+            id: string;
+            medication: string;
+            dosage: string;
+            frequency: string;
+            duration: string;
+            instructions: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** @description Newest first */
+            refillRequests: components["schemas"]["RefillRequestDto"][];
+        };
         RecordDetailResponseDto: {
             appointmentId: string;
             /** Format: date-time */
             startsAt: string;
             doctor: components["schemas"]["AppointmentDoctorSummaryDto"];
+            dependent: components["schemas"]["AppointmentDependentSummaryDto"] | null;
             note: components["schemas"]["ConsultationNoteDto"] | null;
-            prescriptions: components["schemas"]["PrescriptionResponseDto"][];
+            prescriptions: components["schemas"]["RecordPrescriptionDto"][];
         };
         DoctorPatientAppointmentDto: {
             id: string;
@@ -1391,6 +1783,10 @@ export interface components {
         };
         DoctorPatientRecordResponseDto: {
             patientId: string;
+            /** @description Set when this record is for one of the account's dependents rather than the account holder */
+            dependentId: string | null;
+            /** @enum {string|null} */
+            relationship: "CHILD" | "PARENT" | "SPOUSE" | "OTHER" | null;
             firstName: string;
             lastName: string;
             age: number | null;
@@ -1399,6 +1795,84 @@ export interface components {
             currentMedications: string | null;
             appointmentsWithDoctor: components["schemas"]["DoctorPatientAppointmentDto"][];
             completedConsultations: components["schemas"]["RecordListItemDto"][];
+        };
+        SendMessageDto: {
+            /** @description Trimmed before validation and storage */
+            body: string;
+        };
+        MessageResponseDto: {
+            id: string;
+            appointmentId: string;
+            /** @description The sender's user ID; compare against the viewer's own ID to align the thread */
+            senderId: string;
+            body: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        MessageListResponseDto: {
+            items: components["schemas"]["MessageResponseDto"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        RequestRefillDto: {
+            patientNote?: string;
+        };
+        RefillRequestResponseDto: {
+            id: string;
+            appointmentId: string;
+            prescriptionId: string;
+            medication: string;
+            /** Format: date-time */
+            appointmentStartsAt: string;
+            patient: components["schemas"]["AppointmentPatientSummaryDto"];
+            /** @description Who the consultation was for, if not the account holder ('patient') themselves */
+            dependent: components["schemas"]["AppointmentDependentSummaryDto"] | null;
+            /** @enum {string} */
+            status: "PENDING" | "APPROVED" | "DENIED";
+            patientNote: string | null;
+            doctorNote: string | null;
+            /** Format: date-time */
+            decidedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        RefillRequestListResponseDto: {
+            items: components["schemas"]["RefillRequestResponseDto"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        DecideRefillDto: {
+            doctorNote?: string;
+        };
+        FavoriteDoctorDto: {
+            doctorId: string;
+        };
+        FavoriteResponseDto: {
+            doctorId: string;
+            /** Format: date-time */
+            favoritedAt: string;
+        };
+        FavoriteDoctorSummaryDto: {
+            id: string;
+            displayName: string;
+            specializations: components["schemas"]["SpecializationSummaryDto"][];
+            bioExcerpt: string | null;
+            yearsOfExperience: number | null;
+            consultationMinutes: number;
+            acceptingBookings: boolean;
+            /** Format: date-time */
+            nextAvailableSlot: string | null;
+            /** @description Average of visible reviews only, rounded to 1 decimal; absent if there are none */
+            averageRating: number | null;
+            /** @description Count of visible reviews only */
+            reviewCount: number;
+            /** Format: date-time */
+            favoritedAt: string;
+        };
+        FavoriteListResponseDto: {
+            items: components["schemas"]["FavoriteDoctorSummaryDto"][];
         };
         AdminUserResponseDto: {
             id: string;
@@ -1475,6 +1949,12 @@ export interface components {
             id: string;
             displayName: string;
         };
+        AdminAppointmentDependentDto: {
+            id: string;
+            displayName: string;
+            /** @enum {string} */
+            relationship: "CHILD" | "PARENT" | "SPOUSE" | "OTHER";
+        };
         AdminAppointmentResponseDto: {
             id: string;
             /** Format: date-time */
@@ -1485,6 +1965,8 @@ export interface components {
             status: "BOOKED" | "CANCELLED" | "COMPLETED" | "NOT_HELD";
             doctor: components["schemas"]["AdminAppointmentParticipantDto"];
             patient: components["schemas"]["AdminAppointmentParticipantDto"];
+            /** @description Set when the appointment is for one of the account holder's dependents, not the account holder themselves */
+            dependent: components["schemas"]["AdminAppointmentDependentDto"] | null;
             /** @enum {string} */
             consultationState: "SCHEDULED" | "JOINED" | "IN_PROGRESS" | "COMPLETED";
             flags: ("NOT_COMPLETED" | "DOCTOR_UNAVAILABLE")[];
@@ -1494,6 +1976,10 @@ export interface components {
             cancelledByRole: "PATIENT" | "DOCTOR" | "ADMIN" | null;
             cancellationReason: string | null;
             resolutionReason: string | null;
+            /** @description Number of messages exchanged on this appointment; never the message content */
+            messageCount: number;
+            /** Format: date-time */
+            lastMessageAt: string | null;
         };
         AdminAppointmentListResponseDto: {
             items: components["schemas"]["AdminAppointmentResponseDto"][];
@@ -1743,7 +2229,7 @@ export interface operations {
     AuditController_list: {
         parameters: {
             query?: {
-                action?: "USER_STATUS_CHANGED" | "DOCTOR_APPROVED" | "DOCTOR_REJECTED" | "DOCTOR_PROFILE_UPDATED" | "APPOINTMENT_CANCELLED" | "APPOINTMENT_MARKED_NOT_HELD" | "ADMIN_SIGNED_IN";
+                action?: "USER_STATUS_CHANGED" | "DOCTOR_APPROVED" | "DOCTOR_REJECTED" | "DOCTOR_PROFILE_UPDATED" | "APPOINTMENT_CANCELLED" | "APPOINTMENT_MARKED_NOT_HELD" | "ADMIN_SIGNED_IN" | "REVIEW_HIDDEN" | "REVIEW_UNHIDDEN";
                 /** @description The acting administrator */
                 actorId?: string;
                 /** @description e.g. User, DoctorProfile, Appointment */
@@ -1829,6 +2315,124 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PatientProfileResponseDto"];
+                };
+            };
+        };
+    };
+    DependentsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DependentListResponseDto"];
+                };
+            };
+        };
+    };
+    DependentsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDependentDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DependentResponseDto"];
+                };
+            };
+            /** @description DEPENDENT_LIMIT_REACHED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    DependentsController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DependentResponseDto"];
+                };
+            };
+        };
+    };
+    DependentsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DependentResponseDto"];
+                };
+            };
+        };
+    };
+    DependentsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDependentDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DependentResponseDto"];
                 };
             };
         };
@@ -1992,7 +2596,7 @@ export interface operations {
                 specialization?: string;
                 availableFrom?: string;
                 availableTo?: string;
-                sort?: "next" | "name" | "experience";
+                sort?: "next" | "name" | "experience" | "rating";
                 page?: number;
                 pageSize?: number;
             };
@@ -2029,6 +2633,181 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicDoctorProfileDto"];
+                };
+            };
+        };
+    };
+    ReviewsController_getOwn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnReviewResponseDto"];
+                };
+            };
+        };
+    };
+    ReviewsController_submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitReviewDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnReviewResponseDto"];
+                };
+            };
+            /** @description REVIEW_NOT_ELIGIBLE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    DoctorReviewsController_list: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                doctorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoctorReviewListResponseDto"];
+                };
+            };
+        };
+    };
+    AdminReviewsController_list: {
+        parameters: {
+            query?: {
+                /** @description Filter to one doctor */
+                doctorId?: string;
+                /** @description Matches the doctor's first or last name, case-insensitive */
+                doctorName?: string;
+                /** @description Filter by hidden status; omit for both */
+                hidden?: boolean;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReviewListResponseDto"];
+                };
+            };
+        };
+    };
+    AdminReviewsController_hide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModerateReviewDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReviewDto"];
+                };
+            };
+            /** @description REVIEW_HIDE_STATUS_UNCHANGED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AdminReviewsController_unhide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModerateReviewDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminReviewDto"];
+                };
+            };
+            /** @description REVIEW_HIDE_STATUS_UNCHANGED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
                 };
             };
         };
@@ -2555,6 +3334,8 @@ export interface operations {
     RecordsController_list: {
         parameters: {
             query?: {
+                /** @description Filters the list to one person: "self" for the account holder, or a dependent's ID. Omit to list everyone on the account. */
+                dependentId?: string;
                 page?: number;
                 pageSize?: number;
             };
@@ -2597,7 +3378,10 @@ export interface operations {
     };
     RecordsController_doctorViewPatient: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description One of the patient's dependents; omit for the account holder's own record */
+                dependentId?: string;
+            };
             header?: never;
             path: {
                 patientId: string;
@@ -2613,6 +3397,279 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DoctorPatientRecordResponseDto"];
                 };
+            };
+        };
+    };
+    MessagesController_list: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageListResponseDto"];
+                };
+            };
+        };
+    };
+    MessagesController_send: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendMessageDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponseDto"];
+                };
+            };
+            /** @description The appointment is not active */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    RefillsController_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appointmentId: string;
+                prescriptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestRefillDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefillRequestResponseDto"];
+                };
+            };
+            /** @description REFILL_REQUEST_ALREADY_PENDING */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    DoctorRefillsController_list: {
+        parameters: {
+            query?: {
+                /** @description Omit to list every status */
+                status?: "PENDING" | "APPROVED" | "DENIED";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefillRequestListResponseDto"];
+                };
+            };
+        };
+    };
+    DoctorRefillsController_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideRefillDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefillRequestResponseDto"];
+                };
+            };
+            /** @description REFILL_REQUEST_NOT_PENDING */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    DoctorRefillsController_deny: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideRefillDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefillRequestResponseDto"];
+                };
+            };
+            /** @description REFILL_REQUEST_NOT_PENDING */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    FavoritesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoriteListResponseDto"];
+                };
+            };
+        };
+    };
+    FavoritesController_favorite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FavoriteDoctorDto"];
+            };
+        };
+        responses: {
+            /** @description Already favorited (no-op) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoriteResponseDto"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoriteResponseDto"];
+                };
+            };
+            /** @description FAVORITE_LIMIT_REACHED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    FavoritesController_unfavorite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doctorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

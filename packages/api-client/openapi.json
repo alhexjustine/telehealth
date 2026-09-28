@@ -254,7 +254,9 @@
                 "DOCTOR_PROFILE_UPDATED",
                 "APPOINTMENT_CANCELLED",
                 "APPOINTMENT_MARKED_NOT_HELD",
-                "ADMIN_SIGNED_IN"
+                "ADMIN_SIGNED_IN",
+                "REVIEW_HIDDEN",
+                "REVIEW_UNHIDDEN"
               ]
             }
           },
@@ -442,6 +444,192 @@
         "summary": "Updates the signed-in patient's own profile",
         "tags": [
           "patients"
+        ]
+      }
+    },
+    "/patients/me/dependents": {
+      "post": {
+        "operationId": "DependentsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDependentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DependentResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "DEPENDENT_LIMIT_REACHED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Adds a dependent to the signed-in patient's account",
+        "tags": [
+          "dependents"
+        ]
+      },
+      "get": {
+        "operationId": "DependentsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DependentListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Lists the signed-in patient's own active dependents",
+        "tags": [
+          "dependents"
+        ]
+      }
+    },
+    "/patients/me/dependents/{id}": {
+      "get": {
+        "operationId": "DependentsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DependentResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Returns one of the signed-in patient's own dependents",
+        "tags": [
+          "dependents"
+        ]
+      },
+      "patch": {
+        "operationId": "DependentsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDependentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DependentResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Updates one of the signed-in patient's own dependents",
+        "tags": [
+          "dependents"
+        ]
+      },
+      "delete": {
+        "operationId": "DependentsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DependentResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Removes one of the signed-in patient's own dependents (soft-remove; history is kept)",
+        "tags": [
+          "dependents"
         ]
       }
     },
@@ -742,7 +930,8 @@
               "enum": [
                 "next",
                 "name",
-                "experience"
+                "experience",
+                "rating"
               ]
             }
           },
@@ -824,6 +1013,341 @@
         "summary": "Returns a doctor's public profile. Approved, active doctors are visible to any signed-in user; a doctor may always view their own profile.",
         "tags": [
           "doctor-discovery"
+        ]
+      }
+    },
+    "/appointments/{appointmentId}/review": {
+      "put": {
+        "operationId": "ReviewsController_submit",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnReviewResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVIEW_NOT_ELIGIBLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Creates or replaces the caller's own rating/comment for a completed appointment",
+        "tags": [
+          "reviews"
+        ]
+      },
+      "get": {
+        "operationId": "ReviewsController_getOwn",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnReviewResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Returns the caller's own review of this appointment, or 404 if none",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/doctors/{doctorId}/reviews": {
+      "get": {
+        "operationId": "DoctorReviewsController_list",
+        "parameters": [
+          {
+            "name": "doctorId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorReviewListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Lists a doctor's visible reviews, newest first, with the aggregate rating",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/admin/reviews": {
+      "get": {
+        "operationId": "AdminReviewsController_list",
+        "parameters": [
+          {
+            "name": "doctorId",
+            "required": false,
+            "in": "query",
+            "description": "Filter to one doctor",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "doctorName",
+            "required": false,
+            "in": "query",
+            "description": "Matches the doctor's first or last name, case-insensitive",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hidden",
+            "required": false,
+            "in": "query",
+            "description": "Filter by hidden status; omit for both",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReviewListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Lists reviews, including hidden ones, filtered by doctor (id or name) and hidden status",
+        "tags": [
+          "admin-reviews"
+        ]
+      }
+    },
+    "/admin/reviews/{id}/hide": {
+      "post": {
+        "operationId": "AdminReviewsController_hide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModerateReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReviewDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVIEW_HIDE_STATUS_UNCHANGED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Hides a review with a required reason",
+        "tags": [
+          "admin-reviews"
+        ]
+      }
+    },
+    "/admin/reviews/{id}/unhide": {
+      "post": {
+        "operationId": "AdminReviewsController_unhide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModerateReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReviewDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVIEW_HIDE_STATUS_UNCHANGED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Unhides a previously hidden review with a required reason",
+        "tags": [
+          "admin-reviews"
         ]
       }
     },
@@ -1700,6 +2224,15 @@
         "operationId": "RecordsController_list",
         "parameters": [
           {
+            "name": "dependentId",
+            "required": false,
+            "in": "query",
+            "description": "Filters the list to one person: \"self\" for the account holder, or a dependent's ID. Omit to list everyone on the account.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "page",
             "required": false,
             "in": "query",
@@ -1738,7 +2271,7 @@
             "th_session": []
           }
         ],
-        "summary": "Lists the signed-in patient's completed consultations, newest first",
+        "summary": "Lists completed consultations for the signed-in patient's account and dependents, newest first, optionally filtered to one person",
         "tags": [
           "records"
         ]
@@ -1791,6 +2324,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "dependentId",
+            "required": false,
+            "in": "query",
+            "description": "One of the patient's dependents; omit for the account holder's own record",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1810,9 +2352,480 @@
             "th_session": []
           }
         ],
-        "summary": "A patient's record, for a doctor with a booked or completed appointment with them",
+        "summary": "A patient's (or, with dependentId, one of their dependents') record, for a doctor with a booked or completed appointment with that same person",
         "tags": [
           "records"
+        ]
+      }
+    },
+    "/appointments/{appointmentId}/messages": {
+      "post": {
+        "operationId": "MessagesController_send",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The appointment is not active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Sends a message on a BOOKED appointment; participants only",
+        "tags": [
+          "messages"
+        ]
+      },
+      "get": {
+        "operationId": "MessagesController_list",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "The appointment's message thread, oldest first; participants only while BOOKED or COMPLETED",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/records/{appointmentId}/prescriptions/{prescriptionId}/refill-requests": {
+      "post": {
+        "operationId": "RefillsController_request",
+        "parameters": [
+          {
+            "name": "appointmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "prescriptionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestRefillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefillRequestResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REFILL_REQUEST_ALREADY_PENDING",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Requests a refill of a prescription from one of the caller's own completed consultation records",
+        "tags": [
+          "refills"
+        ]
+      }
+    },
+    "/doctors/me/refill-requests": {
+      "get": {
+        "operationId": "DoctorRefillsController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Omit to list every status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "APPROVED",
+                "DENIED"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefillRequestListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Lists the signed-in doctor's own refill requests, optionally filtered by status",
+        "tags": [
+          "refills"
+        ]
+      }
+    },
+    "/doctors/me/refill-requests/{id}/approve": {
+      "post": {
+        "operationId": "DoctorRefillsController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideRefillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefillRequestResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REFILL_REQUEST_NOT_PENDING",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Approves a pending refill request",
+        "tags": [
+          "refills"
+        ]
+      }
+    },
+    "/doctors/me/refill-requests/{id}/deny": {
+      "post": {
+        "operationId": "DoctorRefillsController_deny",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideRefillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefillRequestResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REFILL_REQUEST_NOT_PENDING",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Denies a pending refill request",
+        "tags": [
+          "refills"
+        ]
+      }
+    },
+    "/patients/me/favorites": {
+      "post": {
+        "operationId": "FavoritesController_favorite",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FavoriteDoctorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Already favorited (no-op)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoriteResponseDto"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoriteResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "FAVORITE_LIMIT_REACHED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Favorites a doctor for the signed-in patient (idempotent: 200 if already favorited)",
+        "tags": [
+          "favorites"
+        ]
+      },
+      "get": {
+        "operationId": "FavoritesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoriteListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Lists the signed-in patient's favorited doctors, with live discovery summaries",
+        "tags": [
+          "favorites"
+        ]
+      }
+    },
+    "/patients/me/favorites/{doctorId}": {
+      "delete": {
+        "operationId": "FavoritesController_unfavorite",
+        "parameters": [
+          {
+            "name": "doctorId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Unfavorites a doctor for the signed-in patient (idempotent no-op if not favorited)",
+        "tags": [
+          "favorites"
         ]
       }
     },
@@ -2696,6 +3709,10 @@
               "REJECTED"
             ],
             "description": "Present only for DOCTOR"
+          },
+          "joinWindowDisabled": {
+            "type": "boolean",
+            "description": "Testing-only: true when JOIN_WINDOW_DISABLED skips the consultation join-window check server-side."
           }
         },
         "required": [
@@ -2703,7 +3720,8 @@
           "email",
           "role",
           "status",
-          "displayName"
+          "displayName",
+          "joinWindowDisabled"
         ]
       },
       "SpecializationResponseDto": {
@@ -2750,7 +3768,9 @@
               "DOCTOR_PROFILE_UPDATED",
               "APPOINTMENT_CANCELLED",
               "APPOINTMENT_MARKED_NOT_HELD",
-              "ADMIN_SIGNED_IN"
+              "ADMIN_SIGNED_IN",
+              "REVIEW_HIDDEN",
+              "REVIEW_UNHIDDEN"
             ]
           },
           "entityType": {
@@ -2927,6 +3947,181 @@
           },
           "emergencyContactPhone": {
             "type": "string"
+          },
+          "medicalConditions": {
+            "type": "string"
+          },
+          "allergies": {
+            "type": "string"
+          },
+          "currentMedications": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateDependentDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "birthDate": {
+            "type": "string",
+            "example": "2018-06-15"
+          },
+          "relationship": {
+            "type": "string",
+            "enum": [
+              "CHILD",
+              "PARENT",
+              "SPOUSE",
+              "OTHER"
+            ]
+          },
+          "medicalConditions": {
+            "type": "string"
+          },
+          "allergies": {
+            "type": "string"
+          },
+          "currentMedications": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "birthDate",
+          "relationship"
+        ]
+      },
+      "DependentResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "relationship": {
+            "type": "string",
+            "enum": [
+              "CHILD",
+              "PARENT",
+              "SPOUSE",
+              "OTHER"
+            ]
+          },
+          "medicalConditions": {
+            "type": "string",
+            "nullable": true
+          },
+          "allergies": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentMedications": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "firstName",
+          "lastName",
+          "birthDate",
+          "relationship",
+          "medicalConditions",
+          "allergies",
+          "currentMedications"
+        ]
+      },
+      "ErrorResponseDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number"
+          },
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable machine-readable code for a business-rule violation, e.g. SLOT_UNAVAILABLE."
+          },
+          "details": {
+            "type": "object",
+            "description": "Extra structured detail for some codes, e.g. the appointments a schedule change would orphan.",
+            "additionalProperties": true
+          },
+          "errors": {
+            "type": "array",
+            "description": "Field-indexed validation errors, when the request failed validation.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "required": [
+          "statusCode",
+          "error",
+          "message",
+          "requestId"
+        ]
+      },
+      "DependentListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DependentResponseDto"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "UpdateDependentDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "birthDate": {
+            "type": "string",
+            "example": "2018-06-15"
+          },
+          "relationship": {
+            "type": "string",
+            "enum": [
+              "CHILD",
+              "PARENT",
+              "SPOUSE",
+              "OTHER"
+            ]
           },
           "medicalConditions": {
             "type": "string"
@@ -3253,6 +4448,15 @@
             "type": "string",
             "nullable": true,
             "format": "date-time"
+          },
+          "averageRating": {
+            "type": "number",
+            "nullable": true,
+            "description": "Average of visible reviews only, rounded to 1 decimal; absent if there are none"
+          },
+          "reviewCount": {
+            "type": "number",
+            "description": "Count of visible reviews only"
           }
         },
         "required": [
@@ -3263,7 +4467,9 @@
           "yearsOfExperience",
           "consultationMinutes",
           "acceptingBookings",
-          "nextAvailableSlot"
+          "nextAvailableSlot",
+          "averageRating",
+          "reviewCount"
         ]
       },
       "DoctorSearchResponseDto": {
@@ -3346,6 +4552,15 @@
           },
           "acceptingBookings": {
             "type": "boolean"
+          },
+          "averageRating": {
+            "type": "number",
+            "nullable": true,
+            "description": "Average of visible reviews only, rounded to 1 decimal; absent if there are none"
+          },
+          "reviewCount": {
+            "type": "number",
+            "description": "Count of visible reviews only"
           }
         },
         "required": [
@@ -3356,7 +4571,203 @@
           "yearsOfExperience",
           "consultationMinutes",
           "timezone",
-          "acceptingBookings"
+          "acceptingBookings",
+          "averageRating",
+          "reviewCount"
+        ]
+      },
+      "SubmitReviewDto": {
+        "type": "object",
+        "properties": {
+          "rating": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "rating"
+        ]
+      },
+      "OwnReviewResponseDto": {
+        "type": "object",
+        "properties": {
+          "appointmentId": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "number"
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "appointmentId",
+          "rating",
+          "comment",
+          "updatedAt"
+        ]
+      },
+      "PublicReviewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "number"
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "rating",
+          "comment",
+          "createdAt"
+        ]
+      },
+      "DoctorReviewListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicReviewDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "averageRating": {
+            "type": "number",
+            "nullable": true,
+            "description": "Average of visible reviews only, rounded to 1 decimal; absent (not zero) if there are none"
+          },
+          "reviewCount": {
+            "type": "number",
+            "description": "Count of visible reviews only"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize",
+          "averageRating",
+          "reviewCount"
+        ]
+      },
+      "AdminReviewDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "appointmentId": {
+            "type": "string"
+          },
+          "doctorId": {
+            "type": "string"
+          },
+          "doctorDisplayName": {
+            "type": "string"
+          },
+          "patientId": {
+            "type": "string",
+            "description": "Opaque id of the reviewing account; never a name"
+          },
+          "rating": {
+            "type": "number"
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "hiddenReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "appointmentId",
+          "doctorId",
+          "doctorDisplayName",
+          "patientId",
+          "rating",
+          "comment",
+          "hidden",
+          "hiddenReason",
+          "createdAt"
+        ]
+      },
+      "AdminReviewListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminReviewDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "ModerateReviewDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
         ]
       },
       "SymptomSummaryDto": {
@@ -3615,6 +5026,10 @@
           "doctorId": {
             "type": "string"
           },
+          "dependentId": {
+            "type": "string",
+            "description": "One of the caller's own dependents this appointment is for; omit to book for themselves"
+          },
           "startsAt": {
             "type": "string",
             "format": "date-time",
@@ -3682,6 +5097,31 @@
           "age"
         ]
       },
+      "AppointmentDependentSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "relationship": {
+            "type": "string",
+            "enum": [
+              "CHILD",
+              "PARENT",
+              "SPOUSE",
+              "OTHER"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "relationship"
+        ]
+      },
       "AppointmentSymptomSummaryDto": {
         "type": "object",
         "properties": {
@@ -3729,6 +5169,16 @@
           "patient": {
             "$ref": "#/components/schemas/AppointmentPatientSummaryDto"
           },
+          "dependent": {
+            "nullable": true,
+            "description": "Who the appointment is actually for, if not the account holder ('patient') themselves",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AppointmentDependentSummaryDto"
+              }
+            ]
+          },
           "symptoms": {
             "type": "array",
             "items": {
@@ -3766,50 +5216,11 @@
           "reason",
           "doctor",
           "patient",
+          "dependent",
           "symptoms",
           "cancelledAt",
           "cancellationReason",
           "cancelledByRole"
-        ]
-      },
-      "ErrorResponseDto": {
-        "type": "object",
-        "properties": {
-          "statusCode": {
-            "type": "number"
-          },
-          "error": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "requestId": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string",
-            "description": "Stable machine-readable code for a business-rule violation, e.g. SLOT_UNAVAILABLE."
-          },
-          "details": {
-            "type": "object",
-            "description": "Extra structured detail for some codes, e.g. the appointments a schedule change would orphan.",
-            "additionalProperties": true
-          },
-          "errors": {
-            "type": "array",
-            "description": "Field-indexed validation errors, when the request failed validation.",
-            "items": {
-              "type": "object",
-              "additionalProperties": true
-            }
-          }
-        },
-        "required": [
-          "statusCode",
-          "error",
-          "message",
-          "requestId"
         ]
       },
       "AppointmentListResponseDto": {
@@ -3912,6 +5323,16 @@
           "patient": {
             "$ref": "#/components/schemas/AppointmentPatientSummaryDto"
           },
+          "dependent": {
+            "nullable": true,
+            "description": "Who the appointment is actually for, if not the account holder ('patient') themselves",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AppointmentDependentSummaryDto"
+              }
+            ]
+          },
           "symptoms": {
             "type": "array",
             "items": {
@@ -3961,6 +5382,7 @@
           "reason",
           "doctor",
           "patient",
+          "dependent",
           "symptoms",
           "cancelledAt",
           "cancellationReason",
@@ -4009,7 +5431,10 @@
               "CONSULTATION_SUMMARY_AVAILABLE",
               "PROFILE_APPROVED",
               "PROFILE_REJECTED",
-              "PLATFORM_APPOINTMENT_CANCELLED"
+              "PLATFORM_APPOINTMENT_CANCELLED",
+              "NEW_MESSAGE",
+              "REFILL_REQUESTED",
+              "REFILL_DECIDED"
             ]
           },
           "title": {
@@ -4255,11 +5680,40 @@
           "reason": {
             "type": "string"
           },
+          "status": {
+            "type": "string",
+            "enum": [
+              "BOOKED",
+              "CANCELLED",
+              "COMPLETED",
+              "NOT_HELD"
+            ],
+            "description": "The appointment's own status (distinct from the session state below) — used by the web app to gate the messages thread the same way the API does."
+          },
+          "roomId": {
+            "type": "string",
+            "description": "The appointment's video-call room name; not derivable from the appointment ID alone."
+          },
           "doctor": {
             "$ref": "#/components/schemas/AppointmentDoctorSummaryDto"
           },
           "patient": {
-            "$ref": "#/components/schemas/AppointmentPatientSummaryDto"
+            "description": "Whoever the appointment is with — the dependent's identity when `dependent` is set, not the account holder's",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AppointmentPatientSummaryDto"
+              }
+            ]
+          },
+          "dependent": {
+            "nullable": true,
+            "description": "Set when the appointment is for one of the account holder's dependents",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AppointmentDependentSummaryDto"
+              }
+            ]
           },
           "symptoms": {
             "type": "array",
@@ -4300,8 +5754,11 @@
           "startsAt",
           "endsAt",
           "reason",
+          "status",
+          "roomId",
           "doctor",
           "patient",
+          "dependent",
           "symptoms",
           "session"
         ]
@@ -4404,6 +5861,16 @@
           "doctor": {
             "$ref": "#/components/schemas/AppointmentDoctorSummaryDto"
           },
+          "dependent": {
+            "nullable": true,
+            "description": "Who this consultation was for, if not the account holder ('patient') themselves",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AppointmentDependentSummaryDto"
+              }
+            ]
+          },
           "patientSummary": {
             "type": "string",
             "nullable": true
@@ -4413,6 +5880,7 @@
           "appointmentId",
           "startsAt",
           "doctor",
+          "dependent",
           "patientSummary"
         ]
       },
@@ -4442,6 +5910,97 @@
           "pageSize"
         ]
       },
+      "RefillRequestDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "DENIED"
+            ]
+          },
+          "patientNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "doctorNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "decidedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "patientNote",
+          "doctorNote",
+          "decidedAt",
+          "createdAt"
+        ]
+      },
+      "RecordPrescriptionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "medication": {
+            "type": "string"
+          },
+          "dosage": {
+            "type": "string"
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "refillRequests": {
+            "description": "Newest first",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RefillRequestDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "medication",
+          "dosage",
+          "frequency",
+          "duration",
+          "instructions",
+          "createdAt",
+          "updatedAt",
+          "refillRequests"
+        ]
+      },
       "RecordDetailResponseDto": {
         "type": "object",
         "properties": {
@@ -4455,6 +6014,15 @@
           "doctor": {
             "$ref": "#/components/schemas/AppointmentDoctorSummaryDto"
           },
+          "dependent": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AppointmentDependentSummaryDto"
+              }
+            ]
+          },
           "note": {
             "nullable": true,
             "type": "object",
@@ -4467,7 +6035,7 @@
           "prescriptions": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PrescriptionResponseDto"
+              "$ref": "#/components/schemas/RecordPrescriptionDto"
             }
           }
         },
@@ -4475,6 +6043,7 @@
           "appointmentId",
           "startsAt",
           "doctor",
+          "dependent",
           "note",
           "prescriptions"
         ]
@@ -4520,6 +6089,21 @@
           "patientId": {
             "type": "string"
           },
+          "dependentId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Set when this record is for one of the account's dependents rather than the account holder"
+          },
+          "relationship": {
+            "type": "string",
+            "enum": [
+              "CHILD",
+              "PARENT",
+              "SPOUSE",
+              "OTHER"
+            ],
+            "nullable": true
+          },
           "firstName": {
             "type": "string"
           },
@@ -4557,6 +6141,8 @@
         },
         "required": [
           "patientId",
+          "dependentId",
+          "relationship",
           "firstName",
           "lastName",
           "age",
@@ -4565,6 +6151,295 @@
           "currentMedications",
           "appointmentsWithDoctor",
           "completedConsultations"
+        ]
+      },
+      "SendMessageDto": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Trimmed before validation and storage"
+          }
+        },
+        "required": [
+          "body"
+        ]
+      },
+      "MessageResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "appointmentId": {
+            "type": "string"
+          },
+          "senderId": {
+            "type": "string",
+            "description": "The sender's user ID; compare against the viewer's own ID to align the thread"
+          },
+          "body": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "appointmentId",
+          "senderId",
+          "body",
+          "createdAt"
+        ]
+      },
+      "MessageListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageResponseDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "RequestRefillDto": {
+        "type": "object",
+        "properties": {
+          "patientNote": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "RefillRequestResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "appointmentId": {
+            "type": "string"
+          },
+          "prescriptionId": {
+            "type": "string"
+          },
+          "medication": {
+            "type": "string"
+          },
+          "appointmentStartsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "patient": {
+            "$ref": "#/components/schemas/AppointmentPatientSummaryDto"
+          },
+          "dependent": {
+            "nullable": true,
+            "description": "Who the consultation was for, if not the account holder ('patient') themselves",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AppointmentDependentSummaryDto"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "DENIED"
+            ]
+          },
+          "patientNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "doctorNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "decidedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "appointmentId",
+          "prescriptionId",
+          "medication",
+          "appointmentStartsAt",
+          "patient",
+          "dependent",
+          "status",
+          "patientNote",
+          "doctorNote",
+          "decidedAt",
+          "createdAt"
+        ]
+      },
+      "RefillRequestListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RefillRequestResponseDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "DecideRefillDto": {
+        "type": "object",
+        "properties": {
+          "doctorNote": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "FavoriteDoctorDto": {
+        "type": "object",
+        "properties": {
+          "doctorId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "doctorId"
+        ]
+      },
+      "FavoriteResponseDto": {
+        "type": "object",
+        "properties": {
+          "doctorId": {
+            "type": "string"
+          },
+          "favoritedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "doctorId",
+          "favoritedAt"
+        ]
+      },
+      "FavoriteDoctorSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "specializations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpecializationSummaryDto"
+            }
+          },
+          "bioExcerpt": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 200
+          },
+          "yearsOfExperience": {
+            "type": "number",
+            "nullable": true
+          },
+          "consultationMinutes": {
+            "type": "number"
+          },
+          "acceptingBookings": {
+            "type": "boolean"
+          },
+          "nextAvailableSlot": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "averageRating": {
+            "type": "number",
+            "nullable": true,
+            "description": "Average of visible reviews only, rounded to 1 decimal; absent if there are none"
+          },
+          "reviewCount": {
+            "type": "number",
+            "description": "Count of visible reviews only"
+          },
+          "favoritedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "specializations",
+          "bioExcerpt",
+          "yearsOfExperience",
+          "consultationMinutes",
+          "acceptingBookings",
+          "nextAvailableSlot",
+          "averageRating",
+          "reviewCount",
+          "favoritedAt"
+        ]
+      },
+      "FavoriteListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FavoriteDoctorSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "items"
         ]
       },
       "AdminUserResponseDto": {
@@ -4867,6 +6742,31 @@
           "displayName"
         ]
       },
+      "AdminAppointmentDependentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "relationship": {
+            "type": "string",
+            "enum": [
+              "CHILD",
+              "PARENT",
+              "SPOUSE",
+              "OTHER"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "relationship"
+        ]
+      },
       "AdminAppointmentResponseDto": {
         "type": "object",
         "properties": {
@@ -4895,6 +6795,16 @@
           },
           "patient": {
             "$ref": "#/components/schemas/AdminAppointmentParticipantDto"
+          },
+          "dependent": {
+            "nullable": true,
+            "description": "Set when the appointment is for one of the account holder's dependents, not the account holder themselves",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AdminAppointmentDependentDto"
+              }
+            ]
           },
           "consultationState": {
             "type": "string",
@@ -4936,6 +6846,15 @@
           "resolutionReason": {
             "type": "string",
             "nullable": true
+          },
+          "messageCount": {
+            "type": "number",
+            "description": "Number of messages exchanged on this appointment; never the message content"
+          },
+          "lastMessageAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "required": [
@@ -4945,12 +6864,15 @@
           "status",
           "doctor",
           "patient",
+          "dependent",
           "consultationState",
           "flags",
           "cancelledAt",
           "cancelledByRole",
           "cancellationReason",
-          "resolutionReason"
+          "resolutionReason",
+          "messageCount",
+          "lastMessageAt"
         ]
       },
       "AdminAppointmentListResponseDto": {

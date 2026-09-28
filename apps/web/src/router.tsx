@@ -14,6 +14,7 @@ import { RegisterPatientPage } from '@/routes/auth/register-patient';
 import { RegisterDoctorPage } from '@/routes/auth/register-doctor';
 import { PatientHomePage } from '@/routes/patient/home';
 import { PatientProfilePage } from '@/routes/patient/profile';
+import { PatientDependentsPage } from '@/routes/patient/dependents';
 import { PatientFavoritesPage } from '@/routes/patient/favorites';
 import { FindDoctorPage } from '@/routes/patient/doctors';
 import { PatientDoctorProfilePage } from '@/routes/patient/doctor-profile';
@@ -89,6 +90,7 @@ export const router = createBrowserRouter([
             children: [
               { index: true, element: <PatientHomePage /> },
               { path: 'profile', element: <PatientProfilePage /> },
+              { path: 'dependents', element: <PatientDependentsPage /> },
               { path: 'doctors', element: <FindDoctorPage /> },
               { path: 'favorites', element: <PatientFavoritesPage /> },
               { path: 'doctors/:doctorId', element: <PatientDoctorProfilePage /> },

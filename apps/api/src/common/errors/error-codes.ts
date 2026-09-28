@@ -46,6 +46,8 @@ export const ErrorCode = {
   INVALID_VERIFICATION_TRANSITION: 'INVALID_VERIFICATION_TRANSITION',
   /** An admin tried to mark an appointment `NOT_HELD` that isn't flagged `NOT_COMPLETED`. */
   NOT_ELIGIBLE_FOR_NOT_HELD: 'NOT_ELIGIBLE_FOR_NOT_HELD',
+  /** A patient already has `MAX_DEPENDENTS_PER_PATIENT` active dependents. */
+  DEPENDENT_LIMIT_REACHED: 'DEPENDENT_LIMIT_REACHED',
   /** A review was submitted for an appointment that isn't the caller's own `COMPLETED` appointment. */
   REVIEW_NOT_ELIGIBLE: 'REVIEW_NOT_ELIGIBLE',
   /** An admin tried to hide an already-hidden review, or unhide one that isn't hidden. */

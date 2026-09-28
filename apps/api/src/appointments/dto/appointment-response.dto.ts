@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SpecializationSummaryDto } from '../../doctors/dto/doctor-profile-response.dto.js';
-import { AppointmentStatus } from '../../generated/prisma/enums.js';
+import { AppointmentStatus, DependentRelationship } from '../../generated/prisma/enums.js';
 
 export class AppointmentDoctorSummaryDto {
   @ApiProperty() id!: string;
@@ -19,6 +19,13 @@ export class AppointmentSymptomSummaryDto {
   @ApiProperty() name!: string;
 }
 
+/** Who the appointment is for, when it's not the account holder themselves — see `add-dependent-booking`. */
+export class AppointmentDependentSummaryDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() displayName!: string;
+  @ApiProperty({ enum: DependentRelationship }) relationship!: DependentRelationship;
+}
+
 /** The response shape for booking, rescheduling, cancelling, and listing appointments. */
 export class AppointmentResponseDto {
   @ApiProperty() id!: string;
@@ -28,6 +35,12 @@ export class AppointmentResponseDto {
   @ApiProperty() reason!: string;
   @ApiProperty({ type: AppointmentDoctorSummaryDto }) doctor!: AppointmentDoctorSummaryDto;
   @ApiProperty({ type: AppointmentPatientSummaryDto }) patient!: AppointmentPatientSummaryDto;
+  @ApiProperty({
+    type: AppointmentDependentSummaryDto,
+    nullable: true,
+    description: "Who the appointment is actually for, if not the account holder ('patient') themselves",
+  })
+  dependent!: AppointmentDependentSummaryDto | null;
   @ApiProperty({ type: [AppointmentSymptomSummaryDto] }) symptoms!: AppointmentSymptomSummaryDto[];
   @ApiProperty({ type: String, format: 'date-time', nullable: true }) cancelledAt!: string | null;
   @ApiProperty({ nullable: true, type: String }) cancellationReason!: string | null;

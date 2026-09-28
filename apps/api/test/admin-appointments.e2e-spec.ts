@@ -54,10 +54,23 @@ describe('Admin appointment oversight', () => {
     const admin = await createAndSignInAdmin(app);
     const doctor = await registerBookableDoctor(app);
     const patient = await registerBookablePatient(app);
+    const dependent = await patient.agent
+      .post('/api/patients/me/dependents')
+      .send({ firstName: 'Jamie', lastName: 'Lovelace', birthDate: '2018-06-15', relationship: 'CHILD' })
+      .expect(201);
+    await patient.agent
+      .patch(`/api/patients/me/dependents/${dependent.body.id as string}`)
+      .send({ allergies: 'A very specific dependent allergy' })
+      .expect(200);
     const startsAt = nextSlotStart(new Date());
     const booked = await patient.agent
       .post('/api/appointments')
-      .send({ doctorId: doctor.id, startsAt: startsAt.toISOString(), reason: 'Persistent cough and fever' })
+      .send({
+        doctorId: doctor.id,
+        startsAt: startsAt.toISOString(),
+        reason: 'Persistent cough and fever',
+        dependentId: dependent.body.id,
+      })
       .expect(201);
 
     const list = await admin.agent.get('/api/admin/appointments').expect(200);
@@ -66,10 +79,44 @@ describe('Admin appointment oversight', () => {
     for (const payload of [list.body, detail.body]) {
       const serialized = JSON.stringify(payload);
       expect(serialized).not.toContain('Persistent cough and fever');
+      expect(serialized).not.toContain('A very specific dependent allergy');
       for (const key of CLINICAL_KEYS) {
         expect(serialized.includes(`"${key}"`)).toBe(false);
       }
     }
+  });
+
+  it('Attendee shown without dependent medical history', async () => {
+    const admin = await createAndSignInAdmin(app);
+    const doctor = await registerBookableDoctor(app);
+    const patient = await registerBookablePatient(app);
+    const dependent = await patient.agent
+      .post('/api/patients/me/dependents')
+      .send({ firstName: 'Jamie', lastName: 'Lovelace', birthDate: '2018-06-15', relationship: 'CHILD' })
+      .expect(201);
+    const startsAt = nextSlotStart(new Date());
+    const booked = await patient.agent
+      .post('/api/appointments')
+      .send({
+        doctorId: doctor.id,
+        startsAt: startsAt.toISOString(),
+        reason: 'Fever and sore throat',
+        dependentId: dependent.body.id,
+      })
+      .expect(201);
+
+    const detail = await admin.agent.get(`/api/admin/appointments/${booked.body.id as string}`).expect(200);
+    expect(detail.body.dependent).toMatchObject({
+      id: dependent.body.id,
+      displayName: 'Jamie Lovelace',
+      relationship: 'CHILD',
+    });
+    expect(detail.body.dependent.medicalConditions).toBeUndefined();
+    expect(detail.body.dependent.allergies).toBeUndefined();
+
+    const list = await admin.agent.get('/api/admin/appointments').expect(200);
+    const entry = list.body.items.find((item: { id: string }) => item.id === (booked.body.id as string));
+    expect(entry.dependent).toMatchObject({ id: dependent.body.id, displayName: 'Jamie Lovelace' });
   });
 
   it('Filter by consultation state', async () => {

@@ -84,11 +84,13 @@ describe('List and view appointments', () => {
     const patientView = await patient.agent.get(`/api/appointments/${booked.body.id}`);
     expect(patientView.status).toBe(200);
     expect(patientView.body.doctor.id).toBe(doctor.id);
+    expect(patientView.body.dependent).toBeNull();
     expect(patientView.body.history).toEqual([expect.objectContaining({ id: booked.body.id })]);
 
     const doctorView = await doctor.agent.get(`/api/appointments/${booked.body.id}`);
     expect(doctorView.status).toBe(200);
     expect(doctorView.body.patient.id).toBe(patient.id);
+    expect(doctorView.body.dependent).toBeNull();
   });
 
   it('Non-participant denied', async () => {

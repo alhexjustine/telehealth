@@ -48,6 +48,7 @@ const WITH_RELATIONS = {
     },
   },
   patient: { include: { user: { select: { status: true } } } },
+  dependent: true,
   symptoms: { include: { symptom: true } },
 } satisfies Prisma.AppointmentInclude;
 
@@ -82,6 +83,8 @@ export class AppointmentsService {
       this.prisma,
       this.notificationsService,
       async (tx, notify) => {
+        await this.assertDependentOwned(tx, patientId, dto.dependentId);
+
         const { endsAt } = await this.bookingRules.assertBookable(tx, {
           patientId,
           doctorId: dto.doctorId,
@@ -95,6 +98,7 @@ export class AppointmentsService {
             data: {
               patientId,
               doctorId: dto.doctorId,
+              dependentId: dto.dependentId,
               startsAt,
               endsAt,
               reason: dto.reason,
@@ -112,6 +116,7 @@ export class AppointmentsService {
           doctor: participant(appointment.doctorId, appointment.doctor),
           patient: participant(appointment.patientId, appointment.patient),
           startsAt: appointment.startsAt,
+          attendeeName: attendeeName(appointment),
         }));
 
         return appointment;
@@ -179,6 +184,7 @@ export class AppointmentsService {
             data: {
               patientId: original.patientId,
               doctorId: original.doctorId,
+              dependentId: original.dependentId,
               startsAt: newStartsAt,
               endsAt,
               reason: original.reason,
@@ -200,6 +206,7 @@ export class AppointmentsService {
           patient: participant(appointment.patientId, appointment.patient),
           startsAt: appointment.startsAt,
           previousStartsAt: original.startsAt,
+          attendeeName: attendeeName(appointment),
         }));
 
         return appointment;
@@ -350,6 +357,19 @@ export class AppointmentsService {
     };
   }
 
+  /** Throws 404 unless `dependentId` is one of `patientId`'s own, still-active dependents. No-op when `dependentId` is undefined (booking for the account holder themselves). */
+  private async assertDependentOwned(
+    tx: Prisma.TransactionClient,
+    patientId: string,
+    dependentId: string | undefined,
+  ): Promise<void> {
+    if (dependentId === undefined) return;
+    const dependent = await tx.dependent.findUnique({ where: { id: dependentId } });
+    if (!dependent || dependent.patientId !== patientId || dependent.removedAt !== null) {
+      throw new NotFoundException('Dependent not found');
+    }
+  }
+
   private isParticipant(caller: AppointmentCaller, appointment: { patientId: string; doctorId: string }): boolean {
     if (caller.role === Role.PATIENT) return appointment.patientId === caller.id;
     if (caller.role === Role.DOCTOR) return appointment.doctorId === caller.id;
@@ -442,6 +462,13 @@ export class AppointmentsService {
         displayName: `${appointment.patient.firstName} ${appointment.patient.lastName}`,
         age: appointment.patient.birthDate ? ageAt(appointment.patient.birthDate, now) : null,
       },
+      dependent: appointment.dependent
+        ? {
+            id: appointment.dependent.id,
+            displayName: `${appointment.dependent.firstName} ${appointment.dependent.lastName}`,
+            relationship: appointment.dependent.relationship,
+          }
+        : null,
       symptoms: appointment.symptoms.map((link) => ({ id: link.symptom.id, name: link.symptom.name })),
       cancelledAt: appointment.cancelledAt ? appointment.cancelledAt.toISOString() : null,
       cancellationReason: appointment.cancellationReason,
@@ -454,6 +481,11 @@ export class AppointmentsService {
 /** `{ id, displayName }` for the notification recipient-rules module, from either side of an `AppointmentWithRelations`. */
 function participant(id: string, profile: { firstName: string; lastName: string }): { id: string; displayName: string } {
   return { id, displayName: `${profile.firstName} ${profile.lastName}` };
+}
+
+/** The doctor-facing notification's attendee name: the dependent's, when the appointment has one; otherwise `undefined` (falls back to the account holder's own name). */
+function attendeeName(appointment: AppointmentWithRelations): string | undefined {
+  return appointment.dependent ? `${appointment.dependent.firstName} ${appointment.dependent.lastName}` : undefined;
 }
 
 function cancelledByRole(appointment: {

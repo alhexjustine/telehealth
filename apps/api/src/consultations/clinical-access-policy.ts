@@ -85,16 +85,27 @@ function assertParticipant(actor: ClinicalActor, appointment: AppointmentPartici
 
 /**
  * Whether `doctorId` has (or had) a `BOOKED` or `COMPLETED` appointment with
- * `patientId` — the continuity-of-care gate for `GET /patients/{id}/record`.
- * A `CANCELLED`-only history does not establish a treating relationship.
+ * `patientId` for the specific person `dependentId` identifies (`null` means
+ * the account holder themselves) — the continuity-of-care gate for
+ * `GET /patients/{id}/record`. A `CANCELLED`-only history does not establish
+ * a treating relationship. A relationship established through the account
+ * holder, or through one dependent, does NOT extend to any other dependent
+ * or to the account holder (`add-dependent-booking`'s "each person's history
+ * is scoped independently, even though they share one account").
  */
 export async function hasTreatingRelationship(
   prisma: Pick<PrismaService, 'appointment'>,
   doctorId: string,
   patientId: string,
+  dependentId: string | null = null,
 ): Promise<boolean> {
   const count = await prisma.appointment.count({
-    where: { doctorId, patientId, status: { in: [AppointmentStatus.BOOKED, AppointmentStatus.COMPLETED] } },
+    where: {
+      doctorId,
+      patientId,
+      dependentId,
+      status: { in: [AppointmentStatus.BOOKED, AppointmentStatus.COMPLETED] },
+    },
   });
   return count > 0;
 }

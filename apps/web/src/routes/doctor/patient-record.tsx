@@ -1,13 +1,16 @@
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDoctorPatientRecord } from '@/lib/records/use-records';
 import { formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
 import { QueryState } from '@/components/query-state';
+import { relationshipLabel } from '@/lib/dependents/relationship-label';
 
 export function DoctorPatientRecordPage() {
   const { patientId } = useParams<{ patientId: string }>();
-  const record = useDoctorPatientRecord(patientId);
+  const [searchParams] = useSearchParams();
+  const dependentId = searchParams.get('dependentId') ?? undefined;
+  const record = useDoctorPatientRecord(patientId, dependentId);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   return (
@@ -17,6 +20,11 @@ export function DoctorPatientRecordPage() {
           <>
             <h1 className="text-2xl font-semibold">
               {data.firstName} {data.lastName}
+              {data.relationship && (
+                <span className="ml-2 text-base font-normal text-muted-foreground">
+                  ({relationshipLabel(data.relationship)})
+                </span>
+              )}
             </h1>
 
             <Card>

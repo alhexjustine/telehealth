@@ -13,6 +13,7 @@ import { QueryState } from '@/components/query-state';
 import { HomeActions, type HomeAction } from '@/components/home-actions';
 import { AcceptingBookingsToggle } from '@/components/accepting-bookings-toggle';
 import { isSameLocalDate } from '@/lib/appointments/is-same-local-date';
+import { relationshipLabel } from '@/lib/dependents/relationship-label';
 
 const ACTIONS: HomeAction[] = [
   {
@@ -90,7 +91,11 @@ export function DoctorHomePage() {
                     className="flex flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <Link to={`/doctor/appointments/${appointment.id}`} className="flex-1">
-                      <p className="font-semibold">{appointment.patient.displayName}</p>
+                      <p className="font-semibold">
+                        {appointment.dependent
+                          ? `${appointment.dependent.displayName} (${relationshipLabel(appointment.dependent.relationship)})`
+                          : appointment.patient.displayName}
+                      </p>
                       <p className="text-sm text-muted-foreground">{appointment.reason}</p>
                     </Link>
                     <div className="flex items-center gap-2">

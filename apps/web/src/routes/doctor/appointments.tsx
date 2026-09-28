@@ -20,6 +20,7 @@ import { useAppointments, useCancelAppointment } from '@/lib/appointments/use-ap
 import { formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
 import { JoinConsultationButton } from '@/components/join-consultation-button';
 import { QueryState } from '@/components/query-state';
+import { relationshipLabel } from '@/lib/dependents/relationship-label';
 
 type AppointmentDto =
   ApiPaths['/appointments']['get']['responses'][200]['content']['application/json']['items'][number];
@@ -79,9 +80,13 @@ export function DoctorAppointmentsPage() {
                           {formatSlotDateAndTime(appointment.startsAt, timezone)}
                         </Link>
                         <p className="text-sm text-muted-foreground">
-                          {appointment.patient.displayName}
-                          {appointment.patient.age !== null ? `, ${appointment.patient.age}` : ''}
+                          {appointment.dependent
+                            ? `${appointment.dependent.displayName} (${relationshipLabel(appointment.dependent.relationship)})`
+                            : `${appointment.patient.displayName}${appointment.patient.age !== null ? `, ${appointment.patient.age}` : ''}`}
                         </p>
+                        {appointment.dependent && (
+                          <p className="text-xs text-muted-foreground">Booked by {appointment.patient.displayName}</p>
+                        )}
                         <p className="text-sm text-muted-foreground">{appointment.reason}</p>
                         {appointment.symptoms.length > 0 && (
                           <div className="mt-1 flex flex-wrap gap-1">

@@ -116,6 +116,26 @@ sequenceDiagram
   API-->>PatientB: 409 {code: "SLOT_UNAVAILABLE"}
 ```
 
+## Booking for a dependent
+
+`/patient/dependents` (reachable from Profile) lets a patient add people it books on behalf of —
+a child, a parent, a spouse, or someone else — each with their own name, birthdate, relationship,
+and medical history (conditions, allergies, current medications), tracked separately from the
+account holder's own profile and from each other (`add-dependent-booking`). A dependent has no
+login of their own; the account holder does everything for them. Removing a dependent hides them
+from future booking without deleting any appointment, message, or record already associated with
+them.
+
+The booking confirmation gains a "Who is this appointment for?" choice (the account holder, or one
+of their active dependents); the chosen dependent is carried through rescheduling. Appointment
+cards, the consultation workspace, and records all show who the appointment was actually for — the
+dependent's name and age, not the account holder's, wherever a doctor needs to know who they're
+treating — while every access-control check (joining, messaging, cancelling, managing the booking)
+still keys off the account, since that's who is actually signed in. The account holder's own
+double-booking and 5-upcoming-appointment limit apply across every dependent's appointments
+combined, not per dependent: the account holder is who is physically present, so they cannot be
+double-booked across their own and a dependent's visits either.
+
 ## Favorite doctors and Book again
 
 A patient can favorite/unfavorite an approved, active doctor from a search result card or their
@@ -168,12 +188,14 @@ can see what.
 
 ## Medical records
 
-`/patient/records` lists the patient's own completed consultations, newest first, each showing the
-doctor, date, and patient summary; `/patient/records/:appointmentId` shows the full record —
-summary, findings/assessment/plan, and prescriptions — in a print-friendly layout (`window.print()`
-with the role navigation hidden via `print:hidden`, so a printed copy is a clean single column).
-A consultation that is not yet completed, or belongs to another patient, `404`s the same way a
-non-existent one would (see [Clinical Access](/architecture/clinical-access)).
+`/patient/records` lists completed consultations for the account holder and every dependent
+combined, newest first, each showing the doctor, date, patient summary, and who it was for; a
+filter narrows it to just the account holder ("Myself") or one specific dependent.
+`/patient/records/:appointmentId` shows the full record — summary, findings/assessment/plan, and
+prescriptions — in a print-friendly layout (`window.print()` with the role navigation hidden via
+`print:hidden`, so a printed copy is a clean single column). A consultation that is not yet
+completed, or belongs to another account, `404`s the same way a non-existent one would (see
+[Clinical Access](/architecture/clinical-access)).
 
 ## Requesting a prescription refill
 

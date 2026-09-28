@@ -11,6 +11,13 @@ export interface BookNotificationsParams {
   doctor: Participant;
   patient: Participant;
   startsAt: Date;
+  /**
+   * Who the appointment is actually for, when it's one of the patient's
+   * dependents — used only in the doctor-facing notification body, in place
+   * of `patient.displayName` (`add-dependent-booking`). The patient's own
+   * notification is unaffected: they already know who they booked for.
+   */
+  attendeeName?: string;
 }
 
 export interface RescheduleNotificationsParams {
@@ -20,6 +27,8 @@ export interface RescheduleNotificationsParams {
   patient: Participant;
   startsAt: Date;
   previousStartsAt: Date;
+  /** See `BookNotificationsParams.attendeeName`. */
+  attendeeName?: string;
 }
 
 export interface CancelNotificationsParams {
@@ -49,13 +58,14 @@ export interface PlatformCancelNotificationsParams {
  */
 export function bookNotificationDrafts(params: BookNotificationsParams): NotificationDraft[] {
   const startsAt = params.startsAt.toISOString();
+  const attendeeName = params.attendeeName ?? params.patient.displayName;
   return [
     {
       userId: params.doctor.id,
       type: NotificationType.APPOINTMENT_BOOKED,
       title: 'New booking',
-      body: `New booking with ${params.patient.displayName}`,
-      data: { startsAt, counterpartName: params.patient.displayName },
+      body: `New booking with ${attendeeName}`,
+      data: { startsAt, counterpartName: attendeeName },
       link: `/doctor/appointments/${params.appointmentId}`,
       appointmentId: params.appointmentId,
     },
@@ -74,13 +84,14 @@ export function bookNotificationDrafts(params: BookNotificationsParams): Notific
 export function rescheduleNotificationDrafts(params: RescheduleNotificationsParams): NotificationDraft[] {
   const startsAt = params.startsAt.toISOString();
   const previousStartsAt = params.previousStartsAt.toISOString();
+  const attendeeName = params.attendeeName ?? params.patient.displayName;
   return [
     {
       userId: params.doctor.id,
       type: NotificationType.APPOINTMENT_RESCHEDULED,
       title: 'Appointment rescheduled',
-      body: `Appointment rescheduled with ${params.patient.displayName}`,
-      data: { startsAt, previousStartsAt, counterpartName: params.patient.displayName },
+      body: `Appointment rescheduled with ${attendeeName}`,
+      data: { startsAt, previousStartsAt, counterpartName: attendeeName },
       link: `/doctor/appointments/${params.newAppointmentId}`,
       appointmentId: params.newAppointmentId,
     },

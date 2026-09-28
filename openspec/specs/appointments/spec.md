@@ -9,21 +9,35 @@ ever double-booked.
 
 ### Requirement: Book an appointment
 A signed-in patient SHALL be able to book an appointment by giving a doctor, a start instant, a
-reason of 10 to 500 characters, and optionally up to 10 symptom IDs from the catalog. The booking
-is accepted only when all of the following hold:
+reason of 10 to 500 characters, optionally up to 10 symptom IDs from the catalog, and optionally
+the ID of one of their own dependents this appointment is for. The booking is accepted only when
+all of the following hold:
 - the patient's profile is complete
 - the doctor is visible (approved and active)
 - the doctor is currently accepting new bookings
 - the start and end exactly match one of the doctor's currently available slots
 - the start is at most 60 days ahead
-- the patient has fewer than 5 upcoming booked appointments
-- the time does not overlap another of the patient's booked appointments
+- the patient has fewer than 5 upcoming booked appointments, counting every dependent's and their
+  own combined
+- the time does not overlap another of the patient's booked appointments, again counting every
+  dependent's and their own combined — the account holder is who is actually present, so they
+  cannot be double-booked across their own and a dependent's appointments either
+- the dependent, if given, belongs to the patient and has not been removed
 The new appointment's status SHALL be `BOOKED`, and its end is the start plus the doctor's
-consultation length.
+consultation length. If a dependent was given, the appointment is recorded as being for that
+dependent; otherwise it is for the patient themselves.
 
 #### Scenario: Successful booking
 - **WHEN** a patient with a complete profile books an available slot with an approved doctor, giving a valid reason and two symptom IDs
 - **THEN** the response is `201` with the appointment, status `BOOKED`, the doctor summary, the reason, and the symptoms, and that slot is no longer offered
+
+#### Scenario: Booking for a dependent
+- **WHEN** a patient books an available slot and gives the ID of one of their own dependents
+- **THEN** the response is `201` and the appointment is recorded as being for that dependent, not the patient themselves
+
+#### Scenario: Dependent not owned by the patient
+- **WHEN** a patient tries to book giving a dependent ID that belongs to another account, or one that was removed
+- **THEN** the response is `404` and nothing is booked
 
 #### Scenario: Incomplete profile
 - **WHEN** a patient whose profile is incomplete tries to book
@@ -38,11 +52,11 @@ consultation length.
 - **THEN** the response is `409` with code `BEYOND_BOOKING_HORIZON`
 
 #### Scenario: Too many upcoming appointments
-- **WHEN** a patient who already has 5 upcoming booked appointments tries to book another
+- **WHEN** a patient who already has 5 upcoming booked appointments across themselves and their dependents tries to book another, for themselves or any dependent
 - **THEN** the response is `409` with code `BOOKING_LIMIT_REACHED`
 
 #### Scenario: Patient already busy
-- **WHEN** a patient tries to book a slot that overlaps another of their own booked appointments with a different doctor
+- **WHEN** a patient tries to book a slot that overlaps another of their own booked appointments with a different doctor, whether that other appointment is for themselves or a dependent
 - **THEN** the response is `409` with code `PATIENT_CONFLICT`
 
 #### Scenario: Hidden doctor
@@ -76,11 +90,16 @@ slot with the same doctor, provided the current start is at least 2 hours away. 
 satisfy the same rules as a new booking, except that the appointment being rescheduled does not
 count toward the limit or toward overlaps. Rescheduling SHALL cancel the original appointment with
 the reason "Rescheduled" and create a new `BOOKED` appointment that references the original,
-keeping the reason and symptoms, in one atomic operation.
+keeping the reason, symptoms, and attendee (the same dependent, if the original had one), in one
+atomic operation.
 
 #### Scenario: Successful reschedule
 - **WHEN** a patient reschedules an appointment that starts in 2 days to another available slot with the same doctor
 - **THEN** the response is `201` with the new appointment, which references the original; the original is `CANCELLED` with reason "Rescheduled"; and the original slot becomes available again
+
+#### Scenario: Reschedule preserves the dependent
+- **WHEN** a patient reschedules an appointment that was booked for one of their dependents
+- **THEN** the new appointment is still recorded as being for that same dependent
 
 #### Scenario: Too close to start
 - **WHEN** a patient tries to reschedule an appointment that starts in 90 minutes
@@ -132,8 +151,10 @@ Patients and doctors SHALL be able to list their own appointments, paginated, as
 - Past appointments are all others, most recent first.
 - Patients see the doctor's name and specializations.
 - Doctors see the patient's name, age, reason, and symptoms.
-Either participant SHALL be able to view one appointment's details, including the full reschedule
-and cancellation history. No one else can see an appointment through these endpoints.
+Every entry and detail response SHALL include who the appointment is for: the account holder, or a
+named dependent with their relationship. Either participant SHALL be able to view one appointment's
+details, including the full reschedule and cancellation history. No one else can see an appointment
+through these endpoints.
 
 #### Scenario: Patient lists upcoming
 - **WHEN** a patient with two future booked appointments and one cancelled appointment lists upcoming appointments
@@ -143,9 +164,13 @@ and cancellation history. No one else can see an appointment through these endpo
 - **WHEN** a doctor lists past appointments
 - **THEN** their ended and cancelled appointments are returned, most recent first, each with the patient's name, age, and reason
 
+#### Scenario: Appointment for a dependent shows in listings
+- **WHEN** a doctor lists appointments that include one booked for a patient's dependent
+- **THEN** that entry shows the dependent's name and relationship, not the account holder's own name
+
 #### Scenario: Participant views details
 - **WHEN** the patient or doctor of an appointment requests its details
-- **THEN** the response includes the appointment, the counterpart summary, and its reschedule and cancellation history
+- **THEN** the response includes the appointment, the counterpart summary, who it is for, and its reschedule and cancellation history
 
 #### Scenario: Non-participant denied
 - **WHEN** a different patient or doctor requests an appointment's details
@@ -157,14 +182,26 @@ and cancellation history. No one else can see an appointment through these endpo
 
 ### Requirement: Booking in the web app
 From the doctor profile page's slot picker, a patient SHALL be able to open a booking confirmation.
-It shows the doctor, the date and time in the patient's time zone, the duration, and a reason
-field, prefilled from any symptoms carried over from Find care. When the profile is incomplete, the
+It shows the doctor, the date and time in the patient's time zone, the duration, a "Who is this
+appointment for?" choice (the patient themselves, one of their active dependents, or adding a new
+dependent), and a reason field, prefilled from any symptoms carried over from Find care. Choosing
+to add a new dependent SHALL let the patient do so right there, without leaving the confirmation
+page, using the same required fields (name, birthdate, relationship) as the Dependents page; the
+newly added dependent SHALL become the selected attendee. When the profile is incomplete, the
 confirmation MUST explain this and link to the profile page instead of allowing submission. When
 the slot has just been taken, the page MUST say so and refresh the available slots.
 
 #### Scenario: Book from the slot picker
 - **WHEN** a patient selects a slot, confirms with a reason, and submits
 - **THEN** a success message is shown and the appointment appears in their upcoming appointments
+
+#### Scenario: Choose a dependent when booking
+- **WHEN** a patient selects one of their dependents in the "Who is this appointment for?" choice and submits
+- **THEN** the booked appointment is shown in the upcoming list labeled with that dependent's name
+
+#### Scenario: Add a new dependent inline from the booking page
+- **WHEN** a patient with no existing dependents chooses "Add someone new" in the "Who is this appointment for?" choice, fills in a name, birthdate, and relationship, and submits
+- **THEN** the dependent is created, is selected as the appointment's attendee without navigating away, and the appointment can be confirmed for them
 
 #### Scenario: Slot taken while confirming
 - **WHEN** the booking fails with `SLOT_UNAVAILABLE`
@@ -175,11 +212,12 @@ the slot has just been taken, the page MUST say so and refresh the available slo
 - **THEN** a message with a link to the profile page is shown and the submit button is disabled
 
 ### Requirement: Managing appointments in the web app
-The patient area SHALL include an appointments page with upcoming and past tabs, status badges,
-and, where the rules allow, reschedule (slot picker for the same doctor) and cancel (confirmation
-dialog with an optional reason) actions. Actions that are not allowed MUST be disabled with an
-explanation. The doctor area SHALL include an appointments page with upcoming and past tabs and a
-cancel action that requires a reason. The doctor home page SHALL list today's appointments.
+The patient area SHALL include an appointments page with upcoming and past tabs, status badges, an
+indication of who each appointment is for, and, where the rules allow, reschedule (slot picker for
+the same doctor) and cancel (confirmation dialog with an optional reason) actions. Actions that are
+not allowed MUST be disabled with an explanation. The doctor area SHALL include an appointments page
+with upcoming and past tabs and a cancel action that requires a reason. The doctor home page SHALL
+list today's appointments.
 
 #### Scenario: Reschedule disabled near start
 - **WHEN** a patient views an upcoming appointment that starts in 1 hour

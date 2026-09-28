@@ -57,6 +57,33 @@ describe('Workspace access', () => {
     expect(typeof res.body.patientMedicalSummary.age).toBe('number');
   });
 
+  it('Workspace reflects the dependent', async () => {
+    const doctor = await registerBookableDoctor(app);
+    const patient = await registerBookablePatient(app);
+    const dependent = await patient.agent
+      .post('/api/patients/me/dependents')
+      .send({ firstName: 'Jamie', lastName: 'Lovelace', birthDate: '2018-06-15', relationship: 'CHILD' })
+      .expect(201);
+    await patient.agent
+      .patch(`/api/patients/me/dependents/${dependent.body.id as string}`)
+      .send({ allergies: 'Peanuts' })
+      .expect(200);
+    const startsAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const appointment = await createAppointmentDirect(app, {
+      patientId: patient.id,
+      doctorId: doctor.id,
+      startsAt,
+      dependentId: dependent.body.id as string,
+    });
+
+    const res = await doctor.agent.get(`/api/consultations/${appointment.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.patient.displayName).toBe('Jamie Lovelace');
+    expect(res.body.dependent).toMatchObject({ id: dependent.body.id, displayName: 'Jamie Lovelace', relationship: 'CHILD' });
+    expect(res.body.patientMedicalSummary.allergies).toBe('Peanuts');
+    expect(typeof res.body.patientMedicalSummary.age).toBe('number');
+  });
+
   it('Non-participant denied', async () => {
     const doctor = await registerBookableDoctor(app);
     const patient = await registerBookablePatient(app);

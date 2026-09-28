@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SessionState } from '../../generated/prisma/enums.js';
 import {
+  AppointmentDependentSummaryDto,
   AppointmentDoctorSummaryDto,
   AppointmentPatientSummaryDto,
   AppointmentSymptomSummaryDto,
@@ -53,7 +54,17 @@ export class ConsultationWorkspaceResponseDto {
   @ApiProperty({ type: String, format: 'date-time' }) endsAt!: string;
   @ApiProperty() reason!: string;
   @ApiProperty({ type: AppointmentDoctorSummaryDto }) doctor!: AppointmentDoctorSummaryDto;
-  @ApiProperty({ type: AppointmentPatientSummaryDto }) patient!: AppointmentPatientSummaryDto;
+  @ApiProperty({
+    type: AppointmentPatientSummaryDto,
+    description: "Whoever the appointment is with — the dependent's identity when `dependent` is set, not the account holder's",
+  })
+  patient!: AppointmentPatientSummaryDto;
+  @ApiProperty({
+    type: AppointmentDependentSummaryDto,
+    nullable: true,
+    description: "Set when the appointment is for one of the account holder's dependents",
+  })
+  dependent!: AppointmentDependentSummaryDto | null;
   @ApiProperty({ type: [AppointmentSymptomSummaryDto] }) symptoms!: AppointmentSymptomSummaryDto[];
   @ApiProperty({ type: ConsultationSessionStateDto }) session!: ConsultationSessionStateDto;
   @ApiPropertyOptional({ type: ConsultationPatientSummaryDto, nullable: true })

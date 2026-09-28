@@ -21,6 +21,7 @@ import type {
 const WITH_RELATIONS = {
   doctor: { include: { user: { select: { status: true } } } },
   patient: true,
+  dependent: true,
   consultationSession: true,
 } satisfies Prisma.AppointmentInclude;
 
@@ -165,6 +166,13 @@ export class AdminAppointmentsService {
       status: appointment.status,
       doctor: { id: appointment.doctorId, displayName: `${appointment.doctor.firstName} ${appointment.doctor.lastName}` },
       patient: { id: appointment.patientId, displayName: `${appointment.patient.firstName} ${appointment.patient.lastName}` },
+      dependent: appointment.dependent
+        ? {
+            id: appointment.dependent.id,
+            displayName: `${appointment.dependent.firstName} ${appointment.dependent.lastName}`,
+            relationship: appointment.dependent.relationship,
+          }
+        : null,
       consultationState: appointment.consultationSession?.state ?? SessionState.SCHEDULED,
       flags,
       cancelledAt: appointment.cancelledAt ? appointment.cancelledAt.toISOString() : null,

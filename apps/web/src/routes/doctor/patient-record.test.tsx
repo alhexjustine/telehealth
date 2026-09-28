@@ -11,11 +11,11 @@ vi.mock('@/lib/api-client', () => ({
 
 const ok = <T,>(data: T) => ({ data, error: undefined, response: { ok: true, status: 200 } as Response });
 
-function renderPage() {
+function renderPage(initialEntry = '/doctor/patients/pat-1') {
   const queryClient = new QueryClient();
   const router = createMemoryRouter(
     [{ path: '/doctor/patients/:patientId', element: <DoctorPatientRecordPage /> }],
-    { initialEntries: ['/doctor/patients/pat-1'] },
+    { initialEntries: [initialEntry] },
   );
   render(
     <QueryClientProvider client={queryClient}>
@@ -65,5 +65,34 @@ describe('DoctorPatientRecordPage', () => {
     expect(screen.getByText('Penicillin')).toBeInTheDocument();
     const link = screen.getByRole('link', { name: /dr\. grace hopper/i });
     expect(link).toHaveAttribute('href', '/consultations/apt-1');
+  });
+
+  it("Doctor opens a dependent's record", async () => {
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/patients/{patientId}/record') {
+        return Promise.resolve(
+          ok({
+            patientId: 'pat-1',
+            dependentId: 'dep-1',
+            relationship: 'CHILD',
+            firstName: 'Jamie',
+            lastName: 'Lovelace',
+            age: 7,
+            medicalConditions: null,
+            allergies: 'Peanuts',
+            currentMedications: null,
+            appointmentsWithDoctor: [],
+            completedConsultations: [],
+          }),
+        );
+      }
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    renderPage('/doctor/patients/pat-1?dependentId=dep-1');
+
+    expect(await screen.findByText('Jamie Lovelace')).toBeInTheDocument();
+    expect(screen.getByText('(Child)')).toBeInTheDocument();
+    expect(screen.getByText('Peanuts')).toBeInTheDocument();
   });
 });

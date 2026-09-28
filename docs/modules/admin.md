@@ -109,7 +109,10 @@ state, start-date range, doctor, patient, and an `invalidOnly` toggle. Every fie
 comes from an explicit allow-list (times, both participants' `{id, displayName}`, status,
 consultation state, invalid-booking flags, cancellation/resolution metadata) — `reason`,
 `symptoms`, consultation notes, and prescriptions are never fetched for this path at all, not just
-omitted from the DTO, so there's nothing to leak even by accident.
+omitted from the DTO, so there's nothing to leak even by accident. `add-dependent-booking` follows
+the same pattern: when an appointment is for one of the account's dependents, the response
+includes that dependent's name and relationship (`dependent`) so an administrator can see who the
+visit was actually with, but never the dependent's medical history.
 
 ### Invalid-booking flags
 

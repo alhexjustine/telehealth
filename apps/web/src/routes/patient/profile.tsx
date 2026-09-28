@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { Link } from 'react-router';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Form,
@@ -22,6 +23,7 @@ import {
 } from '@/lib/patients/patient-profile-schema';
 import { QueryState } from '@/components/query-state';
 import { SignOutEverywhereCard } from '@/components/sign-out-everywhere-card';
+import { BirthDateSelect } from '@/components/birth-date-select';
 
 function toFormValues(profile: {
   firstName: string;
@@ -136,10 +138,10 @@ export function PatientProfilePage() {
                   <FormItem>
                     <FormLabel>Birthday</FormLabel>
                     <FormControl>
-                      <Input
-                        type="date"
-                        {...field}
+                      <BirthDateSelect
+                        label="Birthday"
                         value={(field.value as string | undefined) ?? ''}
+                        onChange={(value) => field.onChange(value)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -275,6 +277,19 @@ export function PatientProfilePage() {
       </Card>
         )}
       </QueryState>
+      <Card>
+        <CardHeader>
+          <CardTitle>Dependents</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between gap-2">
+          <p className="text-sm text-muted-foreground">
+            Manage the children, parents, or others you book appointments for.
+          </p>
+          <Link to="/patient/dependents" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+            Manage
+          </Link>
+        </CardContent>
+      </Card>
       <SignOutEverywhereCard />
     </div>
   );

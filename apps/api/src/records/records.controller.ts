@@ -5,7 +5,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import type { AuthUser } from '../auth/current-user.js';
 import { Role } from '../generated/prisma/enums.js';
 import { RecordsService } from './records.service.js';
-import { DEFAULT_RECORD_PAGE_SIZE, RecordListQueryDto } from './dto/record-query.dto.js';
+import { DEFAULT_RECORD_PAGE_SIZE, DoctorPatientRecordQueryDto, RecordListQueryDto } from './dto/record-query.dto.js';
 import { DoctorPatientRecordResponseDto, RecordDetailResponseDto, RecordListResponseDto } from './dto/record-response.dto.js';
 
 @ApiTags('records')
@@ -16,10 +16,18 @@ export class RecordsController {
 
   @Get('records')
   @Roles(Role.PATIENT)
-  @ApiOperation({ summary: "Lists the signed-in patient's completed consultations, newest first" })
+  @ApiOperation({
+    summary:
+      "Lists completed consultations for the signed-in patient's account and dependents, newest first, optionally filtered to one person",
+  })
   @ApiOkResponse({ type: RecordListResponseDto })
   async list(@CurrentUser() user: AuthUser, @Query() query: RecordListQueryDto): Promise<RecordListResponseDto> {
-    return this.recordsService.listPatientRecords(user.id, query.page ?? 1, query.pageSize ?? DEFAULT_RECORD_PAGE_SIZE);
+    return this.recordsService.listPatientRecords(
+      user.id,
+      query.page ?? 1,
+      query.pageSize ?? DEFAULT_RECORD_PAGE_SIZE,
+      query.dependentId,
+    );
   }
 
   @Get('records/:appointmentId')
@@ -35,12 +43,16 @@ export class RecordsController {
 
   @Get('patients/:patientId/record')
   @Roles(Role.DOCTOR)
-  @ApiOperation({ summary: "A patient's record, for a doctor with a booked or completed appointment with them" })
+  @ApiOperation({
+    summary:
+      "A patient's (or, with dependentId, one of their dependents') record, for a doctor with a booked or completed appointment with that same person",
+  })
   @ApiOkResponse({ type: DoctorPatientRecordResponseDto })
   async doctorViewPatient(
     @CurrentUser() user: AuthUser,
     @Param('patientId', new ParseUUIDPipe({ version: '4' })) patientId: string,
+    @Query() query: DoctorPatientRecordQueryDto,
   ): Promise<DoctorPatientRecordResponseDto> {
-    return this.recordsService.getDoctorPatientRecord(user.id, patientId);
+    return this.recordsService.getDoctorPatientRecord(user.id, patientId, query.dependentId);
   }
 }

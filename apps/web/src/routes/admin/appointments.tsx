@@ -23,6 +23,7 @@ import {
   type AdminAppointmentListQuery,
 } from '@/lib/admin/use-admin-appointments';
 import { QueryState } from '@/components/query-state';
+import { relationshipLabel } from '@/lib/dependents/relationship-label';
 
 type AdminAppointmentItem = NonNullable<ReturnType<typeof useAdminAppointments>['data']>['items'][number];
 type DialogAction = 'cancel' | 'mark-not-held';
@@ -112,6 +113,11 @@ export function AdminAppointmentsPage() {
                       <p className="text-sm text-muted-foreground">
                         {appointment.patient.displayName} with Dr. {appointment.doctor.displayName}
                       </p>
+                      {appointment.dependent && (
+                        <p className="text-sm text-muted-foreground">
+                          For {appointment.dependent.displayName} ({relationshipLabel(appointment.dependent.relationship)})
+                        </p>
+                      )}
                       <div className="mt-1 flex flex-wrap gap-1">
                         <Badge variant={statusVariant(appointment.status)}>{appointment.status}</Badge>
                         <Badge variant="outline">{appointment.consultationState}</Badge>

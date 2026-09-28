@@ -91,6 +91,7 @@ export async function createAppointmentDirect(
     endsAt?: Date;
     status?: AppointmentStatus;
     reason?: string;
+    dependentId?: string;
   },
 ): Promise<{ id: string; startsAt: Date; endsAt: Date }> {
   const prisma = app.get(PrismaService);
@@ -99,6 +100,7 @@ export async function createAppointmentDirect(
     data: {
       patientId: params.patientId,
       doctorId: params.doctorId,
+      dependentId: params.dependentId,
       startsAt: params.startsAt,
       endsAt,
       reason: params.reason ?? 'Direct-inserted appointment for testing',

@@ -6,6 +6,7 @@ import { formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
 import { JoinConsultationButton } from '@/components/join-consultation-button';
 import { RateVisitCard } from '@/components/rate-visit-card';
 import { QueryState } from '@/components/query-state';
+import { relationshipLabel } from '@/lib/dependents/relationship-label';
 
 export function PatientAppointmentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +40,11 @@ export function PatientAppointmentDetailPage() {
                 <p className="text-sm text-muted-foreground">
                   {data.doctor.specializations.map((s) => s.name).join(', ')}
                 </p>
+                {data.dependent && (
+                  <p className="text-sm text-muted-foreground">
+                    For {data.dependent.displayName} ({relationshipLabel(data.dependent.relationship)})
+                  </p>
+                )}
                 <p className="text-sm">{data.reason}</p>
                 {data.symptoms.length > 0 && (
                   <div className="flex flex-wrap gap-2">

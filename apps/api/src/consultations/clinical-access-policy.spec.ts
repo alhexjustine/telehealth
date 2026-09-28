@@ -135,7 +135,12 @@ describe('ClinicalAccessPolicy', () => {
       const prisma = { appointment: { count: countFn } };
       await expect(hasTreatingRelationship(prisma as never, doctorId, patientId)).resolves.toBe(true);
       expect(countFn).toHaveBeenCalledWith({
-        where: { doctorId, patientId, status: { in: [AppointmentStatus.BOOKED, AppointmentStatus.COMPLETED] } },
+        where: {
+          doctorId,
+          patientId,
+          dependentId: null,
+          status: { in: [AppointmentStatus.BOOKED, AppointmentStatus.COMPLETED] },
+        },
       });
     });
 
@@ -143,6 +148,21 @@ describe('ClinicalAccessPolicy', () => {
       const countFn = jest.fn<(args: unknown) => Promise<number>>().mockResolvedValue(0);
       const prisma = { appointment: { count: countFn } };
       await expect(hasTreatingRelationship(prisma as never, doctorId, patientId)).resolves.toBe(false);
+    });
+
+    it('scopes to a specific dependent, not the account holder or another dependent', async () => {
+      const countFn = jest.fn<(args: unknown) => Promise<number>>().mockResolvedValue(1);
+      const prisma = { appointment: { count: countFn } };
+      const dependentId = 'dep-1';
+      await expect(hasTreatingRelationship(prisma as never, doctorId, patientId, dependentId)).resolves.toBe(true);
+      expect(countFn).toHaveBeenCalledWith({
+        where: {
+          doctorId,
+          patientId,
+          dependentId,
+          status: { in: [AppointmentStatus.BOOKED, AppointmentStatus.COMPLETED] },
+        },
+      });
     });
   });
 });

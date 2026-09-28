@@ -8,6 +8,7 @@ import { withNotifications } from '../notifications/with-notifications.js';
 import { RealtimeGateway } from '../realtime/realtime.gateway.js';
 import { appointmentRoom } from '../realtime/rooms.js';
 import {
+  AppointmentDependentSummaryDto,
   AppointmentDoctorSummaryDto,
   AppointmentPatientSummaryDto,
 } from '../appointments/dto/appointment-response.dto.js';
@@ -20,6 +21,7 @@ import type { ConsultationSessionStateDto, ConsultationWorkspaceResponseDto } fr
 const WITH_RELATIONS = {
   doctor: { include: { specializations: { include: { specialization: true } } } },
   patient: true,
+  dependent: true,
   symptoms: { include: { symptom: true } },
 } satisfies Prisma.AppointmentInclude;
 
@@ -58,6 +60,7 @@ export class ConsultationsService {
       reason: appointment.reason,
       doctor: doctorSummary(appointment),
       patient: patientSummary(appointment),
+      dependent: dependentSummary(appointment),
       symptoms: appointment.symptoms.map((link) => ({ id: link.symptom.id, name: link.symptom.name })),
       session: toSessionDto(session),
       ...(isDoctor ? { patientMedicalSummary: patientMedicalSummary(appointment) } : {}),
@@ -170,7 +173,20 @@ function doctorSummary(appointment: AppointmentWithRelations): AppointmentDoctor
   };
 }
 
+/**
+ * The identity shown for the visit: the dependent's, when the appointment is
+ * for one, not the account holder's (`add-dependent-booking`'s "Workspace
+ * access" requirement) — `id` stays the account's own, since that's the
+ * actual signed-in identity every other check (join, message) keys off.
+ */
 function patientSummary(appointment: AppointmentWithRelations): AppointmentPatientSummaryDto {
+  if (appointment.dependent) {
+    return {
+      id: appointment.patientId,
+      displayName: `${appointment.dependent.firstName} ${appointment.dependent.lastName}`,
+      age: ageAt(appointment.dependent.birthDate, new Date()),
+    };
+  }
   return {
     id: appointment.patientId,
     displayName: `${appointment.patient.firstName} ${appointment.patient.lastName}`,
@@ -178,7 +194,24 @@ function patientSummary(appointment: AppointmentWithRelations): AppointmentPatie
   };
 }
 
+function dependentSummary(appointment: AppointmentWithRelations): AppointmentDependentSummaryDto | null {
+  if (!appointment.dependent) return null;
+  return {
+    id: appointment.dependent.id,
+    displayName: `${appointment.dependent.firstName} ${appointment.dependent.lastName}`,
+    relationship: appointment.dependent.relationship,
+  };
+}
+
 function patientMedicalSummary(appointment: AppointmentWithRelations) {
+  if (appointment.dependent) {
+    return {
+      age: ageAt(appointment.dependent.birthDate, new Date()),
+      medicalConditions: appointment.dependent.medicalConditions,
+      allergies: appointment.dependent.allergies,
+      currentMedications: appointment.dependent.currentMedications,
+    };
+  }
   return {
     age: appointment.patient.birthDate ? ageAt(appointment.patient.birthDate, new Date()) : null,
     medicalConditions: appointment.patient.medicalConditions,

@@ -22,6 +22,7 @@ import { formatSlotDateAndTime, formatSlotTimeOnly, groupSlotsByLocalDate } from
 import { JoinConsultationButton } from '@/components/join-consultation-button';
 import { QueryState } from '@/components/query-state';
 import { buttonVariants } from '@/components/ui/button';
+import { relationshipLabel } from '@/lib/dependents/relationship-label';
 
 type AppointmentDto =
   ApiPaths['/appointments']['get']['responses'][200]['content']['application/json']['items'][number];
@@ -95,6 +96,11 @@ export function PatientAppointmentsPage() {
                           {formatSlotDateAndTime(appointment.startsAt, timezone)}
                         </Link>
                         <p className="text-sm text-muted-foreground">{appointment.doctor.displayName}</p>
+                        {appointment.dependent && (
+                          <p className="text-sm text-muted-foreground">
+                            For {appointment.dependent.displayName} ({relationshipLabel(appointment.dependent.relationship)})
+                          </p>
+                        )}
                         <p className="text-sm text-muted-foreground">{appointment.reason}</p>
                       </div>
                       <div className="flex flex-col items-start gap-2 sm:items-end">

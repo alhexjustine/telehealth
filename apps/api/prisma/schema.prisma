@@ -91,10 +91,46 @@ model PatientProfile {
 
   user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   appointments Appointment[]
+  dependents   Dependent[]
   reviews      DoctorReview[]
   favorites    DoctorFavorite[]
 
   @@map("patient_profiles")
+}
+
+enum DependentRelationship {
+  CHILD
+  PARENT
+  SPOUSE
+  OTHER
+
+  @@map("dependent_relationship")
+}
+
+/// A person a patient account books on behalf of (child, parent, spouse, or other) — no login of
+/// their own; the account holder does everything for them (`add-dependent-booking`). Mirrors
+/// `PatientProfile`'s medical-history shape, but `birthDate` is required here (age is central to
+/// how a doctor reads the workspace/record). Soft-removed via `removedAt`, never hard-deleted, so
+/// an `Appointment.dependentId` can never be orphaned.
+model Dependent {
+  id                 String                @id @default(uuid()) @db.Uuid
+  patientId          String                @map("patient_id") @db.Uuid
+  firstName          String                @map("first_name")
+  lastName           String                @map("last_name")
+  birthDate          DateTime              @map("birth_date") @db.Date
+  relationship       DependentRelationship
+  medicalConditions  String?               @map("medical_conditions")
+  allergies          String?
+  currentMedications String?               @map("current_medications")
+  removedAt          DateTime?             @map("removed_at") @db.Timestamptz(3)
+  createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  patient      PatientProfile @relation(fields: [patientId], references: [userId], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([patientId])
+  @@map("dependents")
 }
 
 model DoctorProfile {
@@ -234,6 +270,9 @@ model Appointment {
   id                 String            @id @default(uuid()) @db.Uuid
   patientId          String            @map("patient_id") @db.Uuid
   doctorId           String            @map("doctor_id") @db.Uuid
+  /// Who this appointment is for, if not the account holder themselves (`null` means the account
+  /// holder) — see `add-dependent-booking`'s design.md's "RBAC stays keyed on the account".
+  dependentId        String?           @map("dependent_id") @db.Uuid
   startsAt           DateTime          @map("starts_at") @db.Timestamptz(3)
   endsAt             DateTime          @map("ends_at") @db.Timestamptz(3)
   reason             String            @db.VarChar(500)
@@ -251,6 +290,7 @@ model Appointment {
 
   patient             PatientProfile       @relation(fields: [patientId], references: [userId], onDelete: Cascade)
   doctor              DoctorProfile        @relation(fields: [doctorId], references: [userId], onDelete: Cascade)
+  dependent           Dependent?           @relation(fields: [dependentId], references: [id], onDelete: Restrict)
   cancelledBy         User?                @relation(fields: [cancelledById], references: [id], onDelete: SetNull)
   rescheduledFrom     Appointment?         @relation("AppointmentReschedule", fields: [rescheduledFromId], references: [id], onDelete: SetNull)
   rescheduledTo       Appointment?         @relation("AppointmentReschedule")
@@ -263,6 +303,7 @@ model Appointment {
 
   @@index([doctorId, startsAt])
   @@index([patientId, startsAt])
+  @@index([patientId, dependentId])
   @@map("appointments")
 }
 
@@ -449,11 +490,11 @@ model PrescriptionRefillRequest {
 /// upserted"). `doctorId`/`patientId` are denormalized from the appointment
 /// purely for indexing (aggregate-by-doctor, list-by-patient) — the
 /// appointment relation remains the source of truth. Soft-hidden via
-/// `hiddenAt`/`hiddenById`/`hiddenReason`, never hard-deleted, so a
-/// moderation decision stays reversible and auditable. The
-/// `rating BETWEEN 1 AND 5` bound is a hand-written CHECK constraint
-/// (Prisma's schema language can't express it) added by this model's
-/// migration.
+/// `hiddenAt`/`hiddenById`/`hiddenReason`, mirroring `Dependent.removedAt`,
+/// never hard-deleted, so a moderation decision stays reversible and
+/// auditable. The `rating BETWEEN 1 AND 5` bound is a hand-written CHECK
+/// constraint (Prisma's schema language can't express it) added by this
+/// model's migration.
 model DoctorReview {
   id            String    @id @default(uuid()) @db.Uuid
   appointmentId String    @unique @map("appointment_id") @db.Uuid

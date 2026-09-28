@@ -35,6 +35,7 @@ interface AppointmentParticipantsRow {
 const WITH_DOCTOR_AND_NOTE = {
   doctor: { include: { specializations: { include: { specialization: true } } } },
   consultationNote: true,
+  dependent: true,
 } satisfies Prisma.AppointmentInclude;
 
 type AppointmentWithDoctorAndNote = Prisma.AppointmentGetPayload<{ include: typeof WITH_DOCTOR_AND_NOTE }>;
@@ -141,8 +142,19 @@ export class RecordsService {
     });
   }
 
-  async listPatientRecords(patientId: string, page: number, pageSize: number): Promise<RecordListResponseDto> {
-    const where: Prisma.AppointmentWhereInput = { patientId, status: AppointmentStatus.COMPLETED };
+  async listPatientRecords(
+    patientId: string,
+    page: number,
+    pageSize: number,
+    dependentFilter?: string,
+  ): Promise<RecordListResponseDto> {
+    const where: Prisma.AppointmentWhereInput = {
+      patientId,
+      status: AppointmentStatus.COMPLETED,
+      // `dependentFilter` is either absent (every person on the account),
+      // the literal "self" (the account holder only), or one dependent's ID.
+      ...(dependentFilter === undefined ? {} : { dependentId: dependentFilter === 'self' ? null : dependentFilter }),
+    };
     const [items, total] = await Promise.all([
       this.prisma.appointment.findMany({
         where,
@@ -184,26 +196,42 @@ export class RecordsService {
           name: link.specialization.name,
         })),
       },
+      dependent: appointment.dependent
+        ? {
+            id: appointment.dependent.id,
+            displayName: `${appointment.dependent.firstName} ${appointment.dependent.lastName}`,
+            relationship: appointment.dependent.relationship,
+          }
+        : null,
       note: appointment.consultationNote ? toNoteDto(appointment.consultationNote) : null,
       prescriptions: appointment.prescriptions.map(toRecordPrescriptionDto),
     };
   }
 
-  async getDoctorPatientRecord(doctorId: string, patientId: string): Promise<DoctorPatientRecordResponseDto> {
-    const treats = await hasTreatingRelationship(this.prisma, doctorId, patientId);
+  async getDoctorPatientRecord(
+    doctorId: string,
+    patientId: string,
+    dependentId?: string,
+  ): Promise<DoctorPatientRecordResponseDto> {
+    const treats = await hasTreatingRelationship(this.prisma, doctorId, patientId, dependentId ?? null);
     if (!treats) {
       throw new NotFoundException('Patient record not found');
     }
 
-    const patient = await this.prisma.patientProfile.findUnique({ where: { userId: patientId } });
-    if (!patient) {
+    const person = dependentId
+      ? await this.prisma.dependent.findUnique({ where: { id: dependentId } })
+      : await this.prisma.patientProfile.findUnique({ where: { userId: patientId } });
+    if (!person) {
       throw new NotFoundException('Patient record not found');
     }
 
     const [appointmentsWithDoctor, completedConsultations] = await Promise.all([
-      this.prisma.appointment.findMany({ where: { doctorId, patientId }, orderBy: { startsAt: 'desc' } }),
       this.prisma.appointment.findMany({
-        where: { patientId, status: AppointmentStatus.COMPLETED },
+        where: { doctorId, patientId, dependentId: dependentId ?? null },
+        orderBy: { startsAt: 'desc' },
+      }),
+      this.prisma.appointment.findMany({
+        where: { patientId, dependentId: dependentId ?? null, status: AppointmentStatus.COMPLETED },
         orderBy: { startsAt: 'desc' },
         include: WITH_DOCTOR_AND_NOTE,
       }),
@@ -211,12 +239,14 @@ export class RecordsService {
 
     return {
       patientId,
-      firstName: patient.firstName,
-      lastName: patient.lastName,
-      age: patient.birthDate ? ageAt(patient.birthDate, new Date()) : null,
-      medicalConditions: patient.medicalConditions,
-      allergies: patient.allergies,
-      currentMedications: patient.currentMedications,
+      dependentId: dependentId ?? null,
+      relationship: 'relationship' in person ? person.relationship : null,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      age: person.birthDate ? ageAt(person.birthDate, new Date()) : null,
+      medicalConditions: person.medicalConditions,
+      allergies: person.allergies,
+      currentMedications: person.currentMedications,
       appointmentsWithDoctor: appointmentsWithDoctor.map(toDoctorPatientAppointment),
       completedConsultations: completedConsultations.map(toRecordListItem),
     };
@@ -300,6 +330,13 @@ function toRecordListItem(appointment: AppointmentWithDoctorAndNote): RecordList
         name: link.specialization.name,
       })),
     },
+    dependent: appointment.dependent
+      ? {
+          id: appointment.dependent.id,
+          displayName: `${appointment.dependent.firstName} ${appointment.dependent.lastName}`,
+          relationship: appointment.dependent.relationship,
+        }
+      : null,
     patientSummary: appointment.consultationNote?.patientSummary ?? null,
   };
 }

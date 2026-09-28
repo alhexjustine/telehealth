@@ -33,6 +33,7 @@ import {
 import { useConsultationPresence } from '@/lib/consultations/use-consultation-socket';
 import { formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
 import { QueryState } from '@/components/query-state';
+import { relationshipLabel } from '@/lib/dependents/relationship-label';
 
 type WorkspaceDto =
   ApiPaths['/consultations/{appointmentId}']['get']['responses'][200]['content']['application/json'];
@@ -134,6 +135,11 @@ function AppointmentContextCard({ data, timezone }: { data: WorkspaceDto; timezo
       <CardContent className="flex flex-col gap-2">
         <p className="text-sm">
           {data.patient.displayName} with {data.doctor.displayName}
+          {data.dependent && (
+            <Badge variant="outline" className="ml-2">
+              {relationshipLabel(data.dependent.relationship)}
+            </Badge>
+          )}
         </p>
         <p className="text-sm text-muted-foreground">{data.reason}</p>
         {data.symptoms.length > 0 && (

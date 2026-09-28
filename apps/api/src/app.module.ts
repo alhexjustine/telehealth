@@ -10,6 +10,7 @@ import { SessionAuthGuard } from './auth/guards/session-auth.guard.js';
 import { RolesGuard } from './auth/guards/roles.guard.js';
 import { SpecializationsModule } from './specializations/specializations.module.js';
 import { PatientsModule } from './patients/patients.module.js';
+import { DependentsModule } from './dependents/dependents.module.js';
 import { DoctorsModule } from './doctors/doctors.module.js';
 import { AvailabilityModule } from './availability/availability.module.js';
 import { DiscoveryModule } from './discovery/discovery.module.js';
@@ -37,6 +38,7 @@ import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module.j
     AuthModule,
     SpecializationsModule,
     PatientsModule,
+    DependentsModule,
     DoctorsModule,
     AvailabilityModule,
     DiscoveryModule,

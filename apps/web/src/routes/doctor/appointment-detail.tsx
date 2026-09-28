@@ -5,6 +5,7 @@ import { useAppointment } from '@/lib/appointments/use-appointments';
 import { formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
 import { JoinConsultationButton } from '@/components/join-consultation-button';
 import { QueryState } from '@/components/query-state';
+import { relationshipLabel } from '@/lib/dependents/relationship-label';
 
 export function DoctorAppointmentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -32,15 +33,23 @@ export function DoctorAppointmentDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  {data.patient.displayName}
-                  {data.patient.age !== null ? `, ${data.patient.age}` : ''}
+                  {data.dependent
+                    ? `${data.dependent.displayName} (${relationshipLabel(data.dependent.relationship)})`
+                    : `${data.patient.displayName}${data.patient.age !== null ? `, ${data.patient.age}` : ''}`}
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-2">
                 <p className="font-medium">{formatSlotDateAndTime(data.startsAt, timezone)}</p>
+                {data.dependent && (
+                  <p className="text-sm text-muted-foreground">Booked by {data.patient.displayName}</p>
+                )}
                 <p className="text-sm">{data.reason}</p>
                 <Link
-                  to={`/doctor/patients/${data.patient.id}`}
+                  to={
+                    data.dependent
+                      ? `/doctor/patients/${data.patient.id}?dependentId=${data.dependent.id}`
+                      : `/doctor/patients/${data.patient.id}`
+                  }
                   className="text-sm text-primary underline-offset-4 hover:underline"
                 >
                   View patient record

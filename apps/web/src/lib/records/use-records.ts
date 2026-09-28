@@ -8,10 +8,11 @@ export type RecordPrescriptionDto =
 
 const DEFAULT_PAGE_SIZE = 20;
 
-export function usePatientRecords(page = 1, pageSize = DEFAULT_PAGE_SIZE) {
+export function usePatientRecords(page = 1, pageSize = DEFAULT_PAGE_SIZE, dependentId?: string) {
   return useQuery({
-    queryKey: ['records', 'list', page, pageSize] as const,
-    queryFn: async () => unwrap(await apiClient.GET('/records', { params: { query: { page, pageSize } } })),
+    queryKey: ['records', 'list', page, pageSize, dependentId ?? ''] as const,
+    queryFn: async () =>
+      unwrap(await apiClient.GET('/records', { params: { query: { page, pageSize, dependentId } } })),
   });
 }
 
@@ -24,11 +25,15 @@ export function usePatientRecord(appointmentId: string | undefined) {
   });
 }
 
-export function useDoctorPatientRecord(patientId: string | undefined) {
+export function useDoctorPatientRecord(patientId: string | undefined, dependentId?: string) {
   return useQuery({
-    queryKey: ['records', 'patient', patientId ?? ''] as const,
+    queryKey: ['records', 'patient', patientId ?? '', dependentId ?? ''] as const,
     queryFn: async () =>
-      unwrap(await apiClient.GET('/patients/{patientId}/record', { params: { path: { patientId: patientId! } } })),
+      unwrap(
+        await apiClient.GET('/patients/{patientId}/record', {
+          params: { path: { patientId: patientId! }, query: { dependentId } },
+        }),
+      ),
     enabled: patientId !== undefined,
   });
 }

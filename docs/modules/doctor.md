@@ -91,15 +91,27 @@ any further edit, and notifies the patient live. See
 [Clinical Access](/architecture/clinical-access) for the full state machine, every guard and
 rejection code, and who else can read a completed note (continuity of care).
 
+When the appointment was booked for one of the patient's dependents (`add-dependent-booking`), the
+workspace's identity and medical summary reflect that dependent — name, age, conditions,
+allergies, medications — not the account holder's; a relationship badge (Child/Parent/Spouse/
+Other) makes this explicit. Joining, starting, and completing are unaffected: the account holder
+is still who is actually signed in and doing all of it.
+
 ## Patient records
 
 `/doctor/patients/:patientId`, reachable from an appointment card, the appointment detail page, or
-the workspace, shows the patient's profile, medical history, every appointment with this doctor,
-and — for continuity of care — the patient's completed consultations with *any* doctor, each
-linking back into that consultation's workspace for the full note. This requires the doctor to
-have (or have had) a `BOOKED` or `COMPLETED` appointment with the patient; a doctor with only a
-cancelled appointment, or none at all, gets a `404` (see
+the workspace, shows one specific person's profile, medical history, every appointment with this
+doctor, and — for continuity of care — that same person's completed consultations with *any*
+doctor, each linking back into that consultation's workspace for the full note. This requires the
+doctor to have (or have had) a `BOOKED` or `COMPLETED` appointment with that same person; a doctor
+with only a cancelled appointment, or none at all, gets a `404` (see
 [Clinical Access](/architecture/clinical-access)).
+
+When the appointment was for one of the account's dependents, the link carries a `?dependentId=`
+query parameter and the page shows that dependent's own record instead of the account holder's
+(`add-dependent-booking`). A treating relationship established through one dependent, or through
+the account holder themselves, does not extend to any other dependent or to the account holder —
+each person's history is scoped independently, even though they share one account.
 
 ## Reviews
 

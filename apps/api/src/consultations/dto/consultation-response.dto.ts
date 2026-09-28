@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { SessionState } from '../../generated/prisma/enums.js';
+import { AppointmentStatus, SessionState } from '../../generated/prisma/enums.js';
 import {
   AppointmentDependentSummaryDto,
   AppointmentDoctorSummaryDto,
@@ -53,6 +53,11 @@ export class ConsultationWorkspaceResponseDto {
   @ApiProperty({ type: String, format: 'date-time' }) startsAt!: string;
   @ApiProperty({ type: String, format: 'date-time' }) endsAt!: string;
   @ApiProperty() reason!: string;
+  @ApiProperty({
+    enum: AppointmentStatus,
+    description: "The appointment's own status (distinct from the session state below) — used by the web app to gate the messages thread the same way the API does.",
+  })
+  status!: AppointmentStatus;
   @ApiProperty({ type: AppointmentDoctorSummaryDto }) doctor!: AppointmentDoctorSummaryDto;
   @ApiProperty({
     type: AppointmentPatientSummaryDto,

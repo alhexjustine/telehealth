@@ -17,6 +17,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { AppointmentMessagesCard } from '@/components/appointment-messages-card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RealtimeProvider } from '@/lib/realtime/realtime-provider';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { isJoinable, joinWindowOpensAt } from '@/lib/consultations/consultation-window';
@@ -237,33 +239,47 @@ function CountdownCard({ startsAt }: { startsAt: string }) {
 function PatientPanel({ data, timezone }: { data: WorkspaceDto; timezone: string }) {
   if (data.session.state === 'COMPLETED') {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Consultation summary</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <p className="text-sm whitespace-pre-wrap">{data.note?.patientSummary ?? 'No summary was recorded.'}</p>
-          {(data.prescriptions ?? []).length > 0 && (
-            <div>
-              <p className="mb-1 text-sm font-medium">Prescriptions</p>
-              <PrescriptionsReadOnlyList prescriptions={data.prescriptions ?? []} />
-            </div>
-          )}
-          <Link to={`/patient/records/${data.appointmentId}`} className="text-sm text-primary underline-offset-4 hover:underline">
-            View the full record
-          </Link>
-        </CardContent>
-      </Card>
+      <>
+        <Card>
+          <CardHeader>
+            <CardTitle>Consultation summary</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <p className="text-sm whitespace-pre-wrap">{data.note?.patientSummary ?? 'No summary was recorded.'}</p>
+            {(data.prescriptions ?? []).length > 0 && (
+              <div>
+                <p className="mb-1 text-sm font-medium">Prescriptions</p>
+                <PrescriptionsReadOnlyList prescriptions={data.prescriptions ?? []} />
+              </div>
+            )}
+            <Link to={`/patient/records/${data.appointmentId}`} className="text-sm text-primary underline-offset-4 hover:underline">
+              View the full record
+            </Link>
+          </CardContent>
+        </Card>
+        <AppointmentMessagesCard
+          appointmentId={data.appointmentId}
+          status={data.status}
+          counterpartName={data.doctor.displayName}
+        />
+      </>
     );
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6 text-sm text-muted-foreground">
-        {data.session.state === 'IN_PROGRESS' ? 'The consultation is in progress.' : 'Waiting for the doctor…'}
-      </CardContent>
-      <CardContent className="pt-0 text-xs text-muted-foreground">{formatSlotDateAndTime(data.startsAt, timezone)}</CardContent>
-    </Card>
+    <>
+      <Card>
+        <CardContent className="pt-6 text-sm text-muted-foreground">
+          {data.session.state === 'IN_PROGRESS' ? 'The consultation is in progress.' : 'Waiting for the doctor…'}
+        </CardContent>
+        <CardContent className="pt-0 text-xs text-muted-foreground">{formatSlotDateAndTime(data.startsAt, timezone)}</CardContent>
+      </Card>
+      <AppointmentMessagesCard
+        appointmentId={data.appointmentId}
+        status={data.status}
+        counterpartName={data.doctor.displayName}
+      />
+    </>
   );
 }
 
@@ -326,14 +342,42 @@ function DoctorPanel({
     <>
       {data.patientMedicalSummary && <PatientSummaryCard summary={data.patientMedicalSummary} />}
 
-      <NoteEditor
-        appointmentId={appointmentId}
-        note={data.note ?? null}
-        editable={editable}
-        onSummaryChange={setSummaryDraft}
-      />
-
-      <PrescriptionsPanel appointmentId={appointmentId} prescriptions={data.prescriptions ?? []} editable={editable} />
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs defaultValue="notes">
+            <TabsList>
+              <TabsTrigger value="notes">Findings & plan</TabsTrigger>
+              <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
+              <TabsTrigger value="messages">Messages</TabsTrigger>
+            </TabsList>
+            <TabsContent value="notes">
+              <NoteEditor
+                appointmentId={appointmentId}
+                note={data.note ?? null}
+                editable={editable}
+                onSummaryChange={setSummaryDraft}
+                bare
+              />
+            </TabsContent>
+            <TabsContent value="prescriptions">
+              <PrescriptionsPanel
+                appointmentId={appointmentId}
+                prescriptions={data.prescriptions ?? []}
+                editable={editable}
+                bare
+              />
+            </TabsContent>
+            <TabsContent value="messages">
+              <AppointmentMessagesCard
+                appointmentId={appointmentId}
+                status={data.status}
+                counterpartName={data.patient.displayName}
+                bare
+              />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="flex flex-col gap-2 pt-6">
@@ -402,11 +446,13 @@ function NoteEditor({
   note,
   editable,
   onSummaryChange,
+  bare = false,
 }: {
   appointmentId: string;
   note: WorkspaceDto['note'] | null;
   editable: boolean;
   onSummaryChange: (value: string) => void;
+  bare?: boolean;
 }) {
   const saveNote = useSaveConsultationNote(appointmentId);
   const [findings, setFindings] = useState(note?.findings ?? '');
@@ -437,39 +483,47 @@ function NoteEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [findings, assessment, plan, patientSummary, editable]);
 
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Consultation notes</CardTitle>
+  const content = (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-row items-center justify-between">
+        {!bare && <h3 className="font-display text-lg font-semibold leading-tight">Consultation notes</h3>}
         <span className="text-xs text-muted-foreground">
           {saveNote.isPending ? 'Saving…' : savedAt ? 'Saved · just now' : ''}
         </span>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="note-findings">Findings</Label>
-          <Textarea id="note-findings" rows={2} disabled={!editable} value={findings} onChange={(e) => setFindings(e.target.value)} />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="note-assessment">Assessment</Label>
-          <Textarea id="note-assessment" rows={2} disabled={!editable} value={assessment} onChange={(e) => setAssessment(e.target.value)} />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="note-plan">Plan</Label>
-          <Textarea id="note-plan" rows={2} disabled={!editable} value={plan} onChange={(e) => setPlan(e.target.value)} />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="note-summary">Patient summary</Label>
-          <Textarea
-            id="note-summary"
-            rows={3}
-            disabled={!editable}
-            value={patientSummary}
-            onChange={(e) => setPatientSummary(e.target.value)}
-            placeholder="Required before completing the consultation"
-          />
-        </div>
-      </CardContent>
+      </div>
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="note-findings">Findings</Label>
+        <Textarea id="note-findings" rows={2} disabled={!editable} value={findings} onChange={(e) => setFindings(e.target.value)} />
+      </div>
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="note-assessment">Assessment</Label>
+        <Textarea id="note-assessment" rows={2} disabled={!editable} value={assessment} onChange={(e) => setAssessment(e.target.value)} />
+      </div>
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="note-plan">Plan</Label>
+        <Textarea id="note-plan" rows={2} disabled={!editable} value={plan} onChange={(e) => setPlan(e.target.value)} />
+      </div>
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="note-summary">Patient summary</Label>
+        <Textarea
+          id="note-summary"
+          rows={3}
+          disabled={!editable}
+          value={patientSummary}
+          onChange={(e) => setPatientSummary(e.target.value)}
+          placeholder="Required before completing the consultation"
+        />
+      </div>
+    </div>
+  );
+
+  if (bare) {
+    return content;
+  }
+
+  return (
+    <Card>
+      <CardContent className="pt-6">{content}</CardContent>
     </Card>
   );
 }
@@ -478,10 +532,12 @@ function PrescriptionsPanel({
   appointmentId,
   prescriptions,
   editable,
+  bare = false,
 }: {
   appointmentId: string;
   prescriptions: PrescriptionDto[];
   editable: boolean;
+  bare?: boolean;
 }) {
   const addPrescription = useAddPrescription(appointmentId);
   const updatePrescription = useUpdatePrescription(appointmentId);
@@ -497,44 +553,42 @@ function PrescriptionsPanel({
     }
   }
 
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Prescriptions</CardTitle>
+  const content = (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-row items-center justify-between">
+        {!bare && <h3 className="font-display text-lg font-semibold leading-tight">Prescriptions</h3>}
         {editable && (
-          <Button type="button" size="sm" variant="outline" onClick={() => setEditing('new')}>
+          <Button type="button" size="sm" variant="outline" className="ml-auto" onClick={() => setEditing('new')}>
             Add
           </Button>
         )}
-      </CardHeader>
-      <CardContent>
-        {prescriptions.length === 0 && <p className="text-sm text-muted-foreground">No prescriptions yet.</p>}
-        <table className="w-full text-sm">
-          <tbody>
-            {prescriptions.map((prescription) => (
-              <tr key={prescription.id} className="border-b border-border last:border-0">
-                <td className="py-2 pr-2">
-                  <p className="font-medium">{prescription.medication}</p>
-                  <p className="text-muted-foreground">
-                    {prescription.dosage} · {prescription.frequency} · {prescription.duration}
-                  </p>
-                  {prescription.instructions && <p className="text-muted-foreground">{prescription.instructions}</p>}
+      </div>
+      {prescriptions.length === 0 && <p className="text-sm text-muted-foreground">No prescriptions yet.</p>}
+      <table className="w-full text-sm">
+        <tbody>
+          {prescriptions.map((prescription) => (
+            <tr key={prescription.id} className="border-b border-border last:border-0">
+              <td className="py-2 pr-2">
+                <p className="font-medium">{prescription.medication}</p>
+                <p className="text-muted-foreground">
+                  {prescription.dosage} · {prescription.frequency} · {prescription.duration}
+                </p>
+                {prescription.instructions && <p className="text-muted-foreground">{prescription.instructions}</p>}
+              </td>
+              {editable && (
+                <td className="py-2 text-right align-top">
+                  <Button type="button" size="sm" variant="outline" onClick={() => setEditing(prescription)}>
+                    Edit
+                  </Button>{' '}
+                  <Button type="button" size="sm" variant="outline" onClick={() => void remove(prescription.id)}>
+                    Remove
+                  </Button>
                 </td>
-                {editable && (
-                  <td className="py-2 text-right align-top">
-                    <Button type="button" size="sm" variant="outline" onClick={() => setEditing(prescription)}>
-                      Edit
-                    </Button>{' '}
-                    <Button type="button" size="sm" variant="outline" onClick={() => void remove(prescription.id)}>
-                      Remove
-                    </Button>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </CardContent>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       <PrescriptionDialog
         key={editing === undefined ? 'closed' : editing === 'new' ? 'new' : editing.id}
@@ -543,6 +597,16 @@ function PrescriptionsPanel({
         onCreate={(body) => addPrescription.mutateAsync(body)}
         onUpdate={(id, body) => updatePrescription.mutateAsync({ prescriptionId: id, body })}
       />
+    </div>
+  );
+
+  if (bare) {
+    return content;
+  }
+
+  return (
+    <Card>
+      <CardContent className="pt-6">{content}</CardContent>
     </Card>
   );
 }

@@ -27,6 +27,13 @@ const WITH_RELATIONS = {
 
 type AppointmentWithRelations = Prisma.AppointmentGetPayload<{ include: typeof WITH_RELATIONS }>;
 
+interface MessageStats {
+  count: number;
+  lastMessageAt: Date | null;
+}
+
+const EMPTY_MESSAGE_STATS: MessageStats = { count: 0, lastMessageAt: null };
+
 @Injectable()
 export class AdminAppointmentsService {
   constructor(
@@ -74,12 +81,19 @@ export class AdminAppointmentsService {
       this.prisma.appointment.count({ where }),
     ]);
 
-    return { items: items.map((item) => this.toDto(item, now)), total, page, pageSize };
+    const messageStats = await this.loadMessageStats(items.map((item) => item.id));
+    return {
+      items: items.map((item) => this.toDto(item, now, messageStats.get(item.id))),
+      total,
+      page,
+      pageSize,
+    };
   }
 
   async detail(appointmentId: string): Promise<AdminAppointmentResponseDto> {
     const appointment = await this.load(appointmentId);
-    return this.toDto(appointment, new Date());
+    const messageStats = await this.loadMessageStats([appointmentId]);
+    return this.toDto(appointment, new Date(), messageStats.get(appointmentId));
   }
 
   async cancel(adminId: string, appointmentId: string, dto: AdminCancelAppointmentDto): Promise<AdminAppointmentResponseDto> {
@@ -108,7 +122,7 @@ export class AdminAppointmentsService {
     });
 
     await this.notificationsService.publish(notifications);
-    return this.toDto(await this.load(appointmentId), new Date());
+    return this.detail(appointmentId);
   }
 
   async markNotHeld(adminId: string, appointmentId: string, dto: MarkNotHeldDto): Promise<AdminAppointmentResponseDto> {
@@ -139,7 +153,7 @@ export class AdminAppointmentsService {
       });
     });
 
-    return this.toDto(await this.load(appointmentId), new Date());
+    return this.detail(appointmentId);
   }
 
   private async load(appointmentId: string): Promise<AppointmentWithRelations> {
@@ -148,7 +162,21 @@ export class AdminAppointmentsService {
     return appointment;
   }
 
-  private toDto(appointment: AppointmentWithRelations, now: Date): AdminAppointmentResponseDto {
+  /** One aggregate query for the whole page/detail lookup, not one per appointment. */
+  private async loadMessageStats(appointmentIds: string[]): Promise<Map<string, MessageStats>> {
+    if (appointmentIds.length === 0) return new Map();
+    const grouped = await this.prisma.message.groupBy({
+      by: ['appointmentId'],
+      where: { appointmentId: { in: appointmentIds } },
+      _count: { _all: true },
+      _max: { createdAt: true },
+    });
+    return new Map(
+      grouped.map((row) => [row.appointmentId, { count: row._count._all, lastMessageAt: row._max.createdAt }]),
+    );
+  }
+
+  private toDto(appointment: AppointmentWithRelations, now: Date, messageStats?: MessageStats): AdminAppointmentResponseDto {
     const flags = computeInvalidBookingFlags(
       {
         status: appointment.status,
@@ -179,6 +207,8 @@ export class AdminAppointmentsService {
       cancelledByRole: cancelledByRole(appointment),
       cancellationReason: appointment.cancellationReason,
       resolutionReason: appointment.resolutionReason,
+      messageCount: messageStats?.count ?? EMPTY_MESSAGE_STATS.count,
+      lastMessageAt: (messageStats ?? EMPTY_MESSAGE_STATS).lastMessageAt?.toISOString() ?? null,
     };
   }
 }

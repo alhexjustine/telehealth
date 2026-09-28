@@ -186,6 +186,17 @@ then, once the doctor completes it, the patient summary and prescriptions right 
 workspace. See [Clinical Access](/architecture/clinical-access) for the full state machine and who
 can see what.
 
+## Messaging
+
+Each `BOOKED` or `COMPLETED` appointment has its own text message thread with the doctor, shown as
+a "Messages" card on both the appointment detail page and the consultation workspace itself
+(`add-consultation-messaging`). Sending is only offered while the appointment is `BOOKED`; a
+completed appointment's thread stays visible read-only, and a cancelled or not-held appointment
+shows no thread at all. Messages are stored in Postgres and delivered live over the same realtime
+socket the workspace uses, and each one raises a "New message" in-app notification for the
+recipient — no external chat/SaaS provider, and administrators only ever see a message count and
+last-message time (never the content), the same non-disclosure posture as clinical notes.
+
 ## Medical records
 
 `/patient/records` lists completed consultations for the account holder and every dependent

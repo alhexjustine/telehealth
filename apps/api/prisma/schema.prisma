@@ -42,6 +42,7 @@ model User {
   cancelledAppointments Appointment[]
   notifications         Notification[]
   auditLogs             AuditLog[]
+  sentMessages          Message[]
   hiddenReviews         DoctorReview[]
   requestedRefills      PrescriptionRefillRequest[] @relation("RefillRequestedBy")
   decidedRefills        PrescriptionRefillRequest[] @relation("RefillDecidedBy")
@@ -299,6 +300,7 @@ model Appointment {
   consultationSession ConsultationSession?
   consultationNote    ConsultationNote?
   prescriptions       Prescription[]
+  messages            Message[]
   review              DoctorReview?
 
   @@index([doctorId, startsAt])
@@ -343,6 +345,10 @@ enum NotificationType {
   /// participant's account being deactivated (`add-admin-console`); the
   /// counterpart of the cancelling admin action, not the acting admin.
   PLATFORM_APPOINTMENT_CANCELLED
+  /// Sent to the other participant when a message is sent on their shared
+  /// appointment (`add-consultation-messaging`); never includes the message
+  /// body.
+  NEW_MESSAGE
   /// Sent to the treating doctor when a patient requests a prescription
   /// refill (`add-prescription-refills`); links to the doctor's refill queue.
   REFILL_REQUESTED
@@ -481,6 +487,24 @@ model PrescriptionRefillRequest {
   @@index([prescriptionId])
   @@index([status])
   @@map("prescription_refill_requests")
+}
+
+/// One text message exchanged between the patient and doctor of an
+/// appointment, threaded by `appointmentId` (`add-consultation-messaging`).
+/// Append-only: there is no update or delete endpoint. `senderId` identifies
+/// which of the appointment's two participants sent it.
+model Message {
+  id            String   @id @default(uuid()) @db.Uuid
+  appointmentId String   @map("appointment_id") @db.Uuid
+  senderId      String   @map("sender_id") @db.Uuid
+  body          String   @db.VarChar(2000)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  sender      User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([appointmentId, createdAt])
+  @@map("messages")
 }
 
 /// One patient account's rating/comment on a doctor for one completed

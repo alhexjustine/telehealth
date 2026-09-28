@@ -33,6 +33,7 @@ describe('Workspace access', () => {
     const res = await patient.agent.get(`/api/consultations/${appointment.id}`);
     expect(res.status).toBe(200);
     expect(res.body.appointmentId).toBe(appointment.id);
+    expect(res.body.status).toBe('BOOKED');
     expect(res.body.session.state).toBe('SCHEDULED');
     expect(res.body.patientMedicalSummary).toBeUndefined();
   });

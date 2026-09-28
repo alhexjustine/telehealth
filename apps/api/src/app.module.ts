@@ -20,6 +20,7 @@ import { NotificationsModule } from './notifications/notifications.module.js';
 import { RealtimeModule } from './realtime/realtime.module.js';
 import { ConsultationsModule } from './consultations/consultations.module.js';
 import { RecordsModule } from './records/records.module.js';
+import { MessagesModule } from './messages/messages.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
 import { RefillsModule } from './refills/refills.module.js';
 import { FavoritesModule } from './favorites/favorites.module.js';
@@ -48,6 +49,7 @@ import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module.j
     NotificationsModule,
     ConsultationsModule,
     RecordsModule,
+    MessagesModule,
     ReviewsModule,
     RefillsModule,
     FavoritesModule,

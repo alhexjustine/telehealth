@@ -58,6 +58,7 @@ export class ConsultationsService {
       startsAt: appointment.startsAt.toISOString(),
       endsAt: appointment.endsAt.toISOString(),
       reason: appointment.reason,
+      status: appointment.status,
       doctor: doctorSummary(appointment),
       patient: patientSummary(appointment),
       dependent: dependentSummary(appointment),

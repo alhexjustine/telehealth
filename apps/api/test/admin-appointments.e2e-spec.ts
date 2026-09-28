@@ -11,7 +11,16 @@ import {
 } from './support/appointment-helpers.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
-const CLINICAL_KEYS = ['reason', 'symptoms', 'notes', 'prescriptions', 'medicalConditions', 'medicalHistory', 'allergies'];
+const CLINICAL_KEYS = [
+  'reason',
+  'symptoms',
+  'notes',
+  'prescriptions',
+  'medicalConditions',
+  'medicalHistory',
+  'allergies',
+  'body',
+];
 
 describe('Admin appointment oversight', () => {
   let app: INestApplication;
@@ -73,12 +82,18 @@ describe('Admin appointment oversight', () => {
       })
       .expect(201);
 
+    await patient.agent
+      .post(`/api/appointments/${booked.body.id as string}/messages`)
+      .send({ body: 'This is a private message between us' })
+      .expect(201);
+
     const list = await admin.agent.get('/api/admin/appointments').expect(200);
     const detail = await admin.agent.get(`/api/admin/appointments/${booked.body.id as string}`).expect(200);
 
     for (const payload of [list.body, detail.body]) {
       const serialized = JSON.stringify(payload);
       expect(serialized).not.toContain('Persistent cough and fever');
+      expect(serialized).not.toContain('This is a private message between us');
       expect(serialized).not.toContain('A very specific dependent allergy');
       for (const key of CLINICAL_KEYS) {
         expect(serialized.includes(`"${key}"`)).toBe(false);
@@ -117,6 +132,32 @@ describe('Admin appointment oversight', () => {
     const list = await admin.agent.get('/api/admin/appointments').expect(200);
     const entry = list.body.items.find((item: { id: string }) => item.id === (booked.body.id as string));
     expect(entry.dependent).toMatchObject({ id: dependent.body.id, displayName: 'Jamie Lovelace' });
+  });
+
+  it('Message metadata without content', async () => {
+    const admin = await createAndSignInAdmin(app);
+    const doctor = await registerBookableDoctor(app);
+    const patient = await registerBookablePatient(app);
+    const startsAt = nextSlotStart(new Date());
+    const booked = await patient.agent
+      .post('/api/appointments')
+      .send({ doctorId: doctor.id, startsAt: startsAt.toISOString(), reason: 'Follow-up appointment' })
+      .expect(201);
+    const appointmentId = booked.body.id as string;
+
+    await patient.agent.post(`/api/appointments/${appointmentId}/messages`).send({ body: 'First message' }).expect(201);
+    await doctor.agent.post(`/api/appointments/${appointmentId}/messages`).send({ body: 'Second message' }).expect(201);
+    const secondSentAt = new Date();
+    await patient.agent.post(`/api/appointments/${appointmentId}/messages`).send({ body: 'Third message' }).expect(201);
+
+    const detail = await admin.agent.get(`/api/admin/appointments/${appointmentId}`).expect(200);
+    expect(detail.body.messageCount).toBe(3);
+    expect(new Date(detail.body.lastMessageAt).getTime()).toBeGreaterThanOrEqual(secondSentAt.getTime());
+
+    const list = await admin.agent.get('/api/admin/appointments').expect(200);
+    const entry = list.body.items.find((item: { id: string }) => item.id === appointmentId);
+    expect(entry.messageCount).toBe(3);
+    expect(entry.lastMessageAt).toBe(detail.body.lastMessageAt);
   });
 
   it('Filter by consultation state', async () => {

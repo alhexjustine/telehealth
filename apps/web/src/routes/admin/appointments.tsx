@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
+import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -127,6 +128,13 @@ export function AdminAppointmentsPage() {
                           </Badge>
                         ))}
                       </div>
+                      {appointment.messageCount > 0 && (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {appointment.messageCount} message{appointment.messageCount === 1 ? '' : 's'}
+                          {appointment.lastMessageAt &&
+                            ` · last ${formatDistanceToNow(new Date(appointment.lastMessageAt), { addSuffix: true })}`}
+                        </p>
+                      )}
                       <AdminAuditLink entityType="Appointment" entityId={appointment.id} />
                     </div>
                     <div className="flex gap-2">

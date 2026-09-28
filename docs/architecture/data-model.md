@@ -27,6 +27,9 @@ Each table belongs to one of three capabilities documented per module:
   prescription and the treating doctor's decision, without reopening the locked record it points
   to; see the [Patient](/modules/patient#requesting-a-prescription-refill) and
   [Doctor](/modules/doctor#refill-requests) module pages.
+- **Doctor favorites** (`doctor_favorites`) — a patient's bookmarked doctors, purely organizational
+  (no effect on search ranking or matching); see the
+  [Patient](/modules/patient#favorite-doctors-and-book-again) module page.
 - **Audit log** (`audit_logs`) — one append-only entry per administrator action and admin
   sign-in; see the [Admin](/modules/admin#audit-log) module page.
 

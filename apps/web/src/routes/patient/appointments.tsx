@@ -130,6 +130,12 @@ export function PatientAppointmentsPage() {
                           >
                             Cancel
                           </Button>
+                          <Link
+                            to={`/patient/doctors/${appointment.doctor.id}?dependent=${appointment.dependent?.id ?? ''}`}
+                            className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                          >
+                            Book again
+                          </Link>
                         </div>
                       </div>
                     </CardContent>

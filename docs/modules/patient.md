@@ -116,6 +116,25 @@ sequenceDiagram
   API-->>PatientB: 409 {code: "SLOT_UNAVAILABLE"}
 ```
 
+## Favorite doctors and Book again
+
+A patient can favorite/unfavorite an approved, active doctor from a search result card or their
+profile (a toggleable heart) — a purely organizational bookmark with **no effect** on search
+ranking, sorting, or the deterministic specialty-matching algorithm (`add-doctor-favorites`).
+`/patient/favorites` ("My favorites" in the nav) lists them with the same live summary a search
+result card shows (specializations, experience, accepting-bookings state, next available slot,
+rating), so a favorited doctor who is later suspended, rejected, or deactivated is silently dropped
+from the list rather than shown as broken. A patient can favorite at most 50 doctors at once.
+
+Both the favorites list and the appointments list (upcoming and past) offer a "Book" / "Book again"
+shortcut straight into that doctor's profile, preselecting the same attendee (the account holder or
+the specific dependent) the appointment was originally for — skipping **Find a doctor**'s
+search/filter/guided-matching step entirely. This is a pure URL prefill (`?dependent=<id>`) read by
+the doctor profile and booking confirmation pages, not a new endpoint; the confirmation page
+validates the ID against the patient's own *current* dependents before preselecting it, falling
+back to "Myself" if it no longer matches (e.g. the dependent was since removed) — the booking call
+itself still re-validates ownership server-side regardless.
+
 ## Notifications
 
 Booking, rescheduling, or having an appointment cancelled by the doctor notifies the patient
@@ -280,6 +299,12 @@ erDiagram
     string medication
     string dosage
   }
+  doctor_favorites {
+    string id PK
+    string patient_id FK
+    string doctor_id FK
+    datetime created_at
+  }
   users ||--o| patient_profiles : "user"
   symptoms ||--o{ symptom_specializations : "links to"
   specializations ||--o{ symptom_specializations : "linked from"
@@ -289,6 +314,7 @@ erDiagram
   appointments ||--o| consultation_sessions : "appointment"
   appointments ||--o| consultation_notes : "appointment"
   appointments ||--o{ prescriptions : "appointment"
+  patient_profiles ||--o{ doctor_favorites : "favorited by"
 ```
 
 Profile completeness (name, birthday, weight, height, phone all set) is computed on read, not

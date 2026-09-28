@@ -21,6 +21,7 @@ import { ConsultationsModule } from './consultations/consultations.module.js';
 import { RecordsModule } from './records/records.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
 import { RefillsModule } from './refills/refills.module.js';
+import { FavoritesModule } from './favorites/favorites.module.js';
 import { AuditModule } from './audit/audit.module.js';
 import { AdminUsersModule } from './admin-users/admin-users.module.js';
 import { AdminDoctorsModule } from './admin-doctors/admin-doctors.module.js';
@@ -47,6 +48,7 @@ import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module.j
     RecordsModule,
     ReviewsModule,
     RefillsModule,
+    FavoritesModule,
     AuditModule,
     AdminUsersModule,
     AdminDoctorsModule,

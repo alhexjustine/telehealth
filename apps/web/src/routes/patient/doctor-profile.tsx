@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { RatingSummary } from '@/components/rating-summary';
+import { FavoriteToggleButton } from '@/components/favorite-toggle-button';
 import { usePublicDoctorProfile } from '@/lib/discovery/use-doctor-search';
 import { useDoctorSlots } from '@/lib/availability/use-availability';
 import { useDoctorReviews } from '@/lib/reviews/use-reviews';
+import { useFavorites } from '@/lib/favorites/use-favorites';
 import { groupSlotsByLocalDate, formatSlotTimeOnly, formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
 import { QueryState } from '@/components/query-state';
 
@@ -18,8 +20,11 @@ export function PatientDoctorProfilePage() {
   const { doctorId } = useParams<{ doctorId: string }>();
   const [searchParams] = useSearchParams();
   const symptomsParam = searchParams.get('symptoms') ?? '';
+  const dependentParam = searchParams.get('dependent') ?? '';
   const profile = usePublicDoctorProfile(doctorId);
   const reviews = useDoctorReviews(doctorId);
+  const favorites = useFavorites();
+  const isFavorited = doctorId !== undefined && (favorites.data?.items.some((item) => item.id === doctorId) ?? false);
 
   const range = useMemo(() => {
     const from = new Date();
@@ -53,7 +58,12 @@ export function PatientDoctorProfilePage() {
               <CardContent className="flex items-start gap-4 pt-6">
                 <InitialsAvatar name={profileData.displayName} className="size-16" />
                 <div className="flex flex-1 flex-col gap-2">
-                  <CardTitle className="text-xl">{profileData.displayName}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-xl">{profileData.displayName}</CardTitle>
+                    {doctorId && (
+                      <FavoriteToggleButton doctorId={doctorId} isFavorited={isFavorited} stopPropagation={false} />
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-1">
                     {profileData.specializations.map((s) => (
                       <Badge key={s.id} variant="secondary" title={s.description}>
@@ -148,7 +158,7 @@ export function PatientDoctorProfilePage() {
                         </p>
                       </div>
                       <Link
-                        to={`/patient/doctors/${doctorId}/book?start=${encodeURIComponent(selectedSlot.start)}${symptomsParam ? `&symptoms=${encodeURIComponent(symptomsParam)}` : ''}`}
+                        to={`/patient/doctors/${doctorId}/book?start=${encodeURIComponent(selectedSlot.start)}${symptomsParam ? `&symptoms=${encodeURIComponent(symptomsParam)}` : ''}${dependentParam ? `&dependent=${encodeURIComponent(dependentParam)}` : ''}`}
                         className={buttonVariants({ variant: 'default' })}
                       >
                         Book

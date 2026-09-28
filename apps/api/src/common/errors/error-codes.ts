@@ -54,6 +54,8 @@ export const ErrorCode = {
   REFILL_REQUEST_ALREADY_PENDING: 'REFILL_REQUEST_ALREADY_PENDING',
   /** A doctor tried to approve/deny a refill request that isn't `PENDING`. */
   REFILL_REQUEST_NOT_PENDING: 'REFILL_REQUEST_NOT_PENDING',
+  /** A patient already has `MAX_FAVORITE_DOCTORS_PER_PATIENT` favorited doctors. */
+  FAVORITE_LIMIT_REACHED: 'FAVORITE_LIMIT_REACHED',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

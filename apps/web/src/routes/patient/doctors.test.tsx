@@ -67,6 +67,7 @@ describe('FindDoctorPage', () => {
     let lastQuery: Record<string, unknown> | undefined;
     vi.mocked(apiClient.GET).mockImplementation(((path: unknown, options?: { params?: { query?: Record<string, unknown> } }) => {
       if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
       if (path === '/doctors') {
         lastQuery = options?.params?.query;
         const specialization = options?.params?.query?.specialization;
@@ -94,6 +95,7 @@ describe('FindDoctorPage', () => {
     let lastQuery: Record<string, unknown> | undefined;
     vi.mocked(apiClient.GET).mockImplementation(((path: unknown, options?: { params?: { query?: Record<string, unknown> } }) => {
       if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
       if (path === '/doctors') {
         lastQuery = options?.params?.query;
         return Promise.resolve(ok({ items: [doctorResult()], total: 1, page: 1, pageSize: 12 }));
@@ -115,6 +117,7 @@ describe('FindDoctorPage', () => {
     let lastQuery: Record<string, unknown> | undefined;
     vi.mocked(apiClient.GET).mockImplementation(((path: unknown, options?: { params?: { query?: Record<string, unknown> } }) => {
       if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
       if (path === '/doctors') {
         lastQuery = options?.params?.query;
         return Promise.resolve(ok({ items: [doctorResult()], total: 1, page: 1, pageSize: 12 }));
@@ -152,6 +155,7 @@ describe('FindDoctorPage', () => {
     let lastQuery: Record<string, unknown> | undefined;
     vi.mocked(apiClient.GET).mockImplementation(((path: unknown, options?: { params?: { query?: Record<string, unknown> } }) => {
       if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
       if (path === '/doctors') {
         lastQuery = options?.params?.query;
         return Promise.resolve(ok({ items: [doctorResult()], total: 1, page: 1, pageSize: 12 }));
@@ -179,6 +183,7 @@ describe('FindDoctorPage', () => {
   it('shows a "Not accepting bookings" chip instead of a next-available time', async () => {
     vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
       if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
       if (path === '/doctors') {
         return Promise.resolve(
           ok({
@@ -201,6 +206,7 @@ describe('FindDoctorPage', () => {
   it('Card shows rating', async () => {
     vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
       if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
       if (path === '/doctors') {
         return Promise.resolve(
           ok({ items: [doctorResult({ averageRating: 4.7, reviewCount: 12 })], total: 1, page: 1, pageSize: 12 }),
@@ -219,6 +225,7 @@ describe('FindDoctorPage', () => {
   it('Card shows no-reviews state', async () => {
     vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
       if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
       if (path === '/doctors') {
         return Promise.resolve(
           ok({ items: [doctorResult({ averageRating: null, reviewCount: 0 })], total: 1, page: 1, pageSize: 12 }),
@@ -237,6 +244,7 @@ describe('FindDoctorPage', () => {
     let lastQuery: Record<string, unknown> | undefined;
     vi.mocked(apiClient.GET).mockImplementation(((path: unknown, options?: { params?: { query?: Record<string, unknown> } }) => {
       if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
       if (path === '/doctors') {
         lastQuery = options?.params?.query;
         return Promise.resolve(ok({ items: [doctorResult()], total: 1, page: 1, pageSize: 12 }));
@@ -253,9 +261,36 @@ describe('FindDoctorPage', () => {
     await waitFor(() => expect(lastQuery?.sort).toBe('rating'));
   });
 
+  it('Favorite from a search result card', async () => {
+    let favorites: { id: string }[] = [];
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: favorites }));
+      if (path === '/doctors') return Promise.resolve(ok({ items: [doctorResult()], total: 1, page: 1, pageSize: 12 }));
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+    vi.mocked(apiClient.POST).mockImplementation(((path: unknown, options?: { body?: { doctorId: string } }) => {
+      if (path === '/patients/me/favorites') {
+        favorites = [{ id: options?.body?.doctorId ?? '' }];
+        return Promise.resolve(ok({ doctorId: options?.body?.doctorId, favoritedAt: '2026-09-28T00:00:00.000Z' }));
+      }
+      throw new Error(`unexpected POST ${String(path)}`);
+    }) as never);
+
+    renderPage();
+
+    await screen.findByText('Dr. Grace Hopper');
+    const favoriteButton = screen.getByRole('button', { name: /add to favorites/i });
+    await userEvent.click(favoriteButton);
+
+    await waitFor(() => expect(apiClient.POST).toHaveBeenCalledWith('/patients/me/favorites', { body: { doctorId: 'doc-1' } }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /remove from favorites/i })).toBeInTheDocument());
+  });
+
   it('No results', async () => {
     vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
       if (path === '/specializations') return Promise.resolve(ok(SPECIALIZATIONS));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
       if (path === '/doctors') return Promise.resolve(ok({ items: [], total: 0, page: 1, pageSize: 12 }));
       throw new Error(`unexpected GET ${String(path)}`);
     }) as never);

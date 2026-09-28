@@ -41,6 +41,7 @@ const MIGRATED_ROUTE_FILES = [
   'patient/doctor-profile.tsx',
   'patient/find-care.tsx',
   'patient/book-appointment.tsx',
+  'patient/favorites.tsx',
   // Doctor
   'doctor/home.tsx',
   'doctor/profile.tsx',

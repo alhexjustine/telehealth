@@ -100,4 +100,55 @@ describe('PatientAppointmentsPage', () => {
     const findCareLink = screen.getByRole('link', { name: /find care/i });
     expect(findCareLink).toHaveAttribute('href', '/patient/find-care');
   });
+
+  it('Book again preselects the same attendee', () => {
+    const inThreeHours = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
+    vi.mocked(useAppointments).mockImplementation(((scope: string) => {
+      if (scope === 'upcoming') {
+        return {
+          data: {
+            items: [
+              {
+                id: 'apt-1',
+                startsAt: inThreeHours,
+                endsAt: new Date(new Date(inThreeHours).getTime() + 30 * 60_000).toISOString(),
+                status: 'BOOKED',
+                reason: 'Follow-up',
+                doctor: { id: 'doc-1', displayName: 'Dr. Grace Hopper', specializations: [] },
+                patient: { id: 'pat-1', displayName: 'Ada Lovelace', age: 30 },
+                dependent: { id: 'dep-1', displayName: 'Jamie Lovelace', relationship: 'CHILD' },
+                symptoms: [],
+                cancelledAt: null,
+                cancellationReason: null,
+                cancelledByRole: null,
+                rescheduledFromId: null,
+              },
+            ],
+            total: 1,
+            page: 1,
+            pageSize: 20,
+          },
+          status: 'success',
+          error: null,
+          refetch: vi.fn(),
+          isPending: false,
+        };
+      }
+      return {
+        data: { items: [], total: 0, page: 1, pageSize: 20 },
+        status: 'success',
+        error: null,
+        refetch: vi.fn(),
+        isPending: false,
+      };
+    }) as never);
+    vi.mocked(useCancelAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+    vi.mocked(useRescheduleAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+    vi.mocked(useDoctorSlots).mockReturnValue({ data: [], isPending: false } as never);
+
+    renderPage();
+
+    const bookAgainLink = screen.getByRole('link', { name: /book again/i });
+    expect(bookAgainLink).toHaveAttribute('href', '/patient/doctors/doc-1?dependent=dep-1');
+  });
 });

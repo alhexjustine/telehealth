@@ -138,6 +138,38 @@ export class DiscoveryService {
     };
   }
 
+  /**
+   * The same doctor-summary shape `search()` returns, for a specific set of
+   * doctor IDs rather than a filtered/sorted/paginated search (used by
+   * `add-doctor-favorites`'s favorites list). A doctor ID that is no longer
+   * visible (suspended, rejected, deactivated) is simply absent from the
+   * returned map — callers filter their own list against its keys rather
+   * than getting an error per hidden doctor.
+   */
+  async getSummariesForDoctors(doctorIds: string[]): Promise<Map<string, DoctorSearchResultDto>> {
+    if (doctorIds.length === 0) return new Map();
+
+    const profiles = await this.prisma.doctorProfile.findMany({
+      where: { AND: [visibleDoctorWhere(), { userId: { in: doctorIds } }] },
+      include: WITH_SPECIALIZATIONS,
+    });
+
+    const now = new Date();
+    const horizonTo = new Date(now.getTime() + MAX_AVAILABILITY_RANGE_MS);
+    const slotsByDoctor = await this.nextSlotService.slotsFor(profiles.map(toSlotInput), now, horizonTo, now);
+    const aggregates = await this.reviewsService.getAggregatesForDoctors(profiles.map((profile) => profile.userId));
+
+    const result = new Map<string, DoctorSearchResultDto>();
+    for (const profile of profiles) {
+      const slots = profile.acceptingBookings ? (slotsByDoctor.get(profile.userId) ?? []) : [];
+      result.set(
+        profile.userId,
+        toSearchResultDto(profile, slots, aggregates.get(profile.userId) ?? NO_REVIEWS),
+      );
+    }
+    return result;
+  }
+
   private async resolveSpecializationId(slug?: string): Promise<string | undefined> {
     if (!slug) return undefined;
     const specialization = await this.prisma.specialization.findUnique({ where: { slug } });

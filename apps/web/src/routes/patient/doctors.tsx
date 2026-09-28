@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { RatingSummary } from '@/components/rating-summary';
+import { FavoriteToggleButton } from '@/components/favorite-toggle-button';
 import { useSpecializations } from '@/lib/use-specializations';
 import { useDoctorSearch } from '@/lib/discovery/use-doctor-search';
 import {
@@ -17,6 +18,7 @@ import {
 import { AvailabilityDatePicker } from '@/components/availability-date-picker';
 import { formatSlotDateTime } from '@/lib/format-slot-time';
 import { QueryState } from '@/components/query-state';
+import { useFavorites } from '@/lib/favorites/use-favorites';
 
 const SORT_OPTIONS = [
   { value: 'next', label: 'Soonest available' },
@@ -101,6 +103,9 @@ export function FindDoctorPage() {
   const total = search.data?.total ?? 0;
   const pageSize = search.data?.pageSize ?? 12;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  const favorites = useFavorites();
+  const favoritedIds = new Set(favorites.data?.items.map((item) => item.id) ?? []);
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 py-2">
@@ -194,7 +199,13 @@ export function FindDoctorPage() {
                   <div className="flex flex-1 items-center gap-4 sm:gap-5">
                     <InitialsAvatar name={doctor.displayName} className="size-14" />
                     <div className="flex flex-1 flex-col gap-1.5">
-                      <CardTitle className="text-xl">{doctor.displayName}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-xl">{doctor.displayName}</CardTitle>
+                        <FavoriteToggleButton
+                          doctorId={doctor.id}
+                          isFavorited={favoritedIds.has(doctor.id)}
+                        />
+                      </div>
                       <div className="flex flex-wrap gap-1">
                         {doctor.specializations.map((s) => (
                           <Badge key={s.id} variant="secondary">

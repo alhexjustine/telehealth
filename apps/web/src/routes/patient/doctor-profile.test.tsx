@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { PatientDoctorProfilePage } from './doctor-profile';
@@ -26,11 +27,11 @@ const PROFILE = {
 
 const NO_REVIEWS = { items: [], total: 0, page: 1, pageSize: 20, averageRating: null, reviewCount: 0 };
 
-function renderPage() {
-  const queryClient = new QueryClient();
+function renderPage(options: { retry?: boolean; path?: string } = {}) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: options.retry ?? false } } });
   const router = createMemoryRouter(
     [{ path: '/patient/doctors/:doctorId', element: <PatientDoctorProfilePage /> }],
-    { initialEntries: ['/patient/doctors/doc-1'] },
+    { initialEntries: [options.path ?? '/patient/doctors/doc-1'] },
   );
   render(
     <QueryClientProvider client={queryClient}>
@@ -68,6 +69,7 @@ describe('PatientDoctorProfilePage', () => {
         // 09:00 UTC = 17:00 in Asia/Manila (UTC+8).
         return Promise.resolve(ok([{ start: '2026-10-05T09:00:00.000Z', end: '2026-10-05T09:30:00.000Z' }]));
       }
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
       throw new Error(`unexpected GET ${String(path)}`);
     }) as never);
 
@@ -82,6 +84,7 @@ describe('PatientDoctorProfilePage', () => {
       if (path === '/doctors/{doctorId}') return Promise.resolve(ok(PROFILE));
       if (path === '/doctors/{doctorId}/reviews') return Promise.resolve(ok(NO_REVIEWS));
       if (path === '/doctors/{doctorId}/slots') return Promise.resolve(ok([]));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
       throw new Error(`unexpected GET ${String(path)}`);
     }) as never);
 
@@ -97,6 +100,7 @@ describe('PatientDoctorProfilePage', () => {
       if (path === '/doctors/{doctorId}') return Promise.resolve(ok({ ...PROFILE, acceptingBookings: false }));
       if (path === '/doctors/{doctorId}/reviews') return Promise.resolve(ok(NO_REVIEWS));
       if (path === '/doctors/{doctorId}/slots') return Promise.resolve(ok([]));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
       throw new Error(`unexpected GET ${String(path)}`);
     }) as never);
 
@@ -125,6 +129,7 @@ describe('PatientDoctorProfilePage', () => {
         );
       }
       if (path === '/doctors/{doctorId}/slots') return Promise.resolve(ok([]));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
       throw new Error(`unexpected GET ${String(path)}`);
     }) as never);
 
@@ -140,11 +145,78 @@ describe('PatientDoctorProfilePage', () => {
       if (path === '/doctors/{doctorId}') return Promise.resolve(ok(PROFILE));
       if (path === '/doctors/{doctorId}/reviews') return Promise.resolve(ok(NO_REVIEWS));
       if (path === '/doctors/{doctorId}/slots') return Promise.resolve(ok([]));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
       throw new Error(`unexpected GET ${String(path)}`);
     }) as never);
 
     renderPage();
 
     expect(await screen.findAllByText('No reviews yet')).not.toHaveLength(0);
+  });
+
+  it('Favorite from the profile page', async () => {
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/doctors/{doctorId}') return Promise.resolve(ok(PROFILE));
+      if (path === '/doctors/{doctorId}/reviews') return Promise.resolve(ok(NO_REVIEWS));
+      if (path === '/doctors/{doctorId}/slots') return Promise.resolve(ok([]));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+    vi.mocked(apiClient.POST).mockImplementation(((path: unknown, options?: { body?: { doctorId: string } }) => {
+      if (path === '/patients/me/favorites') {
+        return Promise.resolve(ok({ doctorId: options?.body?.doctorId, favoritedAt: '2026-09-28T00:00:00.000Z' }));
+      }
+      throw new Error(`unexpected POST ${String(path)}`);
+    }) as never);
+
+    renderPage();
+
+    const favoriteButton = await screen.findByRole('button', { name: /add to favorites/i });
+    await userEvent.click(favoriteButton);
+
+    await waitFor(() =>
+      expect(apiClient.POST).toHaveBeenCalledWith('/patients/me/favorites', { body: { doctorId: 'doc-1' } }),
+    );
+  });
+
+  it('Book again with a doctor no longer accepting bookings', async () => {
+    // No `add-doctor-favorites`-specific handling is required here either:
+    // reaching this profile via a "Book again" link (carrying `?dependent=`)
+    // hits the exact same `usePublicDoctorProfile`/`acceptingBookings` path
+    // as reaching it through search, covered above by "Not accepting
+    // bookings" — this just confirms that holds from the Book-again entry
+    // point too.
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/doctors/{doctorId}') return Promise.resolve(ok({ ...PROFILE, acceptingBookings: false }));
+      if (path === '/doctors/{doctorId}/reviews') return Promise.resolve(ok(NO_REVIEWS));
+      if (path === '/doctors/{doctorId}/slots') return Promise.resolve(ok([]));
+      if (path === '/patients/me/favorites') return Promise.resolve(ok({ items: [] }));
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    renderPage({ path: '/patient/doctors/doc-1?dependent=dep-1' });
+
+    expect(await screen.findByText(/isn't accepting new bookings right now/i)).toBeInTheDocument();
+  });
+
+  it('Book again with a doctor no longer visible', async () => {
+    // No `add-doctor-favorites`-specific handling is required here: a doctor
+    // hidden after being favorited/booked-again already 404s like any other
+    // no-longer-visible doctor, and `QueryState` already renders the
+    // standard error view for it.
+    vi.mocked(apiClient.GET).mockImplementation(((path: unknown) => {
+      if (path === '/doctors/{doctorId}') {
+        return Promise.resolve({
+          data: undefined,
+          error: { message: 'Doctor not found' },
+          response: { ok: false, status: 404 } as Response,
+        });
+      }
+      throw new Error(`unexpected GET ${String(path)}`);
+    }) as never);
+
+    renderPage();
+
+    expect(await screen.findByText(/doctor not found/i)).toBeInTheDocument();
   });
 });

@@ -89,9 +89,10 @@ model PatientProfile {
   currentMedications    String?   @map("current_medications")
   updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   appointments Appointment[]
   reviews      DoctorReview[]
+  favorites    DoctorFavorite[]
 
   @@map("patient_profiles")
 }
@@ -116,6 +117,7 @@ model DoctorProfile {
   availabilityExceptions AvailabilityException[]
   appointments           Appointment[]
   reviews                DoctorReview[]
+  favoritedBy            DoctorFavorite[]
 
   @@map("doctor_profiles")
 }
@@ -472,6 +474,22 @@ model DoctorReview {
 
   @@index([doctorId, hiddenAt])
   @@map("doctor_reviews")
+}
+
+/// A patient account's bookmark of a doctor (`add-doctor-favorites`) — purely
+/// organizational, no effect on search ranking or specialty matching. Unique
+/// per (patientId, doctorId) so favoriting is idempotent at the DB level too.
+model DoctorFavorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  patientId String   @map("patient_id") @db.Uuid
+  doctorId  String   @map("doctor_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  patient PatientProfile @relation(fields: [patientId], references: [userId], onDelete: Cascade)
+  doctor  DoctorProfile  @relation(fields: [doctorId], references: [userId], onDelete: Cascade)
+
+  @@unique([patientId, doctorId])
+  @@map("doctor_favorites")
 }
 
 enum AuditAction {

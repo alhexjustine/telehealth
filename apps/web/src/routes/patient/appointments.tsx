@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import type { ApiPaths } from 'api-client';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +37,7 @@ function statusVariant(status: AppointmentDto['status']): 'default' | 'secondary
 }
 
 export function PatientAppointmentsPage() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
   const upcoming = useAppointments('upcoming');
   const past = useAppointments('past', 1, 20);
@@ -87,14 +88,12 @@ export function PatientAppointmentsPage() {
 
                 return (
                   <Card key={appointment.id}>
-                    <CardContent className="flex flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                    <CardContent
+                      className="flex cursor-pointer flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between"
+                      onClick={() => void navigate(`/patient/appointments/${appointment.id}`)}
+                    >
                       <div>
-                        <Link
-                          to={`/patient/appointments/${appointment.id}`}
-                          className="font-medium hover:underline"
-                        >
-                          {formatSlotDateAndTime(appointment.startsAt, timezone)}
-                        </Link>
+                        <span className="font-medium">{formatSlotDateAndTime(appointment.startsAt, timezone)}</span>
                         <p className="text-sm text-muted-foreground">{appointment.doctor.displayName}</p>
                         {appointment.dependent && (
                           <p className="text-sm text-muted-foreground">
@@ -103,7 +102,10 @@ export function PatientAppointmentsPage() {
                         )}
                         <p className="text-sm text-muted-foreground">{appointment.reason}</p>
                       </div>
-                      <div className="flex flex-col items-start gap-2 sm:items-end">
+                      <div
+                        className="flex flex-col items-start gap-2 sm:items-end"
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         <Badge variant={statusVariant(appointment.status)}>{appointment.status}</Badge>
                         <JoinConsultationButton
                           appointmentId={appointment.id}

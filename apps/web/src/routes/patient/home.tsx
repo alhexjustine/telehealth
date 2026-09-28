@@ -1,5 +1,5 @@
 import { CalendarDays, FileText, HeartPulse, Search, UserRound } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HomeActions, type HomeAction } from '@/components/home-actions';
@@ -38,6 +38,7 @@ const ACTIONS: HomeAction[] = [
 ];
 
 export function PatientHomePage() {
+  const navigate = useNavigate();
   const { data: user } = useCurrentUser();
   // Same page and size as the Appointments page, so both share one cached query.
   const upcoming = useAppointments('upcoming');
@@ -93,18 +94,21 @@ export function PatientHomePage() {
                 .map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="flex flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex cursor-pointer flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
+                    onClick={() => void navigate(`/patient/appointments/${appointment.id}`)}
                   >
-                    <Link to={`/patient/appointments/${appointment.id}`} className="flex-1">
+                    <div className="flex-1">
                       <p className="font-semibold">{formatSlotTimeOnly(appointment.startsAt, timezone)}</p>
                       <p className="text-sm text-muted-foreground">{appointment.doctor.displayName}</p>
-                    </Link>
-                    <JoinConsultationButton
-                      appointmentId={appointment.id}
-                      status={appointment.status}
-                      startsAt={appointment.startsAt}
-                      endsAt={appointment.endsAt}
-                    />
+                    </div>
+                    <div onClick={(event) => event.stopPropagation()}>
+                      <JoinConsultationButton
+                        appointmentId={appointment.id}
+                        status={appointment.status}
+                        startsAt={appointment.startsAt}
+                        endsAt={appointment.endsAt}
+                      />
+                    </div>
                   </div>
                 ))
             }

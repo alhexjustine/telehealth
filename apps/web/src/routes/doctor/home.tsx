@@ -1,5 +1,5 @@
 import { CalendarClock, CalendarDays } from 'lucide-react';
-import { Link } from 'react-router';
+import { useNavigate } from 'react-router';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +32,7 @@ const ACTIONS: HomeAction[] = [
 
 
 export function DoctorHomePage() {
+  const navigate = useNavigate();
   const { data: user } = useCurrentUser();
   const profile = useDoctorProfile();
   const availability = useAvailability();
@@ -88,17 +89,18 @@ export function DoctorHomePage() {
                 .map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="flex flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex cursor-pointer flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
+                    onClick={() => void navigate(`/doctor/appointments/${appointment.id}`)}
                   >
-                    <Link to={`/doctor/appointments/${appointment.id}`} className="flex-1">
+                    <div className="flex-1">
                       <p className="font-semibold">
                         {appointment.dependent
                           ? `${appointment.dependent.displayName} (${relationshipLabel(appointment.dependent.relationship)})`
                           : appointment.patient.displayName}
                       </p>
                       <p className="text-sm text-muted-foreground">{appointment.reason}</p>
-                    </Link>
-                    <div className="flex items-center gap-2">
+                    </div>
+                    <div className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
                       <JoinConsultationButton
                         appointmentId={appointment.id}
                         status={appointment.status}

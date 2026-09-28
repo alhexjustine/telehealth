@@ -87,7 +87,7 @@ this:
    zod's `$schema` JSON Schema identifiers, and a handful of documentation/error-message links
    embedded in React, React Router, socket.io-client, and Tailwind's own output — none of which are
    ever fetched at runtime. Anything else fails the build.
-2. **Runtime CSP.** `apps/web/nginx.conf`'s `location /` sets
+2. **Runtime CSP.** `apps/web/nginx.conf.template`'s `location /` sets
    `Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`
    on SPA responses only — nginx does not merge a location's own `add_header` into a sibling
    location, so `/api/*` and `/socket.io/*` are unaffected and keep the API's own helmet-set CSP

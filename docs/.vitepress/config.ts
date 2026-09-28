@@ -20,7 +20,10 @@ export default withMermaid({
       },
       {
         text: 'Guide',
-        items: [{ text: 'Demo', link: '/guide/demo' }],
+        items: [
+          { text: 'Demo', link: '/guide/demo' },
+          { text: 'Deploying to Fly.io', link: '/guide/fly-deploy' },
+        ],
       },
       {
         text: 'High-level Architecture',

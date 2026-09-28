@@ -1,0 +1,39 @@
+# Fly.io app config for the nginx/SPA frontend (bonus cloud deployment — see CLAUDE.md's "Bonus
+# cloud deployment" and docs/deploy/fly.md). Deploy from the repo root so the build context
+# matches docker-compose.yml's `context: .`:
+#   fly deploy --config fly.web.toml --dockerfile apps/web/Dockerfile
+#
+# `app` below is a placeholder — Fly app names are globally unique, so this is rewritten to the
+# real name at `fly launch`/`fly apps create` time. See docs/deploy/fly.md for the full sequence.
+app = "hey-doc-web"
+primary_region = "sin"
+
+[build]
+  dockerfile = "apps/web/Dockerfile"
+
+[env]
+  # Fly's internal DNS resolver + the API app's private 6PN hostname (`<app>.internal`), consumed
+  # by apps/web/nginx.conf.template. Both apps must be in the same Fly org for 6PN to resolve
+  # this — see docs/deploy/fly.md. Rewritten to the real API app name during setup.
+  DNS_RESOLVER = "[fdaa::3]:53"
+  API_UPSTREAM_HOST = "hey-doc-api.internal"
+  API_UPSTREAM_PORT = "3000"
+
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "15s"
+    method = "GET"
+    timeout = "5s"
+    path = "/"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

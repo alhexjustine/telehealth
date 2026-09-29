@@ -31,13 +31,13 @@ type ModerationAction = 'hide' | 'unhide';
 
 const PAGE_SIZE = 5;
 const REASON_MIN_LENGTH = 5;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const selectClassName =
-  'h-9 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
+  'h-11 rounded-lg border border-input bg-card px-3.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
 
 export function AdminReviewsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [doctorNameInput, setDoctorNameInput] = useState(searchParams.get('doctorName') ?? '');
-  const [doctorIdInput, setDoctorIdInput] = useState(searchParams.get('doctorId') ?? '');
+  const [doctorInput, setDoctorInput] = useState(searchParams.get('doctorName') ?? searchParams.get('doctorId') ?? '');
   const [dialogTarget, setDialogTarget] = useState<{ review: AdminReviewItem; action: ModerationAction } | undefined>(
     undefined,
   );
@@ -61,6 +61,16 @@ export function AdminReviewsPage() {
     setSearchParams(next);
   }
 
+  function applyDoctorFilter() {
+    const trimmed = doctorInput.trim();
+    const next = new URLSearchParams(searchParams);
+    next.delete('doctorName');
+    next.delete('doctorId');
+    if (trimmed) next.set(UUID_PATTERN.test(trimmed) ? 'doctorId' : 'doctorName', trimmed);
+    next.delete('page');
+    setSearchParams(next);
+  }
+
   function goToPage(page: number) {
     const next = new URLSearchParams(searchParams);
     if (page > 1) next.set('page', String(page));
@@ -78,37 +88,19 @@ export function AdminReviewsPage() {
       <Card>
         <CardContent className="flex flex-wrap items-end gap-4 pt-6">
           <div className="flex flex-col gap-1">
-            <Label htmlFor="admin-reviews-doctor-name">Doctor name</Label>
+            <Label htmlFor="admin-reviews-doctor">Doctor</Label>
             <div className="flex gap-2">
               <Input
-                id="admin-reviews-doctor-name"
-                placeholder="Doctor name"
-                value={doctorNameInput}
-                onChange={(e) => setDoctorNameInput(e.target.value)}
+                id="admin-reviews-doctor"
+                placeholder="Name or ID"
+                value={doctorInput}
+                onChange={(e) => setDoctorInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') updateParam('doctorName', doctorNameInput);
+                  if (e.key === 'Enter') applyDoctorFilter();
                 }}
                 className="w-72"
               />
-              <Button type="button" variant="outline" onClick={() => updateParam('doctorName', doctorNameInput)}>
-                Filter
-              </Button>
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="admin-reviews-doctor-id">Doctor ID</Label>
-            <div className="flex gap-2">
-              <Input
-                id="admin-reviews-doctor-id"
-                placeholder="Doctor ID"
-                value={doctorIdInput}
-                onChange={(e) => setDoctorIdInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') updateParam('doctorId', doctorIdInput);
-                }}
-                className="w-72"
-              />
-              <Button type="button" variant="outline" onClick={() => updateParam('doctorId', doctorIdInput)}>
+              <Button type="button" variant="outline" onClick={applyDoctorFilter}>
                 Filter
               </Button>
             </div>

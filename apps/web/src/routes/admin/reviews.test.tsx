@@ -109,14 +109,14 @@ describe('AdminReviewsPage', () => {
 
     renderPage();
 
-    await userEvent.type(screen.getByLabelText(/doctor name/i), 'Hopper');
-    await userEvent.click(screen.getAllByRole('button', { name: /^filter$/i })[0]!);
+    await userEvent.type(screen.getByLabelText(/^doctor$/i), 'Hopper');
+    await userEvent.click(screen.getByRole('button', { name: /^filter$/i }));
 
     const lastCall = vi.mocked(useAdminReviews).mock.calls.at(-1)?.[0];
-    expect(lastCall).toMatchObject({ doctorName: 'Hopper' });
+    expect(lastCall).toMatchObject({ doctorName: 'Hopper', doctorId: undefined });
   });
 
-  it('Filters by doctor ID', async () => {
+  it('Filters by doctor ID when the input looks like a UUID', async () => {
     vi.mocked(useAdminReviews).mockReturnValue({
       data: { items: [review()], total: 1, page: 1, pageSize: 20 },
       status: 'success',
@@ -129,10 +129,13 @@ describe('AdminReviewsPage', () => {
 
     renderPage();
 
-    await userEvent.type(screen.getByLabelText(/doctor id/i), 'doc-1');
-    await userEvent.click(screen.getAllByRole('button', { name: /^filter$/i })[1]!);
+    await userEvent.type(screen.getByLabelText(/^doctor$/i), '11111111-1111-1111-1111-111111111111');
+    await userEvent.click(screen.getByRole('button', { name: /^filter$/i }));
 
     const lastCall = vi.mocked(useAdminReviews).mock.calls.at(-1)?.[0];
-    expect(lastCall).toMatchObject({ doctorId: 'doc-1' });
+    expect(lastCall).toMatchObject({
+      doctorId: '11111111-1111-1111-1111-111111111111',
+      doctorName: undefined,
+    });
   });
 });

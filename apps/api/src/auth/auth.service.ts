@@ -10,7 +10,10 @@ import { SpecializationsService } from '../specializations/specializations.servi
 import { isPatientProfileComplete } from '../patients/profile-completeness.js';
 import { AuditService } from '../audit/audit.service.js';
 import { AuditEntityType } from '../audit/audit-entity-type.js';
-import { AuditAction, Role } from '../generated/prisma/enums.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
+import { withNotifications } from '../notifications/with-notifications.js';
+import { doctorPendingReviewNotificationDrafts } from '../notifications/admin-notifications.js';
+import { AccountStatus, AuditAction, Role } from '../generated/prisma/enums.js';
 import type { User } from '../generated/prisma/client.js';
 import { PasswordHasherService } from './password/password-hasher.service.js';
 import { isPasswordPolicyValid } from './password/password-policy.js';
@@ -38,6 +41,7 @@ export class AuthService {
     private readonly passwordHasher: PasswordHasherService,
     private readonly specializationsService: SpecializationsService,
     private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async registerPatient(dto: RegisterPatientDto, meta: SessionMeta): Promise<AuthResult> {
@@ -77,23 +81,40 @@ export class AuthService {
 
     const passwordHash = await this.passwordHasher.hash(dto.password);
 
-    const user = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.user.create({
-        data: { email, passwordHash, role: Role.DOCTOR },
-      });
-      await tx.doctorProfile.create({
-        data: {
-          userId: created.id,
-          firstName: dto.firstName,
-          lastName: dto.lastName,
-          licenseNumber: dto.licenseNumber,
-          specializations: {
-            create: uniqueSpecializationIds.map((specializationId) => ({ specializationId })),
+    const { result: user, notifications } = await withNotifications(
+      this.prisma,
+      this.notificationsService,
+      async (tx, notify) => {
+        const created = await tx.user.create({
+          data: { email, passwordHash, role: Role.DOCTOR },
+        });
+        await tx.doctorProfile.create({
+          data: {
+            userId: created.id,
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            licenseNumber: dto.licenseNumber,
+            specializations: {
+              create: uniqueSpecializationIds.map((specializationId) => ({ specializationId })),
+            },
           },
-        },
-      });
-      return created;
-    });
+        });
+
+        const admins = await tx.user.findMany({
+          where: { role: Role.ADMIN, status: AccountStatus.ACTIVE },
+          select: { id: true },
+        });
+        await notify(
+          doctorPendingReviewNotificationDrafts({
+            adminIds: admins.map((admin) => admin.id),
+            doctorId: created.id,
+            doctorName: `Dr. ${dto.firstName} ${dto.lastName}`,
+          }),
+        );
+        return created;
+      },
+    );
+    await this.notificationsService.publish(notifications);
 
     return this.startSession(user, meta);
   }

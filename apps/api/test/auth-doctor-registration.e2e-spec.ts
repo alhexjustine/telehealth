@@ -3,7 +3,7 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestApp } from './support/test-app.js';
 import { resetDatabase } from './support/reset-db.js';
-import { uniqueEmail } from './support/auth-helpers.js';
+import { createAndSignInAdmin, uniqueEmail } from './support/auth-helpers.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 describe('Doctor registration', () => {
@@ -90,5 +90,38 @@ describe('Doctor registration', () => {
     expect(res.status).toBe(400);
     const stored = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     expect(stored).toBeNull();
+  });
+
+  it('Active administrators are notified of a doctor awaiting review', async () => {
+    const activeAdmin = await createAndSignInAdmin(app);
+    const suspendedAdmin = await createAndSignInAdmin(app);
+    await prisma.user.update({ where: { id: suspendedAdmin.id }, data: { status: 'SUSPENDED' } });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/auth/register/doctor')
+      .send({
+        email: uniqueEmail('pending-doctor'),
+        password: 'correct-horse-battery',
+        firstName: 'Katherine',
+        lastName: 'Johnson',
+        specializationIds: [specializationId],
+        licenseNumber: 'LIC-PENDING-NOTIFY',
+      })
+      .expect(201);
+
+    const inbox = await activeAdmin.agent.get('/api/notifications').expect(200);
+    const notification = (inbox.body.items as { type: string; body: string; link: string }[]).find(
+      (item) => item.type === 'DOCTOR_PENDING_REVIEW',
+    );
+    expect(notification).toMatchObject({
+      body: 'Dr. Katherine Johnson registered and is waiting for profile approval',
+      link: `/admin/doctors/${res.body.id as string}`,
+    });
+
+    // A suspended administrator gets nothing.
+    const stored = await prisma.notification.count({
+      where: { userId: suspendedAdmin.id, type: 'DOCTOR_PENDING_REVIEW' },
+    });
+    expect(stored).toBe(0);
   });
 });

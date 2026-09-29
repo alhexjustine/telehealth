@@ -385,6 +385,148 @@
         ]
       }
     },
+    "/notifications": {
+      "get": {
+        "operationId": "NotificationsController_list",
+        "parameters": [
+          {
+            "name": "unreadOnly",
+            "required": false,
+            "in": "query",
+            "description": "When true, only unread notifications are returned",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Lists the signed-in user's own notifications, newest first",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationsController_unreadCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "The signed-in user's unread notification count",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/notifications/{id}/read": {
+      "post": {
+        "operationId": "NotificationsController_markRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Marks one of the signed-in user's own notifications as read",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/notifications/read-all": {
+      "post": {
+        "operationId": "NotificationsController_markAllRead",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Marks all of the signed-in user's notifications as read",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
     "/patients/me/profile": {
       "get": {
         "operationId": "PatientsController_getProfile",
@@ -1725,148 +1867,6 @@
         "summary": "Cancels a booked appointment; the doctor must give a reason, the patient may",
         "tags": [
           "appointments"
-        ]
-      }
-    },
-    "/notifications": {
-      "get": {
-        "operationId": "NotificationsController_list",
-        "parameters": [
-          {
-            "name": "unreadOnly",
-            "required": false,
-            "in": "query",
-            "description": "When true, only unread notifications are returned",
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "minimum": 1,
-              "default": 1,
-              "type": "number"
-            }
-          },
-          {
-            "name": "pageSize",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "minimum": 1,
-              "maximum": 50,
-              "default": 20,
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationListResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "th_session": []
-          }
-        ],
-        "summary": "Lists the signed-in user's own notifications, newest first",
-        "tags": [
-          "notifications"
-        ]
-      }
-    },
-    "/notifications/unread-count": {
-      "get": {
-        "operationId": "NotificationsController_unreadCount",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UnreadCountResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "th_session": []
-          }
-        ],
-        "summary": "The signed-in user's unread notification count",
-        "tags": [
-          "notifications"
-        ]
-      }
-    },
-    "/notifications/{id}/read": {
-      "post": {
-        "operationId": "NotificationsController_markRead",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "th_session": []
-          }
-        ],
-        "summary": "Marks one of the signed-in user's own notifications as read",
-        "tags": [
-          "notifications"
-        ]
-      }
-    },
-    "/notifications/read-all": {
-      "post": {
-        "operationId": "NotificationsController_markAllRead",
-        "parameters": [],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "th_session": []
-          }
-        ],
-        "summary": "Marks all of the signed-in user's notifications as read",
-        "tags": [
-          "notifications"
         ]
       }
     },
@@ -3908,6 +3908,116 @@
           "pageSize"
         ]
       },
+      "NotificationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "APPOINTMENT_BOOKED",
+              "BOOKING_CONFIRMED",
+              "APPOINTMENT_RESCHEDULED",
+              "RESCHEDULE_CONFIRMED",
+              "APPOINTMENT_CANCELLED",
+              "REMINDER_24H",
+              "REMINDER_1H",
+              "CONSULTATION_SUMMARY_AVAILABLE",
+              "PROFILE_APPROVED",
+              "PROFILE_REJECTED",
+              "PLATFORM_APPOINTMENT_CANCELLED",
+              "NEW_MESSAGE",
+              "REFILL_REQUESTED",
+              "REFILL_DECIDED",
+              "DOCTOR_PENDING_REVIEW"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true,
+            "description": "Structured event data (startsAt, previousStartsAt, counterpartName, reason) for the viewer to format."
+          },
+          "link": {
+            "type": "string",
+            "nullable": true,
+            "description": "A link to the appointment in the recipient's role area"
+          },
+          "appointmentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "readAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "title",
+          "body",
+          "data",
+          "link",
+          "appointmentId",
+          "readAt",
+          "createdAt"
+        ]
+      },
+      "NotificationListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationResponseDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "unreadCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize",
+          "unreadCount"
+        ]
+      },
+      "UnreadCountResponseDto": {
+        "type": "object",
+        "properties": {
+          "unreadCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "unreadCount"
+        ]
+      },
       "PatientProfileResponseDto": {
         "type": "object",
         "properties": {
@@ -5486,115 +5596,6 @@
             "maxLength": 500
           }
         }
-      },
-      "NotificationResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "APPOINTMENT_BOOKED",
-              "BOOKING_CONFIRMED",
-              "APPOINTMENT_RESCHEDULED",
-              "RESCHEDULE_CONFIRMED",
-              "APPOINTMENT_CANCELLED",
-              "REMINDER_24H",
-              "REMINDER_1H",
-              "CONSULTATION_SUMMARY_AVAILABLE",
-              "PROFILE_APPROVED",
-              "PROFILE_REJECTED",
-              "PLATFORM_APPOINTMENT_CANCELLED",
-              "NEW_MESSAGE",
-              "REFILL_REQUESTED",
-              "REFILL_DECIDED"
-            ]
-          },
-          "title": {
-            "type": "string"
-          },
-          "body": {
-            "type": "string"
-          },
-          "data": {
-            "type": "object",
-            "additionalProperties": true,
-            "nullable": true,
-            "description": "Structured event data (startsAt, previousStartsAt, counterpartName, reason) for the viewer to format."
-          },
-          "link": {
-            "type": "string",
-            "nullable": true,
-            "description": "A link to the appointment in the recipient's role area"
-          },
-          "appointmentId": {
-            "type": "string",
-            "nullable": true
-          },
-          "readAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "type",
-          "title",
-          "body",
-          "data",
-          "link",
-          "appointmentId",
-          "readAt",
-          "createdAt"
-        ]
-      },
-      "NotificationListResponseDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/NotificationResponseDto"
-            }
-          },
-          "total": {
-            "type": "number"
-          },
-          "page": {
-            "type": "number"
-          },
-          "pageSize": {
-            "type": "number"
-          },
-          "unreadCount": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "items",
-          "total",
-          "page",
-          "pageSize",
-          "unreadCount"
-        ]
-      },
-      "UnreadCountResponseDto": {
-        "type": "object",
-        "properties": {
-          "unreadCount": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "unreadCount"
-        ]
       },
       "ConsultationSessionStateDto": {
         "type": "object",

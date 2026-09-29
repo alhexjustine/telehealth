@@ -355,6 +355,9 @@ enum NotificationType {
   /// Sent to the requesting account when a doctor approves or denies a
   /// refill request (`add-prescription-refills`); links back to the record.
   REFILL_DECIDED
+  /// Sent to every active administrator when a doctor registers and is waiting
+  /// for profile approval; links to that doctor's review page.
+  DOCTOR_PENDING_REVIEW
 
   @@map("notification_type")
 }

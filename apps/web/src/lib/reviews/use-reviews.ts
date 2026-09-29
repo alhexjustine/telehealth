@@ -47,14 +47,14 @@ export function useSubmitReview(appointmentId: string) {
   });
 }
 
-export function useDoctorReviews(doctorId: string | undefined, page = 1) {
+export function useDoctorReviews(doctorId: string | undefined, page = 1, pageSize?: number) {
   return useQuery({
-    queryKey: ['doctors', doctorId ?? '', 'reviews', page] as const,
+    queryKey: ['doctors', doctorId ?? '', 'reviews', page, pageSize] as const,
     queryFn: async () =>
       unwrap(
         await apiClient.GET('/doctors/{doctorId}/reviews', {
           // Non-null assertion is safe: the query is `enabled` only once `doctorId` is set.
-          params: { path: { doctorId: doctorId! }, query: { page } },
+          params: { path: { doctorId: doctorId! }, query: { page, pageSize } },
         }),
       ),
     enabled: doctorId !== undefined,

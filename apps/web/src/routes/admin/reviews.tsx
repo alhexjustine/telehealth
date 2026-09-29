@@ -24,10 +24,12 @@ import {
 } from '@/lib/admin/use-admin-reviews';
 import { QueryState } from '@/components/query-state';
 import { EmptyState } from '@/components/empty-state';
+import { Pagination } from '@/components/pagination';
 
 type AdminReviewItem = NonNullable<ReturnType<typeof useAdminReviews>['data']>['items'][number];
 type ModerationAction = 'hide' | 'unhide';
 
+const PAGE_SIZE = 5;
 const REASON_MIN_LENGTH = 5;
 const selectClassName =
   'h-9 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
@@ -46,7 +48,7 @@ export function AdminReviewsPage() {
     doctorId: searchParams.get('doctorId') || undefined,
     hidden: hiddenParam === 'true' ? true : hiddenParam === 'false' ? false : undefined,
     page: Number(searchParams.get('page') ?? '1') || 1,
-    pageSize: 20,
+    pageSize: PAGE_SIZE,
   };
   const reviews = useAdminReviews(query);
   const hasFilters = Boolean(query.doctorName || query.doctorId || hiddenParam);
@@ -56,6 +58,13 @@ export function AdminReviewsPage() {
     if (value) next.set(key, value);
     else next.delete(key);
     next.delete('page');
+    setSearchParams(next);
+  }
+
+  function goToPage(page: number) {
+    const next = new URLSearchParams(searchParams);
+    if (page > 1) next.set('page', String(page));
+    else next.delete('page');
     setSearchParams(next);
   }
 
@@ -165,6 +174,7 @@ export function AdminReviewsPage() {
                 </CardContent>
               </Card>
             ))}
+            <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={goToPage} />
           </div>
         )}
       </QueryState>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Star } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { StarRating } from '@/components/star-rating';
@@ -6,11 +7,15 @@ import { EmptyState } from '@/components/empty-state';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { useDoctorReviews } from '@/lib/reviews/use-reviews';
 import { QueryState } from '@/components/query-state';
+import { Pagination } from '@/components/pagination';
+
+const PAGE_SIZE = 5;
 
 /** The doctor's own view of their patient reviews — same anonymous, visible-only list a patient sees on the doctor's public profile. */
 export function DoctorReviewsPage() {
   const currentUser = useCurrentUser();
-  const reviews = useDoctorReviews(currentUser.data?.id);
+  const [page, setPage] = useState(1);
+  const reviews = useDoctorReviews(currentUser.data?.id, page, PAGE_SIZE);
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
@@ -49,6 +54,7 @@ export function DoctorReviewsPage() {
                 </Card>
               ))}
             </div>
+            <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={setPage} />
           </>
         )}
       </QueryState>

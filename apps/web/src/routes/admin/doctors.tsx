@@ -4,6 +4,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAdminDoctors } from '@/lib/admin/use-admin-doctors';
 import { QueryState } from '@/components/query-state';
+import { Pagination } from '@/components/pagination';
+
+const PAGE_SIZE = 5;
 
 type VerificationTab = 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -16,11 +19,20 @@ function accountStatusVariant(status: string): 'default' | 'secondary' | 'destru
 export function AdminDoctorsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = (searchParams.get('verification') as VerificationTab | null) ?? 'PENDING';
-  const doctors = useAdminDoctors({ verification: tab, page: 1, pageSize: 50 });
+  const page = Number(searchParams.get('page') ?? '1') || 1;
+  const doctors = useAdminDoctors({ verification: tab, page, pageSize: PAGE_SIZE });
 
   function setTab(next: string) {
     const params = new URLSearchParams(searchParams);
     params.set('verification', next);
+    params.delete('page');
+    setSearchParams(params);
+  }
+
+  function goToPage(next: number) {
+    const params = new URLSearchParams(searchParams);
+    if (next > 1) params.set('page', String(next));
+    else params.delete('page');
     setSearchParams(params);
   }
 
@@ -42,8 +54,9 @@ export function AdminDoctorsPage() {
             isEmpty={(data) => data.items.length === 0}
             empty={<p className="text-muted-foreground">No doctors in this state.</p>}
           >
-            {(data) =>
-              data.items.map((doctor) => (
+            {(data) => (
+              <>
+              {data.items.map((doctor) => (
                 <Link key={doctor.id} to={`/admin/doctors/${doctor.id}`}>
                   <Card className="transition-colors hover:bg-accent/50">
                     <CardContent className="flex items-center justify-between gap-4 pt-6">
@@ -67,8 +80,10 @@ export function AdminDoctorsPage() {
                     </CardContent>
                   </Card>
                 </Link>
-              ))
-            }
+              ))}
+              <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={goToPage} />
+              </>
+            )}
           </QueryState>
         </TabsContent>
       </Tabs>

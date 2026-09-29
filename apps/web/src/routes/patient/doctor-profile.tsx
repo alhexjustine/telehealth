@@ -9,6 +9,7 @@ import { InitialsAvatar } from '@/components/initials-avatar';
 import { RatingSummary } from '@/components/rating-summary';
 import { FavoriteToggleButton } from '@/components/favorite-toggle-button';
 import { EmptyState } from '@/components/empty-state';
+import { Pagination } from '@/components/pagination';
 import { usePublicDoctorProfile } from '@/lib/discovery/use-doctor-search';
 import { useDoctorSlots } from '@/lib/availability/use-availability';
 import { useDoctorReviews } from '@/lib/reviews/use-reviews';
@@ -17,6 +18,7 @@ import { groupSlotsByLocalDate, formatSlotTimeOnly, formatSlotDateAndTime } from
 import { QueryState } from '@/components/query-state';
 
 const SLOT_HORIZON_DAYS = 14;
+const REVIEWS_PAGE_SIZE = 5;
 
 export function PatientDoctorProfilePage() {
   const { doctorId } = useParams<{ doctorId: string }>();
@@ -24,7 +26,8 @@ export function PatientDoctorProfilePage() {
   const symptomsParam = searchParams.get('symptoms') ?? '';
   const dependentParam = searchParams.get('dependent') ?? '';
   const profile = usePublicDoctorProfile(doctorId);
-  const reviews = useDoctorReviews(doctorId);
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const reviews = useDoctorReviews(doctorId, reviewsPage, REVIEWS_PAGE_SIZE);
   const favorites = useFavorites();
   const isFavorited = doctorId !== undefined && (favorites.data?.items.some((item) => item.id === doctorId) ?? false);
 
@@ -195,6 +198,12 @@ export function PatientDoctorProfilePage() {
                           {review.comment && <p className="mt-1 text-sm">{review.comment}</p>}
                         </div>
                       ))}
+                      <Pagination
+                        page={data.page}
+                        pageSize={data.pageSize}
+                        total={data.total}
+                        onPageChange={setReviewsPage}
+                      />
                     </div>
                   )}
                 </QueryState>

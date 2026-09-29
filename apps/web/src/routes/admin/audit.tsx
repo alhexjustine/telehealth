@@ -9,6 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { formatSlotDateTime } from '@/lib/format-slot-time';
 import { useAdminAuditLog, type AdminAuditListQuery } from '@/lib/admin/use-admin-audit';
 import { QueryState } from '@/components/query-state';
+import { Pagination } from '@/components/pagination';
+
+const PAGE_SIZE = 5;
 
 type AuditEntry = NonNullable<ReturnType<typeof useAdminAuditLog>['data']>['items'][number];
 
@@ -39,9 +42,16 @@ export function AdminAuditPage() {
     entityType: searchParams.get('entityType') || undefined,
     entityId: searchParams.get('entityId') || undefined,
     page: Number(searchParams.get('page') ?? '1') || 1,
-    pageSize: 20,
+    pageSize: PAGE_SIZE,
   };
   const audit = useAdminAuditLog(query);
+
+  function goToPage(page: number) {
+    const next = new URLSearchParams(searchParams);
+    if (page > 1) next.set('page', String(page));
+    else next.delete('page');
+    setSearchParams(next);
+  }
 
   function updateParam(key: string, value: string) {
     const next = new URLSearchParams(searchParams);
@@ -127,6 +137,7 @@ export function AdminAuditPage() {
                 </Card>
               </button>
             ))}
+            <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={goToPage} />
           </div>
         )}
       </QueryState>

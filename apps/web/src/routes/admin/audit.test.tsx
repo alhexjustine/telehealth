@@ -54,4 +54,45 @@ describe('AdminAuditPage', () => {
     expect(screen.getByText('spec-1')).toBeInTheDocument();
     expect(screen.getByText('spec-2')).toBeInTheDocument();
   });
+
+  it('Pages through entries five at a time', async () => {
+    vi.mocked(useAdminAuditLog).mockReturnValue({
+      isPending: false,
+      data: {
+        items: [
+          {
+            id: 'audit-1',
+            actorId: 'admin-1',
+            actorEmail: 'admin@example.com',
+            action: 'ADMIN_SIGNED_IN',
+            entityType: 'User',
+            entityId: 'user-1',
+            reason: null,
+            before: null,
+            after: null,
+            requestId: 'req-1',
+            ip: '127.0.0.1',
+            userAgent: null,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        total: 12,
+        page: 1,
+        pageSize: 5,
+      },
+      status: 'success',
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderPage();
+
+    expect(useAdminAuditLog).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, pageSize: 5 }));
+    expect(screen.getByText(/page 1 of 3/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /previous/i })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', { name: /next/i }));
+
+    expect(useAdminAuditLog).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2, pageSize: 5 }));
+  });
 });

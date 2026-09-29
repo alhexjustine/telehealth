@@ -24,11 +24,13 @@ import {
   type AdminAppointmentListQuery,
 } from '@/lib/admin/use-admin-appointments';
 import { QueryState } from '@/components/query-state';
+import { Pagination } from '@/components/pagination';
 import { relationshipLabel } from '@/lib/dependents/relationship-label';
 
 type AdminAppointmentItem = NonNullable<ReturnType<typeof useAdminAppointments>['data']>['items'][number];
 type DialogAction = 'cancel' | 'mark-not-held';
 
+const PAGE_SIZE = 5;
 const REASON_MIN_LENGTH = 5;
 const selectClassName =
   'h-9 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
@@ -49,7 +51,7 @@ export function AdminAppointmentsPage() {
     status: (searchParams.get('status') as AdminAppointmentListQuery['status']) || undefined,
     invalidOnly: invalidOnly || undefined,
     page: Number(searchParams.get('page') ?? '1') || 1,
-    pageSize: 20,
+    pageSize: PAGE_SIZE,
   };
   const appointments = useAdminAppointments(query);
   // Captured once per render, not read inside the .map() below, so the "now"
@@ -61,6 +63,13 @@ export function AdminAppointmentsPage() {
     if (value) next.set(key, value);
     else next.delete(key);
     next.delete('page');
+    setSearchParams(next);
+  }
+
+  function goToPage(page: number) {
+    const next = new URLSearchParams(searchParams);
+    if (page > 1) next.set('page', String(page));
+    else next.delete('page');
     setSearchParams(next);
   }
 
@@ -161,6 +170,7 @@ export function AdminAppointmentsPage() {
                 </Card>
               );
             })}
+            <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={goToPage} />
           </div>
         )}
       </QueryState>

@@ -20,10 +20,13 @@ import { useAppointments, useCancelAppointment } from '@/lib/appointments/use-ap
 import { formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
 import { JoinConsultationButton } from '@/components/join-consultation-button';
 import { QueryState } from '@/components/query-state';
+import { Pagination } from '@/components/pagination';
 import { relationshipLabel } from '@/lib/dependents/relationship-label';
 
 type AppointmentDto =
   ApiPaths['/appointments']['get']['responses'][200]['content']['application/json']['items'][number];
+
+const PAGE_SIZE = 5;
 
 const CANCEL_REASON_MIN_LENGTH = 5;
 
@@ -36,8 +39,9 @@ function statusVariant(status: AppointmentDto['status']): 'default' | 'secondary
 export function DoctorAppointmentsPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
-  const upcoming = useAppointments('upcoming');
-  const past = useAppointments('past', 1, 20);
+  const [pages, setPages] = useState({ upcoming: 1, past: 1 });
+  const upcoming = useAppointments('upcoming', pages.upcoming, PAGE_SIZE);
+  const past = useAppointments('past', pages.past, PAGE_SIZE);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [cancelTarget, setCancelTarget] = useState<AppointmentDto | undefined>(undefined);
   // Captured once per render (not read inside the .map() below) so the
@@ -69,64 +73,81 @@ export function DoctorAppointmentsPage() {
               </p>
             }
           >
-            {(data) =>
-              data.items.map((appointment) => {
-                const canCancel =
-                  appointment.status === 'BOOKED' && new Date(appointment.startsAt).getTime() > now;
-                return (
-                  <Card key={appointment.id}>
-                    <CardContent
-                      className="flex cursor-pointer flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between"
-                      onClick={() => void navigate(`/doctor/appointments/${appointment.id}`)}
-                    >
-                      <div>
-                        <span className="font-medium">{formatSlotDateAndTime(appointment.startsAt, timezone)}</span>
-                        <p className="text-sm text-muted-foreground">
-                          {appointment.dependent
-                            ? `${appointment.dependent.displayName} (${relationshipLabel(appointment.dependent.relationship)})`
-                            : `${appointment.patient.displayName}${appointment.patient.age !== null ? `, ${appointment.patient.age}` : ''}`}
-                        </p>
-                        {appointment.dependent && (
-                          <p className="text-xs text-muted-foreground">Booked by {appointment.patient.displayName}</p>
-                        )}
-                        <p className="text-sm text-muted-foreground">{appointment.reason}</p>
-                        {appointment.symptoms.length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {appointment.symptoms.map((symptom) => (
-                              <Badge key={symptom.id} variant="secondary">
-                                {symptom.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div
-                        className="flex flex-col items-start gap-2 sm:items-end"
-                        onClick={(event) => event.stopPropagation()}
+            {(data) => (
+              <>
+                {data.items.map((appointment) => {
+                  const canCancel =
+                    appointment.status === 'BOOKED' &&
+                    new Date(appointment.startsAt).getTime() > now;
+                  return (
+                    <Card key={appointment.id}>
+                      <CardContent
+                        className="flex cursor-pointer flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between"
+                        onClick={() => void navigate(`/doctor/appointments/${appointment.id}`)}
                       >
-                        <Badge variant={statusVariant(appointment.status)}>{appointment.status}</Badge>
-                        <JoinConsultationButton
-                          appointmentId={appointment.id}
-                          status={appointment.status}
-                          startsAt={appointment.startsAt}
-                          endsAt={appointment.endsAt}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={!canCancel}
-                          title={canCancel ? undefined : 'This appointment can no longer be cancelled'}
-                          onClick={() => setCancelTarget(appointment)}
+                        <div>
+                          <span className="font-medium">
+                            {formatSlotDateAndTime(appointment.startsAt, timezone)}
+                          </span>
+                          <p className="text-sm text-muted-foreground">
+                            {appointment.dependent
+                              ? `${appointment.dependent.displayName} (${relationshipLabel(appointment.dependent.relationship)})`
+                              : `${appointment.patient.displayName}${appointment.patient.age !== null ? `, ${appointment.patient.age}` : ''}`}
+                          </p>
+                          {appointment.dependent && (
+                            <p className="text-xs text-muted-foreground">
+                              Booked by {appointment.patient.displayName}
+                            </p>
+                          )}
+                          <p className="text-sm text-muted-foreground">{appointment.reason}</p>
+                          {appointment.symptoms.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {appointment.symptoms.map((symptom) => (
+                                <Badge key={symptom.id} variant="secondary">
+                                  {symptom.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div
+                          className="flex flex-col items-start gap-2 sm:items-end"
+                          onClick={(event) => event.stopPropagation()}
                         >
-                          Cancel
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            }
+                          <Badge variant={statusVariant(appointment.status)}>
+                            {appointment.status}
+                          </Badge>
+                          <JoinConsultationButton
+                            appointmentId={appointment.id}
+                            status={appointment.status}
+                            startsAt={appointment.startsAt}
+                            endsAt={appointment.endsAt}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={!canCancel}
+                            title={
+                              canCancel ? undefined : 'This appointment can no longer be cancelled'
+                            }
+                            onClick={() => setCancelTarget(appointment)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+                <Pagination
+                  page={data.page}
+                  pageSize={data.pageSize}
+                  total={data.total}
+                  onPageChange={(page) => setPages((current) => ({ ...current, [tab]: page }))}
+                />
+              </>
+            )}
           </QueryState>
         </TabsContent>
       </Tabs>
@@ -174,7 +195,8 @@ function DoctorCancelDialog({
         <DialogHeader>
           <DialogTitle>Cancel this appointment?</DialogTitle>
           <DialogDescription>
-            With {appointment?.patient.displayName}. A reason is required and will be shown to the patient.
+            With {appointment?.patient.displayName}. A reason is required and will be shown to the
+            patient.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-1">
@@ -195,7 +217,11 @@ function DoctorCancelDialog({
           <Button type="button" variant="outline" onClick={onClose}>
             Keep appointment
           </Button>
-          <Button type="button" disabled={cancelAppointment.isPending || !reasonValid} onClick={() => void confirm()}>
+          <Button
+            type="button"
+            disabled={cancelAppointment.isPending || !reasonValid}
+            onClick={() => void confirm()}
+          >
             {cancelAppointment.isPending ? 'Cancelling…' : 'Cancel appointment'}
           </Button>
         </DialogFooter>

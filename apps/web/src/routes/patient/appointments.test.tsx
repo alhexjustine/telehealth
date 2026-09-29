@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PatientAppointmentsPage } from './appointments';
@@ -150,5 +151,42 @@ describe('PatientAppointmentsPage', () => {
 
     const bookAgainLink = screen.getByRole('link', { name: /book again/i });
     expect(bookAgainLink).toHaveAttribute('href', '/patient/doctors/doc-1?dependent=dep-1');
+  });
+  it('Pages through appointments five at a time', async () => {
+    const item = {
+      id: 'apt-1',
+      startsAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      endsAt: new Date(Date.now() + 49 * 60 * 60 * 1000).toISOString(),
+      status: 'BOOKED',
+      reason: 'Checkup',
+      doctor: { id: 'doc-1', displayName: 'Dr. Grace Hopper', specializations: [] },
+      patient: { id: 'pat-1', displayName: 'Ada Lovelace', age: 30 },
+      symptoms: [],
+      cancelledAt: null,
+      cancellationReason: null,
+      cancelledByRole: null,
+      rescheduledFromId: null,
+    };
+    vi.mocked(useAppointments).mockImplementation(((_scope: string, page: number) => ({
+      data: { items: [item], total: 12, page, pageSize: 5 },
+      status: 'success',
+      error: null,
+      refetch: vi.fn(),
+      isPending: false,
+    })) as never);
+    vi.mocked(useCancelAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+    vi.mocked(useRescheduleAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+    vi.mocked(useDoctorSlots).mockReturnValue({ data: [], isPending: false } as never);
+
+    renderPage();
+
+    expect(useAppointments).toHaveBeenCalledWith('upcoming', 1, 5);
+    expect(screen.getByText(/page 1 of 3/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /next/i }));
+
+    expect(useAppointments).toHaveBeenLastCalledWith('past', 1, 5);
+    expect(useAppointments).toHaveBeenCalledWith('upcoming', 2, 5);
+    expect(screen.getByText(/page 2 of 3/i)).toBeInTheDocument();
   });
 });

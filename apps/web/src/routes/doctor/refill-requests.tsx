@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
+import { CheckCircle2, Pill, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,13 +23,32 @@ import {
   type RefillRequestDto,
 } from '@/lib/refills/use-doctor-refills';
 import { QueryState } from '@/components/query-state';
+import { EmptyState } from '@/components/empty-state';
 
 type Decision = 'approve' | 'deny';
 
 const TABS = [
-  { status: 'PENDING', label: 'Pending', empty: 'No pending refill requests.' },
-  { status: 'APPROVED', label: 'Approved', empty: 'No approved refill requests.' },
-  { status: 'DENIED', label: 'Denied', empty: 'No denied refill requests.' },
+  {
+    status: 'PENDING',
+    label: 'Pending',
+    icon: Pill,
+    emptyTitle: 'No pending requests',
+    emptyDescription: 'New refill requests from your patients will show up here, ready for you to review.',
+  },
+  {
+    status: 'APPROVED',
+    label: 'Approved',
+    icon: CheckCircle2,
+    emptyTitle: 'No approved requests yet',
+    emptyDescription: 'Requests you approve will move here, along with any note you leave for the patient.',
+  },
+  {
+    status: 'DENIED',
+    label: 'Denied',
+    icon: XCircle,
+    emptyTitle: 'No denied requests',
+    emptyDescription: 'Requests you deny will land here, so you can look back on the reason you gave.',
+  },
 ] as const;
 
 export function DoctorRefillRequestsPage() {
@@ -68,7 +88,9 @@ export function DoctorRefillRequestsPage() {
           <TabsContent key={tab.status} value={tab.status}>
             <RefillRequestList
               status={tab.status}
-              emptyMessage={tab.empty}
+              emptyIcon={tab.icon}
+              emptyTitle={tab.emptyTitle}
+              emptyDescription={tab.emptyDescription}
               onDecide={(request, decision) => setDeciding({ request, decision })}
             />
           </TabsContent>
@@ -92,11 +114,15 @@ export function DoctorRefillRequestsPage() {
 
 function RefillRequestList({
   status,
-  emptyMessage,
+  emptyIcon,
+  emptyTitle,
+  emptyDescription,
   onDecide,
 }: {
   status: (typeof TABS)[number]['status'];
-  emptyMessage: string;
+  emptyIcon: (typeof TABS)[number]['icon'];
+  emptyTitle: string;
+  emptyDescription: string;
   onDecide: (request: RefillRequestDto, decision: Decision) => void;
 }) {
   const requests = useDoctorRefillRequests(status);
@@ -107,7 +133,7 @@ function RefillRequestList({
       query={requests}
       label="refill requests"
       isEmpty={(data) => data.items.length === 0}
-      empty={<p className="text-muted-foreground">{emptyMessage}</p>}
+      empty={<EmptyState icon={emptyIcon} title={emptyTitle} description={emptyDescription} />}
     >
       {(data) => (
         <div className="flex flex-col gap-3">

@@ -1,6 +1,8 @@
+import { Star } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { StarRating } from '@/components/star-rating';
 import { RatingSummary } from '@/components/rating-summary';
+import { EmptyState } from '@/components/empty-state';
 import { useCurrentUser } from '@/lib/auth/use-current-user';
 import { useDoctorReviews } from '@/lib/reviews/use-reviews';
 import { QueryState } from '@/components/query-state';
@@ -21,7 +23,13 @@ export function DoctorReviewsPage() {
         query={reviews}
         label="reviews"
         isEmpty={(data) => data.items.length === 0}
-        empty={<p className="text-muted-foreground">No reviews yet.</p>}
+        empty={
+          <EmptyState
+            icon={Star}
+            title="No reviews yet"
+            description="Ratings and comments show up here once a patient reviews a completed consultation with you."
+          />
+        }
       >
         {(data) => (
           <>

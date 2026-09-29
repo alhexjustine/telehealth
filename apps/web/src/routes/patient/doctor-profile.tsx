@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
+import { CalendarX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +8,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { RatingSummary } from '@/components/rating-summary';
 import { FavoriteToggleButton } from '@/components/favorite-toggle-button';
+import { EmptyState } from '@/components/empty-state';
 import { usePublicDoctorProfile } from '@/lib/discovery/use-doctor-search';
 import { useDoctorSlots } from '@/lib/availability/use-availability';
 import { useDoctorReviews } from '@/lib/reviews/use-reviews';
@@ -94,19 +96,19 @@ export function PatientDoctorProfilePage() {
                   label="available times"
                   isEmpty={() => dayGroups.length === 0}
                   empty={
-                    <div className="flex flex-col gap-2">
-                      <p className="text-muted-foreground">
-                        {profileData.acceptingBookings
+                    <EmptyState
+                      compact
+                      icon={CalendarX}
+                      description={
+                        profileData.acceptingBookings
                           ? `No times are available in the next ${SLOT_HORIZON_DAYS} days.`
-                          : "This doctor isn't accepting new bookings right now."}
-                      </p>
-                      <Link
-                        to={`/patient/doctors?specialization=${encodeURIComponent(profileData.specializations[0]?.slug ?? '')}`}
-                        className="text-primary underline-offset-4 hover:underline"
-                      >
-                        See other {profileData.specializations[0]?.name ?? ''} doctors
-                      </Link>
-                    </div>
+                          : "This doctor isn't accepting new bookings right now."
+                      }
+                      action={{
+                        label: `See other ${profileData.specializations[0]?.name ?? ''} doctors`,
+                        to: `/patient/doctors?specialization=${encodeURIComponent(profileData.specializations[0]?.slug ?? '')}`,
+                      }}
+                    />
                   }
                 >
                   {() => (

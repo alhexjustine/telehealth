@@ -104,7 +104,7 @@ describe('DoctorRefillRequestsPage', () => {
 
     renderPage();
 
-    expect(screen.getByText(/no pending refill requests/i)).toBeInTheDocument();
+    expect(screen.getByText(/no pending requests/i)).toBeInTheDocument();
   });
 
   it('Links to the dependent-scoped patient record when the request is for a dependent', () => {

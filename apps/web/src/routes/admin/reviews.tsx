@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
+import { Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import {
   type AdminReviewListQuery,
 } from '@/lib/admin/use-admin-reviews';
 import { QueryState } from '@/components/query-state';
+import { EmptyState } from '@/components/empty-state';
 
 type AdminReviewItem = NonNullable<ReturnType<typeof useAdminReviews>['data']>['items'][number];
 type ModerationAction = 'hide' | 'unhide';
@@ -47,6 +49,7 @@ export function AdminReviewsPage() {
     pageSize: 20,
   };
   const reviews = useAdminReviews(query);
+  const hasFilters = Boolean(query.doctorName || query.doctorId || hiddenParam);
 
   function updateParam(key: string, value: string) {
     const next = new URLSearchParams(searchParams);
@@ -121,7 +124,17 @@ export function AdminReviewsPage() {
         query={reviews}
         label="reviews"
         isEmpty={(data) => data.items.length === 0}
-        empty={<p className="text-muted-foreground">No reviews match your filters.</p>}
+        empty={
+          <EmptyState
+            icon={Star}
+            title="No reviews found"
+            description={
+              hasFilters
+                ? 'No reviews match your filters. Try clearing them or changing the status.'
+                : 'Patient ratings and comments will show up here once a completed consultation is reviewed.'
+            }
+          />
+        }
       >
         {(data) => (
           <div className="flex flex-col gap-3">

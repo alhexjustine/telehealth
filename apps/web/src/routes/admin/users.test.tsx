@@ -59,4 +59,41 @@ describe('AdminUsersPage', () => {
     await userEvent.type(screen.getByLabelText(/reason/i), 'Credential fraud discovered');
     expect(confirmButton).not.toBeDisabled();
   });
+
+  it('Pages through accounts five at a time', async () => {
+    vi.mocked(useAdminUsers).mockReturnValue({
+      isPending: false,
+      data: {
+        items: [
+          {
+            id: 'pat-1',
+            email: 'pat@example.com',
+            role: 'PATIENT',
+            status: 'ACTIVE',
+            statusReason: null,
+            displayName: 'Ada Lovelace',
+            createdAt: new Date().toISOString(),
+            lastLoginAt: null,
+            upcomingAppointmentCount: 0,
+          },
+        ],
+        total: 12,
+        page: 1,
+        pageSize: 5,
+      },
+      status: 'success',
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+    vi.mocked(useChangeAccountStatus).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+
+    renderPage();
+
+    expect(useAdminUsers).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, pageSize: 5 }));
+    expect(screen.getByText(/page 1 of 3/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /next/i }));
+
+    expect(useAdminUsers).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2, pageSize: 5 }));
+  });
 });

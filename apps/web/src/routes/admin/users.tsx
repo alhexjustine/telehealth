@@ -18,10 +18,12 @@ import {
 import { useAdminUsers, useChangeAccountStatus, type AdminUserListQuery } from '@/lib/admin/use-admin-users';
 import { AdminAuditLink } from '@/components/admin/audit-link';
 import { QueryState } from '@/components/query-state';
+import { Pagination } from '@/components/pagination';
 
 type AdminUserItem = NonNullable<ReturnType<typeof useAdminUsers>['data']>['items'][number];
 type TargetStatus = 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
 
+const PAGE_SIZE = 5;
 const REASON_MIN_LENGTH = 5;
 const selectClassName =
   'h-9 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
@@ -42,7 +44,7 @@ export function AdminUsersPage() {
     role: (searchParams.get('role') as AdminUserListQuery['role']) || undefined,
     status: (searchParams.get('status') as AdminUserListQuery['status']) || undefined,
     page: Number(searchParams.get('page') ?? '1') || 1,
-    pageSize: 20,
+    pageSize: PAGE_SIZE,
   };
   const users = useAdminUsers(query);
 
@@ -51,6 +53,13 @@ export function AdminUsersPage() {
     if (value) next.set(key, value);
     else next.delete(key);
     next.delete('page');
+    setSearchParams(next);
+  }
+
+  function goToPage(page: number) {
+    const next = new URLSearchParams(searchParams);
+    if (page > 1) next.set('page', String(page));
+    else next.delete('page');
     setSearchParams(next);
   }
 
@@ -170,6 +179,7 @@ export function AdminUsersPage() {
                 </CardContent>
               </Card>
             ))}
+            <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={goToPage} />
           </div>
         )}
       </QueryState>

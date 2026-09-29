@@ -26,10 +26,15 @@ const schema = z
     lastName: z.string().min(1, 'Last name is required').max(100),
     email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
     password: passwordSchema,
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
   })
   .refine((values) => values.password.toLowerCase() !== values.email.toLowerCase(), {
     message: 'Password must not equal the email',
     path: ['password'],
+  })
+  .refine((values) => values.password === values.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
   });
 
 type FormValues = z.infer<typeof schema>;
@@ -41,12 +46,17 @@ export function RegisterPatientPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { firstName: '', lastName: '', email: '', password: '' },
+    defaultValues: { firstName: '', lastName: '', email: '', password: '', confirmPassword: '' },
   });
 
   async function onSubmit(values: FormValues) {
     try {
-      const user = await register.mutateAsync(values);
+      const user = await register.mutateAsync({
+        firstName: values.firstName,
+        lastName: values.lastName,
+        email: values.email,
+        password: values.password,
+      });
       await navigate(roleHomePath(user.role), { replace: true });
     } catch {
       // Surfaced via `register.isError`/`register.error` in the render below.
@@ -118,6 +128,19 @@ export function RegisterPatientPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" autoComplete="new-password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm password</FormLabel>
                     <FormControl>
                       <Input type="password" autoComplete="new-password" {...field} />
                     </FormControl>

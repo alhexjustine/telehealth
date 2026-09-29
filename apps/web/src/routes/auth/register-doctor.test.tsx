@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
 import { RegisterDoctorPage } from './register-doctor';
@@ -56,5 +57,23 @@ describe('RegisterDoctorPage', () => {
       'href',
       '/privacy',
     );
+  });
+
+  it('Confirm password must match password', async () => {
+    const mutateAsync = vi.fn();
+    vi.mocked(useRegisterDoctorMutation).mockReturnValue({
+      mutateAsync,
+      isPending: false,
+      isError: false,
+    } as never);
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText(/^password$/i), 'correct-horse-battery');
+    await userEvent.type(screen.getByLabelText(/confirm password/i), 'correct-horse-battery-typo');
+    await userEvent.click(screen.getByRole('button', { name: /create account/i }));
+
+    expect(await screen.findByText(/passwords do not match/i)).toBeInTheDocument();
+    expect(mutateAsync).not.toHaveBeenCalled();
   });
 });

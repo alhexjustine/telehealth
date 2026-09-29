@@ -13,6 +13,10 @@ type RescheduleAppointmentBody = NonNullable<
   ApiPaths['/appointments/{id}/reschedule']['post']['requestBody']
 >['content']['application/json'];
 
+type RebookAppointmentBody = NonNullable<
+  ApiPaths['/appointments/{id}/rebook']['post']['requestBody']
+>['content']['application/json'];
+
 type CancelAppointmentBody = NonNullable<
   ApiPaths['/appointments/{id}/cancel']['post']['requestBody']
 >['content']['application/json'];
@@ -69,6 +73,16 @@ export function useRescheduleAppointment() {
   return useMutation({
     mutationFn: async ({ id, body }: { id: string; body: RescheduleAppointmentBody }) =>
       unwrap(await apiClient.POST('/appointments/{id}/reschedule', { params: { path: { id } }, body })),
+    onSuccess: () => invalidateAppointmentQueries(queryClient),
+  });
+}
+
+/** A doctor's follow-up with the patient of an existing appointment (`POST /appointments/{id}/rebook`). */
+export function useRebookAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: RebookAppointmentBody }) =>
+      unwrap(await apiClient.POST('/appointments/{id}/rebook', { params: { path: { id } }, body })),
     onSuccess: () => invalidateAppointmentQueries(queryClient),
   });
 }

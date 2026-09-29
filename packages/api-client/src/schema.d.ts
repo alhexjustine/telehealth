@@ -531,8 +531,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Reschedules a booked appointment to another available slot with the same doctor */
+        /** Reschedules a booked appointment to another available slot with the same doctor; either participant may do so */
         post: operations["AppointmentsController_reschedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/appointments/{id}/rebook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Books a follow-up in one of the doctor’s available slots with the patient of an existing appointment */
+        post: operations["AppointmentsController_rebook"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1607,6 +1624,15 @@ export interface components {
              * @description The new slot start, with the same doctor
              */
             startsAt: string;
+        };
+        RebookAppointmentDto: {
+            /**
+             * Format: date-time
+             * @description The follow-up slot start, as returned by the slots endpoint
+             */
+            startsAt: string;
+            /** @description Defaults to "Follow-up: <original reason>" */
+            reason?: string;
         };
         CancelAppointmentDto: {
             reason?: string;
@@ -2942,6 +2968,40 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RescheduleAppointmentDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentResponseDto"];
+                };
+            };
+            /** @description A business rule was violated (see the code field) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponseDto"];
+                };
+            };
+        };
+    };
+    AppointmentsController_rebook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RebookAppointmentDto"];
             };
         };
         responses: {

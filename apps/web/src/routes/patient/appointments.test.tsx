@@ -4,7 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PatientAppointmentsPage } from './appointments';
-import { useAppointments, useCancelAppointment, useRescheduleAppointment } from '@/lib/appointments/use-appointments';
+import {
+  useAppointments,
+  useCancelAppointment,
+  useRescheduleAppointment,
+} from '@/lib/appointments/use-appointments';
 import { useDoctorSlots } from '@/lib/availability/use-availability';
 
 vi.mock('@/lib/appointments/use-appointments', () => ({
@@ -66,8 +70,14 @@ describe('PatientAppointmentsPage', () => {
         isPending: false,
       };
     }) as never);
-    vi.mocked(useCancelAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
-    vi.mocked(useRescheduleAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+    vi.mocked(useCancelAppointment).mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as never);
+    vi.mocked(useRescheduleAppointment).mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as never);
     vi.mocked(useDoctorSlots).mockReturnValue({ data: [], isPending: false } as never);
 
     renderPage();
@@ -91,8 +101,14 @@ describe('PatientAppointmentsPage', () => {
       refetch: vi.fn(),
       isPending: false,
     } as never);
-    vi.mocked(useCancelAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
-    vi.mocked(useRescheduleAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+    vi.mocked(useCancelAppointment).mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as never);
+    vi.mocked(useRescheduleAppointment).mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as never);
     vi.mocked(useDoctorSlots).mockReturnValue({ data: [], isPending: false } as never);
 
     renderPage();
@@ -113,7 +129,7 @@ describe('PatientAppointmentsPage', () => {
                 id: 'apt-1',
                 startsAt: inThreeHours,
                 endsAt: new Date(new Date(inThreeHours).getTime() + 30 * 60_000).toISOString(),
-                status: 'BOOKED',
+                status: 'COMPLETED',
                 reason: 'Follow-up',
                 doctor: { id: 'doc-1', displayName: 'Dr. Grace Hopper', specializations: [] },
                 patient: { id: 'pat-1', displayName: 'Ada Lovelace', age: 30 },
@@ -143,15 +159,71 @@ describe('PatientAppointmentsPage', () => {
         isPending: false,
       };
     }) as never);
-    vi.mocked(useCancelAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
-    vi.mocked(useRescheduleAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+    vi.mocked(useCancelAppointment).mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as never);
+    vi.mocked(useRescheduleAppointment).mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as never);
     vi.mocked(useDoctorSlots).mockReturnValue({ data: [], isPending: false } as never);
 
     renderPage();
 
     const bookAgainLink = screen.getByRole('link', { name: /book again/i });
     expect(bookAgainLink).toHaveAttribute('href', '/patient/doctors/doc-1?dependent=dep-1');
+    // A completed appointment is not upcoming, so it can't be rescheduled.
+    expect(screen.queryByRole('button', { name: /^reschedule$/i })).not.toBeInTheDocument();
   });
+  it('Book again is not offered on an upcoming appointment', () => {
+    const inThreeHours = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
+    vi.mocked(useAppointments).mockImplementation(((scope: string) => ({
+      data: {
+        items:
+          scope === 'upcoming'
+            ? [
+                {
+                  id: 'apt-1',
+                  startsAt: inThreeHours,
+                  endsAt: new Date(new Date(inThreeHours).getTime() + 30 * 60_000).toISOString(),
+                  status: 'BOOKED',
+                  reason: 'Upcoming check-up',
+                  doctor: { id: 'doc-1', displayName: 'Dr. Grace Hopper', specializations: [] },
+                  patient: { id: 'pat-1', displayName: 'Ada Lovelace', age: 30 },
+                  dependent: null,
+                  symptoms: [],
+                  cancelledAt: null,
+                  cancellationReason: null,
+                  cancelledByRole: null,
+                  rescheduledFromId: null,
+                },
+              ]
+            : [],
+        total: scope === 'upcoming' ? 1 : 0,
+        page: 1,
+        pageSize: 5,
+      },
+      status: 'success',
+      error: null,
+      refetch: vi.fn(),
+      isPending: false,
+    })) as never);
+    vi.mocked(useCancelAppointment).mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as never);
+    vi.mocked(useRescheduleAppointment).mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as never);
+    vi.mocked(useDoctorSlots).mockReturnValue({ data: [], isPending: false } as never);
+
+    renderPage();
+
+    expect(screen.queryByRole('link', { name: /book again/i })).not.toBeInTheDocument();
+  });
+
   it('Pages through appointments five at a time', async () => {
     const item = {
       id: 'apt-1',
@@ -174,8 +246,14 @@ describe('PatientAppointmentsPage', () => {
       refetch: vi.fn(),
       isPending: false,
     })) as never);
-    vi.mocked(useCancelAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
-    vi.mocked(useRescheduleAppointment).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as never);
+    vi.mocked(useCancelAppointment).mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as never);
+    vi.mocked(useRescheduleAppointment).mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    } as never);
     vi.mocked(useDoctorSlots).mockReturnValue({ data: [], isPending: false } as never);
 
     renderPage();

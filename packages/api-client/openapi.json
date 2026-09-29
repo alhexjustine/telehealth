@@ -1610,7 +1610,63 @@
             "th_session": []
           }
         ],
-        "summary": "Reschedules a booked appointment to another available slot with the same doctor",
+        "summary": "Reschedules a booked appointment to another available slot with the same doctor; either participant may do so",
+        "tags": [
+          "appointments"
+        ]
+      }
+    },
+    "/appointments/{id}/rebook": {
+      "post": {
+        "operationId": "AppointmentsController_rebook",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RebookAppointmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A business rule was violated (see the code field)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "th_session": []
+          }
+        ],
+        "summary": "Books a follow-up in one of the doctor’s available slots with the patient of an existing appointment",
         "tags": [
           "appointments"
         ]
@@ -5397,6 +5453,25 @@
             "type": "string",
             "format": "date-time",
             "description": "The new slot start, with the same doctor"
+          }
+        },
+        "required": [
+          "startsAt"
+        ]
+      },
+      "RebookAppointmentDto": {
+        "type": "object",
+        "properties": {
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The follow-up slot start, as returned by the slots endpoint"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500,
+            "description": "Defaults to \"Follow-up: <original reason>\""
           }
         },
         "required": [

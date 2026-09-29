@@ -95,64 +95,80 @@ export function PatientAppointmentsPage() {
                 {data.items.map((appointment) => {
                   const minutesUntilStart =
                     (new Date(appointment.startsAt).getTime() - now) / 60_000;
+                  const isUpcoming =
+                    appointment.status === 'BOOKED' &&
+                    new Date(appointment.startsAt).getTime() > now;
                   const canReschedule =
                     appointment.status === 'BOOKED' &&
                     minutesUntilStart >= RESCHEDULE_CUTOFF_MINUTES;
                   const canCancel = appointment.status === 'BOOKED' && minutesUntilStart > 0;
 
                   return (
-                    <Card key={appointment.id}>
+                    <Card key={appointment.id} className="transition-shadow hover:shadow-md">
                       <CardContent
-                        className="flex cursor-pointer flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between"
+                        className="flex cursor-pointer flex-col gap-4 pt-6"
                         onClick={() => void navigate(`/patient/appointments/${appointment.id}`)}
                       >
-                        <div>
-                          <span className="font-medium">
-                            {formatSlotDateAndTime(appointment.startsAt, timezone)}
-                          </span>
-                          <p className="text-sm text-muted-foreground">
-                            {appointment.doctor.displayName}
-                          </p>
-                          {appointment.dependent && (
-                            <p className="text-sm text-muted-foreground">
-                              For {appointment.dependent.displayName} (
-                              {relationshipLabel(appointment.dependent.relationship)})
-                            </p>
-                          )}
-                          <p className="text-sm text-muted-foreground">{appointment.reason}</p>
-                        </div>
-                        <div
-                          className="flex flex-col items-start gap-2 sm:items-end"
-                          onClick={(event) => event.stopPropagation()}
-                        >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-display text-lg font-semibold">
+                              {formatSlotDateAndTime(appointment.startsAt, timezone)}
+                            </span>
+                            <p className="font-medium">{appointment.doctor.displayName}</p>
+                            {appointment.dependent && (
+                              <p className="text-xs text-muted-foreground">
+                                For {appointment.dependent.displayName} (
+                                {relationshipLabel(appointment.dependent.relationship)})
+                              </p>
+                            )}
+                          </div>
                           <Badge variant={statusVariant(appointment.status)}>
                             {appointment.status}
                           </Badge>
+                        </div>
+
+                        <p className="text-sm text-muted-foreground">{appointment.reason}</p>
+
+                        <div
+                          className="flex flex-wrap items-center gap-2 border-t border-border pt-4"
+                          onClick={(event) => event.stopPropagation()}
+                        >
                           <JoinConsultationButton
                             appointmentId={appointment.id}
                             status={appointment.status}
                             startsAt={appointment.startsAt}
                             endsAt={appointment.endsAt}
                           />
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2 sm:ml-auto">
+                            {isUpcoming && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={!canReschedule}
+                                title={
+                                  canReschedule
+                                    ? undefined
+                                    : 'Rescheduling closes 2 hours before the appointment starts'
+                                }
+                                onClick={() => setRescheduleTarget(appointment)}
+                              >
+                                Reschedule
+                              </Button>
+                            )}
+                            {!isUpcoming && (
+                              <Link
+                                to={`/patient/doctors/${appointment.doctor.id}?dependent=${appointment.dependent?.id ?? ''}`}
+                                className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                              >
+                                Book again
+                              </Link>
+                            )}
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
-                              disabled={!canReschedule}
-                              title={
-                                canReschedule
-                                  ? undefined
-                                  : 'Rescheduling closes 2 hours before the appointment starts'
-                              }
-                              onClick={() => setRescheduleTarget(appointment)}
-                            >
-                              Reschedule
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
+                              className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
                               disabled={!canCancel}
                               title={
                                 canCancel
@@ -163,12 +179,6 @@ export function PatientAppointmentsPage() {
                             >
                               Cancel
                             </Button>
-                            <Link
-                              to={`/patient/doctors/${appointment.doctor.id}?dependent=${appointment.dependent?.id ?? ''}`}
-                              className={buttonVariants({ variant: 'outline', size: 'sm' })}
-                            >
-                              Book again
-                            </Link>
                           </div>
                         </div>
                       </CardContent>

@@ -15,6 +15,7 @@ import { ErrorResponseDto } from '../common/dto/error-response.dto.js';
 import { AppointmentsService } from './appointments.service.js';
 import { CreateAppointmentDto } from './dto/create-appointment.dto.js';
 import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto.js';
+import { RebookAppointmentDto } from './dto/rebook-appointment.dto.js';
 import { CancelAppointmentDto } from './dto/cancel-appointment.dto.js';
 import {
   AppointmentListQueryDto,
@@ -69,8 +70,11 @@ export class AppointmentsController {
   }
 
   @Post(':id/reschedule')
-  @Roles(Role.PATIENT)
-  @ApiOperation({ summary: 'Reschedules a booked appointment to another available slot with the same doctor' })
+  @Roles(Role.PATIENT, Role.DOCTOR)
+  @ApiOperation({
+    summary:
+      'Reschedules a booked appointment to another available slot with the same doctor; either participant may do so',
+  })
   @ApiCreatedResponse({ type: AppointmentResponseDto })
   @ApiResponse({ status: 409, description: 'A business rule was violated (see the code field)', type: ErrorResponseDto })
   async reschedule(
@@ -78,7 +82,22 @@ export class AppointmentsController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() dto: RescheduleAppointmentDto,
   ): Promise<AppointmentResponseDto> {
-    return this.appointmentsService.reschedule(user.id, id, dto);
+    return this.appointmentsService.reschedule(user, id, dto);
+  }
+
+  @Post(':id/rebook')
+  @Roles(Role.DOCTOR)
+  @ApiOperation({
+    summary: 'Books a follow-up in one of the doctor’s available slots with the patient of an existing appointment',
+  })
+  @ApiCreatedResponse({ type: AppointmentResponseDto })
+  @ApiResponse({ status: 409, description: 'A business rule was violated (see the code field)', type: ErrorResponseDto })
+  async rebook(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() dto: RebookAppointmentDto,
+  ): Promise<AppointmentResponseDto> {
+    return this.appointmentsService.rebook(user.id, id, dto);
   }
 
   @Post(':id/cancel')

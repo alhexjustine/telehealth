@@ -16,11 +16,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useAppointments, useCancelAppointment } from '@/lib/appointments/use-appointments';
+import {
+  useAppointments,
+  useCancelAppointment,
+  useRebookAppointment,
+  useRescheduleAppointment,
+} from '@/lib/appointments/use-appointments';
 import { formatSlotDateAndTime } from '@/lib/discovery/slot-grouping';
 import { JoinConsultationButton } from '@/components/join-consultation-button';
 import { QueryState } from '@/components/query-state';
 import { Pagination } from '@/components/pagination';
+import { SlotPickerDialog } from '@/components/slot-picker-dialog';
 import { relationshipLabel } from '@/lib/dependents/relationship-label';
 
 type AppointmentDto =
@@ -29,6 +35,8 @@ type AppointmentDto =
 const PAGE_SIZE = 5;
 
 const CANCEL_REASON_MIN_LENGTH = 5;
+const RESCHEDULE_CUTOFF_MINUTES = 120;
+const FOLLOW_UP_HORIZON_DAYS = 30;
 
 function statusVariant(status: AppointmentDto['status']): 'default' | 'secondary' | 'outline' {
   if (status === 'BOOKED') return 'default';
@@ -44,6 +52,10 @@ export function DoctorAppointmentsPage() {
   const past = useAppointments('past', pages.past, PAGE_SIZE);
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [cancelTarget, setCancelTarget] = useState<AppointmentDto | undefined>(undefined);
+  const [rescheduleTarget, setRescheduleTarget] = useState<AppointmentDto | undefined>(undefined);
+  const [rebookTarget, setRebookTarget] = useState<AppointmentDto | undefined>(undefined);
+  const reschedule = useRescheduleAppointment();
+  const rebook = useRebookAppointment();
   // Captured once per render (not read inside the .map() below) so the
   // "now" comparison stays a pure render computation.
   const now = useMemo(() => new Date().getTime(), []);
@@ -79,29 +91,44 @@ export function DoctorAppointmentsPage() {
                   const canCancel =
                     appointment.status === 'BOOKED' &&
                     new Date(appointment.startsAt).getTime() > now;
+                  const isUpcoming =
+                    appointment.status === 'BOOKED' &&
+                    new Date(appointment.startsAt).getTime() > now;
+                  const canReschedule =
+                    appointment.status === 'BOOKED' &&
+                    (new Date(appointment.startsAt).getTime() - now) / 60_000 >=
+                      RESCHEDULE_CUTOFF_MINUTES;
                   return (
-                    <Card key={appointment.id}>
+                    <Card key={appointment.id} className="transition-shadow hover:shadow-md">
                       <CardContent
-                        className="flex cursor-pointer flex-col gap-2 pt-6 sm:flex-row sm:items-center sm:justify-between"
+                        className="flex cursor-pointer flex-col gap-4 pt-6"
                         onClick={() => void navigate(`/doctor/appointments/${appointment.id}`)}
                       >
-                        <div>
-                          <span className="font-medium">
-                            {formatSlotDateAndTime(appointment.startsAt, timezone)}
-                          </span>
-                          <p className="text-sm text-muted-foreground">
-                            {appointment.dependent
-                              ? `${appointment.dependent.displayName} (${relationshipLabel(appointment.dependent.relationship)})`
-                              : `${appointment.patient.displayName}${appointment.patient.age !== null ? `, ${appointment.patient.age}` : ''}`}
-                          </p>
-                          {appointment.dependent && (
-                            <p className="text-xs text-muted-foreground">
-                              Booked by {appointment.patient.displayName}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-display text-lg font-semibold">
+                              {formatSlotDateAndTime(appointment.startsAt, timezone)}
+                            </span>
+                            <p className="font-medium">
+                              {appointment.dependent
+                                ? `${appointment.dependent.displayName} (${relationshipLabel(appointment.dependent.relationship)})`
+                                : `${appointment.patient.displayName}${appointment.patient.age !== null ? `, ${appointment.patient.age}` : ''}`}
                             </p>
-                          )}
+                            {appointment.dependent && (
+                              <p className="text-xs text-muted-foreground">
+                                Booked by {appointment.patient.displayName}
+                              </p>
+                            )}
+                          </div>
+                          <Badge variant={statusVariant(appointment.status)}>
+                            {appointment.status}
+                          </Badge>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
                           <p className="text-sm text-muted-foreground">{appointment.reason}</p>
                           {appointment.symptoms.length > 0 && (
-                            <div className="mt-1 flex flex-wrap gap-1">
+                            <div className="flex flex-wrap gap-1">
                               {appointment.symptoms.map((symptom) => (
                                 <Badge key={symptom.id} variant="secondary">
                                   {symptom.name}
@@ -110,31 +137,60 @@ export function DoctorAppointmentsPage() {
                             </div>
                           )}
                         </div>
+
                         <div
-                          className="flex flex-col items-start gap-2 sm:items-end"
+                          className="flex flex-wrap items-center gap-2 border-t border-border pt-4"
                           onClick={(event) => event.stopPropagation()}
                         >
-                          <Badge variant={statusVariant(appointment.status)}>
-                            {appointment.status}
-                          </Badge>
                           <JoinConsultationButton
                             appointmentId={appointment.id}
                             status={appointment.status}
                             startsAt={appointment.startsAt}
                             endsAt={appointment.endsAt}
                           />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={!canCancel}
-                            title={
-                              canCancel ? undefined : 'This appointment can no longer be cancelled'
-                            }
-                            onClick={() => setCancelTarget(appointment)}
-                          >
-                            Cancel
-                          </Button>
+                          <div className="flex flex-wrap gap-2 sm:ml-auto">
+                            {isUpcoming && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={!canReschedule}
+                                title={
+                                  canReschedule
+                                    ? undefined
+                                    : 'Rescheduling closes 2 hours before the appointment starts'
+                                }
+                                onClick={() => setRescheduleTarget(appointment)}
+                              >
+                                Reschedule
+                              </Button>
+                            )}
+                            {!isUpcoming && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setRebookTarget(appointment)}
+                              >
+                                Book again
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              disabled={!canCancel}
+                              title={
+                                canCancel
+                                  ? undefined
+                                  : 'This appointment can no longer be cancelled'
+                              }
+                              onClick={() => setCancelTarget(appointment)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -153,6 +209,51 @@ export function DoctorAppointmentsPage() {
       </Tabs>
 
       <DoctorCancelDialog appointment={cancelTarget} onClose={() => setCancelTarget(undefined)} />
+
+      <SlotPickerDialog
+        open={rescheduleTarget !== undefined}
+        doctorId={rescheduleTarget?.doctor.id}
+        title={`Reschedule with ${rescheduleTarget?.patient.displayName ?? ''}`}
+        description="Choose a new time. The current appointment will be cancelled and the patient notified."
+        pending={reschedule.isPending}
+        onClose={() => setRescheduleTarget(undefined)}
+        onPick={(start) =>
+          void (async () => {
+            if (!rescheduleTarget) return;
+            try {
+              await reschedule.mutateAsync({ id: rescheduleTarget.id, body: { startsAt: start } });
+              toast.success('Appointment rescheduled');
+              setRescheduleTarget(undefined);
+            } catch (error) {
+              toast.error(
+                error instanceof Error ? error.message : 'Could not reschedule the appointment',
+              );
+            }
+          })()
+        }
+      />
+
+      <SlotPickerDialog
+        open={rebookTarget !== undefined}
+        doctorId={rebookTarget?.doctor.id}
+        title={`Book a follow-up with ${rebookTarget?.patient.displayName ?? ''}`}
+        description="Choose a time for a new appointment. The patient will be notified."
+        horizonDays={FOLLOW_UP_HORIZON_DAYS}
+        pending={rebook.isPending}
+        onClose={() => setRebookTarget(undefined)}
+        onPick={(start) =>
+          void (async () => {
+            if (!rebookTarget) return;
+            try {
+              await rebook.mutateAsync({ id: rebookTarget.id, body: { startsAt: start } });
+              toast.success('Follow-up booked');
+              setRebookTarget(undefined);
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : 'Could not book the follow-up');
+            }
+          })()
+        }
+      />
     </div>
   );
 }

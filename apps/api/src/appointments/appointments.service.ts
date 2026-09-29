@@ -23,6 +23,7 @@ import { BookingRules } from './booking-rules.js';
 import { RESCHEDULE_CUTOFF_MINUTES } from './booking.constants.js';
 import type { CreateAppointmentDto } from './dto/create-appointment.dto.js';
 import type { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto.js';
+import type { RebookAppointmentDto } from './dto/rebook-appointment.dto.js';
 import type { CancelAppointmentDto } from './dto/cancel-appointment.dto.js';
 import type { AppointmentScope } from './dto/appointment-list-query.dto.js';
 import type {
@@ -75,19 +76,58 @@ export class AppointmentsService {
   ) {}
 
   async book(patientId: string, dto: CreateAppointmentDto): Promise<AppointmentResponseDto> {
-    const startsAt = new Date(dto.startsAt);
+    return this.createAppointment({
+      patientId,
+      doctorId: dto.doctorId,
+      dependentId: dto.dependentId,
+      startsAt: new Date(dto.startsAt),
+      reason: dto.reason,
+      symptomIds: dto.symptomIds,
+    });
+  }
+
+  /**
+   * A doctor books a follow-up with a patient (and dependent, if any) they
+   * already have an appointment with. The source appointment is what proves the
+   * relationship, so a doctor can never book an arbitrary patient. The same
+   * booking rules as a patient booking apply (`BookingRules.assertBookable`).
+   */
+  async rebook(doctorId: string, sourceAppointmentId: string, dto: RebookAppointmentDto): Promise<AppointmentResponseDto> {
+    const source = await this.prisma.appointment.findUnique({ where: { id: sourceAppointmentId } });
+    if (!source || source.doctorId !== doctorId) {
+      throw new NotFoundException('Appointment not found');
+    }
+
+    return this.createAppointment({
+      patientId: source.patientId,
+      doctorId,
+      dependentId: source.dependentId ?? undefined,
+      startsAt: new Date(dto.startsAt),
+      reason: dto.reason?.trim() || `Follow-up: ${source.reason}`.slice(0, 500),
+    });
+  }
+
+  private async createAppointment(params: {
+    patientId: string;
+    doctorId: string;
+    dependentId?: string;
+    startsAt: Date;
+    reason: string;
+    symptomIds?: string[];
+  }): Promise<AppointmentResponseDto> {
+    const { patientId, doctorId, dependentId, startsAt, reason } = params;
     const now = new Date();
-    const symptomIds = await this.validateSymptomIds(dto.symptomIds);
+    const symptomIds = await this.validateSymptomIds(params.symptomIds);
 
     const { result: created, notifications } = await withNotifications(
       this.prisma,
       this.notificationsService,
       async (tx, notify) => {
-        await this.assertDependentOwned(tx, patientId, dto.dependentId);
+        await this.assertDependentOwned(tx, patientId, dependentId);
 
         const { endsAt } = await this.bookingRules.assertBookable(tx, {
           patientId,
-          doctorId: dto.doctorId,
+          doctorId,
           startsAt,
           now,
         });
@@ -97,11 +137,11 @@ export class AppointmentsService {
           appointment = await tx.appointment.create({
             data: {
               patientId,
-              doctorId: dto.doctorId,
-              dependentId: dto.dependentId,
+              doctorId,
+              dependentId,
               startsAt,
               endsAt,
-              reason: dto.reason,
+              reason,
               symptoms:
                 symptomIds.length > 0 ? { create: symptomIds.map((symptomId) => ({ symptomId })) } : undefined,
             },
@@ -128,7 +168,7 @@ export class AppointmentsService {
   }
 
   async reschedule(
-    patientId: string,
+    caller: AppointmentCaller,
     appointmentId: string,
     dto: RescheduleAppointmentDto,
   ): Promise<AppointmentResponseDto> {
@@ -140,7 +180,7 @@ export class AppointmentsService {
       this.notificationsService,
       async (tx, notify) => {
         const original = await tx.appointment.findUnique({ where: { id: appointmentId } });
-        if (!original || original.patientId !== patientId) {
+        if (!original || !this.isParticipant(caller, original)) {
           throw new NotFoundException('Appointment not found');
         }
 
@@ -171,7 +211,7 @@ export class AppointmentsService {
           data: {
             status: AppointmentStatus.CANCELLED,
             cancelledAt: now,
-            cancelledById: patientId,
+            cancelledById: caller.id,
             cancellationReason: 'Rescheduled',
           },
         });

@@ -50,7 +50,10 @@ export async function registerDoctor(page: Page, registration: DoctorRegistratio
   await page.getByLabel('First name').fill(registration.firstName);
   await page.getByLabel('Last name').fill(registration.lastName);
   await page.getByLabel('Email').fill(registration.email);
-  await page.getByLabel('Password').fill(registration.password ?? TEST_PASSWORD);
+  // `exact`: the registration forms also have a "Confirm password" field, which a bare
+  // `getByLabel('Password')` substring-matches too.
+  await page.getByLabel('Password', { exact: true }).fill(registration.password ?? TEST_PASSWORD);
+  await page.getByLabel('Confirm password').fill(registration.password ?? TEST_PASSWORD);
   await page.getByLabel('License number').fill(registration.licenseNumber ?? `LIC-${uniqueSuffix()}`);
   const firstSpecialization = page.getByRole('checkbox').first();
   await expect(firstSpecialization).toBeVisible({ timeout: 15_000 });
@@ -75,7 +78,10 @@ export async function registerPatient(page: Page, registration: PatientRegistrat
   await page.getByLabel('First name').fill(registration.firstName);
   await page.getByLabel('Last name').fill(registration.lastName);
   await page.getByLabel('Email').fill(registration.email);
-  await page.getByLabel('Password').fill(registration.password ?? TEST_PASSWORD);
+  // `exact`: the registration forms also have a "Confirm password" field, which a bare
+  // `getByLabel('Password')` substring-matches too.
+  await page.getByLabel('Password', { exact: true }).fill(registration.password ?? TEST_PASSWORD);
+  await page.getByLabel('Confirm password').fill(registration.password ?? TEST_PASSWORD);
   await page.getByRole('button', { name: 'Create account' }).click();
   // Same reasoning as `registerDoctor`: an exact pathname match, since
   // `**/patient` would also match `/register/patient`.
